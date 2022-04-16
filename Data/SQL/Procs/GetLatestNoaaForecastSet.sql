@@ -1,0 +1,15 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [GetLatestNoaaForecastSet]
+AS
+BEGIN
+
+  SELECT * FROM NoaaForecasts 
+    WHERE Created = (SELECT TOP 1 Created FROM NoaaForecasts ORDER BY Created DESC)
+    ORDER BY ForecastId ASC
+
+END
+GO

@@ -1,0 +1,2 @@
+﻿It's just a temporary folder. it is used to upload a picture here, and then upload this picture to azure. 
+After uploading Picture, picture is deleted from this folder.

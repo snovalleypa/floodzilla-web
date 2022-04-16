@@ -1,0 +1,23 @@
+/****** Object:  Table [HydroUpdates]    Script Date: 12/20/2019 11:32:51 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [HydroUpdates](
+	[FetchId] [int] IDENTITY(1,1) NOT NULL,
+	[FetchedOn] [datetime] NULL,
+	[RegionId] [int] NULL,
+ CONSTRAINT [PK_HydroUpdates] PRIMARY KEY CLUSTERED 
+(
+	[FetchId] ASC
+)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Index [nci_wi_HydroUpdates_C826FDA9EE5E9F5D7FDEFB197EC630BC]    Script Date: 12/20/2019 11:32:51 AM ******/
+CREATE NONCLUSTERED INDEX [nci_wi_HydroUpdates_C826FDA9EE5E9F5D7FDEFB197EC630BC] ON [HydroUpdates]
+(
+	[RegionId] ASC
+)WITH (STATISTICS_NORECOMPUTE = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [HydroUpdates] ADD  CONSTRAINT [DF_WeatherUpdates_FetchedOn]  DEFAULT (getutcdate()) FOR [FetchedOn]
+GO

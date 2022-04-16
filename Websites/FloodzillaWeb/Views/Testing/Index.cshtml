@@ -1,0 +1,85 @@
+@{ 
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Testing Tools";
+}
+
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+          <div class="card-header">
+            <div class="card-title">Testing Tools</div>
+          </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+  <div class="col-sm">
+    <div class="card">
+      <div class="card-header">Data Tools</div>
+      <div class="card-body">
+        <ul>
+          <li class="dropdown-item"><a asp-controller="Testing" asp-action="CreateReading" class="">Create Fake Readings</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-sm">
+    <div class="card">
+      <div class="card-header">Forecast Email Testing</div>
+      <div class="card-body">
+        <ul>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="GetForecastJson" asp-route-forecastType="latest" class="">
+              Get JSON for latest forecast
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="SendForecastEmail" asp-route-forecastType="latest" class="">
+              Send yourself alert email for latest forecast
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="ProcessForecast" asp-route-forecastType="latest" class="">
+              DANGER! Process the latest forecast
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="GetForecastJson" asp-route-forecastType="flooding" class="">
+              Get JSON for a flooding forecast
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="SendForecastEmail" asp-route-forecastType="flooding" class="">
+              Send yourself alert email for a flooding forecast
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="ProcessForecast" asp-route-forecastType="flooding" class="">
+              DANGER! Send flooding forecast to subscribed users
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="GetForecastJson" asp-route-forecastType="clear" class="">
+              Get JSON for an all-clear (after flood) forecast
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="SendForecastEmail" asp-route-forecastType="clear" class="">
+              Send yourself alert email for an all-clear (after flood) forecast
+            </a>
+          </li>
+          <li class="dropdown-item">
+            <a asp-controller="Testing" asp-action="DISABLED_ProcessForecast" asp-route-forecastType="clear" class="">
+              DANGER! Send all-clear (after flood) forecast to subscribed users
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+

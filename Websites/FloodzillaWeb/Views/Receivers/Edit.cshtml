@@ -1,0 +1,205 @@
+@model FzCommon.ReceiverBase
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Edit Receiver";
+}
+<style>
+    #map {
+        height: 250px;
+        width: 100%;
+    }
+</style>
+
+<partial name="_showMessage" />
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div asp-validation-summary="All" class="text-danger"></div>
+<form asp-action="Edit" method="post" class="form-horizontal" autocomplete="off">
+  <input type="hidden" id="RegionId" value="1" />
+  <input type="hidden" asp-for="ReceiverId" />
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">External Receiver ID:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="ExternalReceiverId" readonly class="form-control" />
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Current IP Address:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="LatestIPAddress" readonly class="form-control" />
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Attached Locations:</label>
+    </div>
+    <div class="col-md-10">
+      <ul style="padding-top:8px;padding-inline-start:18px;">
+        @foreach (string loc in (string[])ViewBag.AttachedLocations)
+        {
+          <li>@loc</li>
+        }
+      </ul>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Name" class="control-label">Receiver Name:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Name" class="form-control" />
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Location" class="control-label">Receiver Location:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Location" class="form-control"/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="ContactInfo" class="control-label">Contact Info:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="ContactInfo" class="form-control"/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Description" class="control-label">Description:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Description" class="form-control"/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="ConnectionInfo" class="control-label">Connection Info:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="ConnectionInfo" class="form-control"/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="SimId" class="control-label">SIM Id:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="SimId" class="form-control"/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Latitude" class="control-label">Latitude/Longitude:</label>
+    </div>
+    <div class="col-md-2">
+      <input asp-for="Latitude" class="form-control" type="number" size="30"/>
+    </div>
+    <div class="col-md-2">
+      <input asp-for="Longitude" class="form-control" type="number" size="30"/>
+    </div>
+    <div class="col-md-6">
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Change Reason (optional):</label>
+    </div>
+    <div class="col-md-10">
+      <input type="text" name="ChangeReason" class="form-control" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+  </div>
+</form>
+@section Scripts{
+
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        $(function () {
+
+            $("#Latitude").change(function () {
+                updateMapMarker();
+            });
+
+            $("#Longitude").change(function () {
+                updateMapMarker();
+            });
+        });
+
+        var map;
+        var marker;
+        function initMap() {
+            var lat=@( Model.Latitude.HasValue?Model.Latitude: 47.608013 );
+            var long=@( Model.Longitude.HasValue?Model.Longitude: -122.335167 );
+            var latlong = { lat:lat , lng:long };
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: latlong,
+                zoom:8
+            });
+            var showMarker= @(Model.Latitude.HasValue? 1:0);
+            var bounds = new google.maps.LatLngBounds();
+
+            if(showMarker==1)
+            {
+                marker = new google.maps.Marker({
+                    position: latlong,
+                    map: map
+                });
+                bounds.extend(marker.getPosition());
+                map.fitBounds(bounds);
+
+                google.maps.event.addListenerOnce(map, 'zoom_changed', function() {
+                    var oldZoom = map.getZoom();
+                    if(oldZoom>18)
+                        map.setZoom(18); //Or whatever
+                });
+            }
+
+            google.maps.event.addListener(map, 'click', function (event) {
+                latlong = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+                $("#Latitude").val(latlong.lat);
+                $("#Longitude").val(latlong.lng);
+                if (marker && marker.setMap) {
+                    marker.setMap(null);
+                }
+                marker = new google.maps.Marker({
+                    position: latlong,
+                    map: map
+                });
+            });
+        }
+
+        function updateMapMarker() {
+            var lat = parseFloat($("#Latitude").val());
+            var long = parseFloat($("#Longitude").val());
+            if (!isNaN(lat) && !isNaN(long)) {
+                latlong = { lat: lat, lng: long };
+                if (marker && marker.setMap) {
+                    marker.setMap(null);
+                }
+                marker = new google.maps.Marker({
+                    position: latlong,
+                    map: map
+                });
+                map.setCenter(latlong);
+            }
+        }
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@FzCommon.FzConfig.Config[FzCommon.FzConfig.Keys.GoogleMapsApiKey]&callback=initMap" async defer></script>
+}

@@ -1,0 +1,17 @@
+@{
+    ViewData["Title"] = ViewData["Subject"];
+}
+
+<style>
+    body {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+</style>
+
+  <h2>GAGE RECOVERED: @Model.Location.PublicLocationId - @Model.Location.LocationName</h2>
+
+  <br /><a href="@EmailHelpers.GetGageLink(Model.Region, Model.Location)">View Gage</a> | <a href="@EmailHelpers.GetGageAdminLink(Model.Region, Model.Location)">View Gage Admin</a>
+  <br />
+  Last Reading: @EmailHelpers.RenderTimestamp(Model.Region, Model.LastReading.Timestamp) -- Gage was marked offline at @EmailHelpers.RenderTimestamp(Model.Region, Model.OfflineDetected)<br />

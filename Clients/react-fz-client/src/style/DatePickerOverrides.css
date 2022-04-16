@@ -1,0 +1,12 @@
+.DateInput_input__small {
+  color: #808080;
+}
+
+/* @media only screen and (max-width: 768px) {
+  .DateRangePickerInput_arrow {
+    display: none;
+  }
+  .DateInput__small {
+    display: none;
+  }
+} */

@@ -1,0 +1,67 @@
+@{
+    Layout = "_AdminLayout";
+}
+
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+          <div class="card-header">
+            <div class="card-title">Admin Dashboard</div>
+          </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+@if (User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("Organization Admin")))
+{
+  <div class="col-sm">
+    <div class="card" style="width:20rem;">
+      <div class="card-header">Administration</div>
+      <div class="card-body">
+        <ul>
+          <li class="dropdown-item"><a asp-controller="LogBook" asp-action="Index" class="">Change Log</a></li>
+          <li class="dropdown-item"><a asp-controller="Users" asp-action="Index" class="">Users</a></li>
+          <li class="dropdown-item"><a asp-controller="FloodEvents" asp-action="Index" class="">Flood Events</a></li>
+          <li class="dropdown-item"><a asp-controller="Regions" asp-action="Index" class="">Regions</a></li>
+          <li class="dropdown-item"><a asp-controller="Organizations" asp-action="Index" class="">Organizations</a></li>
+          <li class="dropdown-item"><a asp-controller="Uploads" asp-action="Index" class="">Uploads</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+}
+@if (User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("Organization Admin")))
+{
+  <div class="col-sm">
+    <div class="card" style="width:20rem;">
+      <div class="card-header">Gage Management</div>
+      <div class="card-body">
+        <ul>
+          <li class="dropdown-item"><a asp-controller="Locations" asp-action="Index" class="">Locations</a></li>
+          <li class="dropdown-item"><a asp-controller="Devices" asp-action="Index" class="">Devices</a></li>
+          <li class="dropdown-item"><a asp-controller="Receivers" asp-action="Index" class="">Receivers</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+}
+@if (User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("Organization Admin") || User.IsInRole("Gage Steward")))
+{
+  <div class="col-sm">
+    <div class="card" style="width:20rem;">
+      <div class="card-header">Reports</div>
+      <div class="card-body">
+        <ul>
+          <li class="dropdown-item"><a asp-controller="Reports" asp-action="Index" class="">Location Readings</a></li>
+          <li class="dropdown-item"><a asp-controller="Reports" asp-action="LatestStats" class="">Gage Statistics Summary</a></li>
+          <li class="dropdown-item"><a asp-controller="Reports" asp-action="Stats" class="">Gage Statistics</a></li>
+          <li class="dropdown-item"><a asp-controller="Reports" asp-action="JobStatus" class="">Recent Job Statuses</a></li>
+          <li class="dropdown-item"><a asp-controller="Reports" asp-action="SenixLogs" class="">Senix Listener Logs</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+}
+</div>
+

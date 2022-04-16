@@ -1,0 +1,152 @@
+@model FloodzillaWeb.Models.FzModels.Regions
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Edit Region";
+}
+<partial name="_showMessage" />
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<form asp-action="Edit" class="form-horizontal" method="post" autocomplete="off">
+  <input type="hidden" name="isAddressChanged" value="false" />
+  <input type="hidden" asp-for="Latitude" />
+  <input type="hidden" asp-for="Longitude" />
+  <input type="hidden" asp-for="RegionId" />
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="OrganizationsId" class="control-label">Organization:</label>
+    </div>
+    <div class="col-md-10">
+      <select asp-for="OrganizationsId" class="form-control" asp-items="@ViewBag.Organizations"></select>
+      <span asp-validation-for="OrganizationsId" class="text-danger"></span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="RegionName" class="control-label">Name:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="RegionName" class="form-control" />
+      <span id="regionExist" style="color:red"></span>
+      <input type="hidden" id="regionNameValidation" value="false" />
+      <span asp-validation-for="RegionName" class="text-danger" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Address" class="control-label">Address:</label>
+    </div>
+    <div class="col-md-10">
+      <textarea class="form-control" rows="5" cols="10" asp-for="Address"></textarea>
+      <span asp-validation-for="Address" class="text-danger" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <input type="hidden" asp-for="WindowsTimeZone" />
+      <input type="hidden" asp-for="IanaTimeZone" />
+      <label for="TimezoneSelect" class="control-label">Time Zone:</label>
+    </div>
+    <div class="col-md-10">
+      <select id="TimezoneSelect" style="display:inline" name="TimezoneSelect" class="form-control" asp-items="@ViewBag.Timezones"></select>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="BaseURL" class="control-label">Base URL:</label>
+    </div>
+    <div class="col-md-10">
+      <input type="url" asp-for="BaseURL" class="form-control" />
+      <span asp-validation-for="BaseURL" class="text-danger" />
+    </div>
+  </div>
+
+  <hr />
+
+  <h6>Monitoring</h6>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="NotifyList" class="control-label">Notify List:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="NotifyList" class="form-control" placeholder="Comma separated email addresses..."/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="SlackNotifyUrl" class="control-label">Slack Notify URL:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="SlackNotifyUrl" class="form-control" placeholder="https://hooks.slack.com/..."/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="SensorOfflineThreshold" class="control-label">Sensor Offline Time (Minutes):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="SensorOfflineThreshold" class="form-control" placeholder="360" />
+    </div>
+  </div>
+
+  <hr />
+
+  <div class="form-group row">
+    <div class="col-md-2 offset-2">
+      <label><input type="checkbox" asp-for="IsActive" /> Active</label><br/>
+      <label><input type="checkbox" asp-for="IsPublic" /> Public</label>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+  </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+
+    function UpdateTimezones(tzs) {
+        const [ winTz, ianaTz ]  = tzs.split('|');
+        $('#WindowsTimeZone').val(winTz);
+        $('#IanaTimeZone').val(ianaTz);
+    }
+            
+    $(function () {
+        $("#RegionName").change(function () {
+            $.ajax({
+                url: '/Regions/RegionsExistsByName?id=' + $("#RegionId").val() + '&name=' + $("#RegionName").val(),
+                success: function (data) {
+                    if (data == true) {
+                        $("#regionExist").text("Region with the same name is already exist.");
+                        $("#regionNameValidation").val("true");
+                    }
+                    else {
+                        $("#regionExist").empty();
+                        $("#regionNameValidation").val("false");
+                    }
+                }
+            });
+        });
+
+        $("#TimezoneSelect").change(function(){
+            UpdateTimezones($(this).children("option:selected").val());
+        });
+        $("#Address").change(function () {
+            $("[name='isAddressChanged']").val("true");
+        });
+
+    });
+</script>
+}

@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32328.378
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FzSlackBot", "FzSlackBot.csproj", "{FAA4EF99-687A-472D-993E-4BAD90A79C45}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FzCommon", "..\..\Libraries\FzCommon\FzCommon.csproj", "{9452D9E2-E7C8-4AEC-9AED-2B387A74230F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FAA4EF99-687A-472D-993E-4BAD90A79C45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAA4EF99-687A-472D-993E-4BAD90A79C45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAA4EF99-687A-472D-993E-4BAD90A79C45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAA4EF99-687A-472D-993E-4BAD90A79C45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9452D9E2-E7C8-4AEC-9AED-2B387A74230F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9452D9E2-E7C8-4AEC-9AED-2B387A74230F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9452D9E2-E7C8-4AEC-9AED-2B387A74230F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9452D9E2-E7C8-4AEC-9AED-2B387A74230F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {284F4C7F-4A02-4CE7-ACF2-9363DA49C0D7}
+	EndGlobalSection
+EndGlobal

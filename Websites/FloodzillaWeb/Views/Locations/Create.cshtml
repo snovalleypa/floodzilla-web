@@ -1,0 +1,547 @@
+@model FloodzillaWeb.Models.FzModels.Locations
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Create Location";
+}
+<style>
+    #map {
+        height: 400px;
+        width: 100%;
+    }
+</style>
+
+<partial name="_showMessage" />
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div asp-validation-summary="All" class="text-danger"></div>
+<form asp-action="Create" method="post" enctype="multipart/form-data" autocomplete="off">
+  <input type="hidden" asp-for="RegionId" value="1" />
+
+  <div class="row">
+    <div class="col-md-5 col-lg-5 col-sm-5 col-xs-12 col-md-offset-1 col-lg-offset-1 col-sm-offset-1">
+      <div class="form-group" >
+        <label class="control-label-inline">Device:</label>
+        <select id="DeviceIdSelect" style="display:inline" name="DeviceId" class="form-control" asp-items="@ViewBag.Devices"></select>
+      </div>
+    </div>
+
+    <div class="col-md-7 col-lg-7 col-sm-7 col-xs-12">
+      <div class="row">
+        <div class="col-md-6 col-lg-6 col-sm-6 col-xs-12">
+          <div class="form-group checkbox control-label">
+            <label class="control-label-inline" style="padding-right:20px;"><input type="checkbox" asp-for="IsActive"/>Active</label>
+            <label class="control-label-inline" style="padding-right:20px;"><input type="checkbox" asp-for="IsPublic"/>Public</label>
+            <label class="control-label-inline"><input type="checkbox" asp-for="IsOffline"/>Offline</label>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-6 col-sm-6 col-xs-12">
+          <div class="form-group" style="float:right;">
+            <input type="submit" name="btnSave" value="Save" class="btn btn-primary" />
+            <a asp-action="Index" class="btn btn-default">Cancel</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-5 col-lg-5 col-sm-5 col-xs-12 col-md-offset-1 col-lg-offset-1 col-sm-offset-1">
+      <div class="form-group">
+        Battery level: <span id="batteryLevel">(n/a)</span>
+        &nbsp;&nbsp;&nbsp;
+        Last reading: <span id="lastReading">(n/a)</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-md-12 col-lg-12 col-sm-12 col-xs-12 col-md-offset-1 col-lg-offset-1 col-sm-offset-1" 
+         style="border-top:1px solid #8080ff;">
+    </div>
+  </div>
+  
+  <div class="row">
+    <!--NEW Left Column-->
+    <div class="col-md-6 col-lg-6 col-sm-6 col-xs-12 col-md-offset-1 col-lg-offset-1 col-sm-offset-1">
+      <div style="padding-bottom:10px;"></div>
+      <div class="form-group">
+        <label class="control-label-left">Location Name:</label>
+        <input asp-for="LocationName" class="form-control" placeholder="Name" />
+        <span id="locationExist" style="color:red"></span>
+        <input type="hidden" id="locationNameValidation" value="false" />
+        <span asp-validation-for="LocationName" class="text-danger"></span>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Short Name:<span class="control-desc-inline">&nbsp;(for SMS)</span></label>
+        <input asp-for="ShortName" class="form-control" placeholder="Short Name" />
+        <span asp-validation-for="ShortName" class="text-danger"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="control-label-left">Public Location ID:<span class="control-desc-inline">&nbsp;(must be unique)</span></label>
+        <input asp-for="PublicLocationId" class="form-control" placeholder="e.g. SVPA-10" onchange="CheckPublicLocationIdExists()"/>
+        <span asp-validation-for="PublicLocationId" class="text-danger"></span>
+        <span id="lblPublicLocationIdExists" style="color:red"></span>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Display Sort Order/Rank:</label>
+        <input asp-for="Rank" class="form-control" min="1" placeholder="Rank" onchange="CheckRankExist();" />
+        <span asp-validation-for="Rank" class="text-danger"></span>
+        <span id="lblRankExist"></span>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Description:<span class="control-desc-inline">&nbsp;(public)</span></label>
+        <textarea asp-for="Description" class="form-control" cols="5" rows="2" placeholder="Description"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Time Zone:</label>
+        <select asp-for="TimeZone" class="form-control" asp-items="@ViewBag.TimeZones"></select>
+        <span asp-validation-for="TimeZone" class="text-danger"></span>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Reason to choose location:<span class="control-desc-inline">&nbsp;(internal)</span></label>
+        <textarea asp-for="Reason" class="form-control" cols="5" rows="2" placeholder="Reason"></textarea>
+        <span asp-validation-for="Reason" class="text-danger"></span>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Land owner contact info:<span class="control-desc-inline">&nbsp;(internal)</span></label>
+        <input type="text" asp-for="ContactInfo" class="form-control" placeholder="Contact Info" />
+        <span asp-validation-for="ContactInfo" class="text-danger"></span>
+      </div>
+
+      <div class="form-group">
+        <label class="control-label-left">Max Change Threshold<span class="control-desc-inline">&nbsp;(if needed; default is @ViewBag.DefaultThreshold feet/hour)</span></label>
+        <input type="number" asp-for="MaxChangeThreshold" class="form-control" placeholder="feet/hour" />
+        <span asp-validation-for="MaxChangeThreshold" class="text-danger"></span>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Images:<span class="control-desc-inline">&nbsp;(public)</span></label>
+        <div>
+          <input type="file" name="images" accept="image/*" class="form-control" multiple />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="control-label-left">Latitude</label>
+        <input asp-for="Latitude" class="form-control" type="number" />
+      </div>
+      <div class="form-group">
+        <label class="control-label-left">Longitude</label>
+        <input asp-for="Longitude" class="form-control" type="number" />
+      </div>
+      <div class="form-group">
+        <div id="map"></div>
+      </div>
+    </div>
+    
+    <!--NEW Right Column-->
+    <div class="col-md-6 col-lg-6 col-sm-6 col-xs-12" style="height:100%; border-left:1px solid #8080ff; ">
+      <div style="padding-bottom:10px;"></div>
+      <div class="form-group">
+        <label class="control-label-left">Benchmark Elevation:<span class="control-desc-inline">&nbsp;(ft above sea level)</span></label>
+        <br/><input asp-for="BenchmarkElevation" class="form-control form-control-inline" placeholder="feet" type="number" style="width:50%" onchange="UpdateRelativeFields()"/>
+        &nbsp;&nbsp;&nbsp;<input asp-for="BenchmarkIsProvisional" type="checkbox" />provisional
+      </div>
+      <div class="form-group">
+        <label class="control-label-left">Benchmark Description:<span class="control-desc-inline">&nbsp;(internal)</span></label>
+        <textarea asp-for="BenchmarkDescription" class="form-control" cols="5" rows="2" placeholder="Description"></textarea>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-12 col-lg-12 col-sm-12 col-xs-12" 
+             style="border-top:1px solid #8080ff; padding-bottom:10px;">
+        </div>
+      </div>
+      <div style="padding-bottom: 10px;">
+        The following settings are relative to the benchmark, which is assumed to be at 100 feet.
+        <ul style="list-style-type:none;">
+          <li> &gt; 100 feet if above benchmark</li>
+          <li> &lt; 100 feet if below benchmark</li>
+        </ul>
+      </div>
+      <div class="row">
+        <div class="col-md-12 col-lg-12 col-sm-12 col-xs-12" 
+             style="border-top:1px solid #8080ff; padding-bottom:10px;">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Sensor Height:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+        <br/><input asp-for="RelativeSensorHeight" class="form-control form-control-inline" placeholder="feet vs. 100ft" style="width:50%" onchange="UpdateRelativeFields()"/>
+        &nbsp;elev <span id="sensorHeight">--</span> ft
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Location Status Levels:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+        <div class="row">
+          <div class="col-sm-1"><img src="/images/greenbox.gif"/></div>
+          <div class="col-sm-4">
+            &nbsp;&lt;&nbsp;
+            <input asp-for="Green" class="form-control form-control-inline" style="height:25px;width:60%;" onchange="UpdateRelativeFields()"/>
+            &nbsp;&lt;=&nbsp;
+          </div>
+          <div class="col-sm-1"><img src="/images/yellowbox.gif"/></div>
+          <div class="col-sm-4">
+            &nbsp;&lt;&nbsp;
+            <input asp-for="Brown" class="form-control form-control-inline" style="height:25px;width:60%;" onchange="UpdateRelativeFields()"/>
+            &nbsp;&lt;=&nbsp;
+          </div>
+          <div class="col-sm-1"><img src="/images/redbox.gif"/></div>
+        </div>
+        <div class="row">
+          <div class="col-sm-1">&nbsp;</div>
+          <div class="col-sm-4" style="text-align:center;"><span id="greenLevel">--</span> ft</div>
+          <div class="col-sm-1">&nbsp;</div>
+          <div class="col-sm-4" style="text-align:center;"><span id="brownLevel">--</span> ft</div>
+          <div class="col-sm-1">&nbsp;</div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="control-label-left">Location Status Discharge Levels:<span class="control-desc-inline">&nbsp;(cfs, for charts only)</span></label>
+        <div class="row">
+          <div class="col-sm-1"><img src="/images/greenbox.gif"/></div>
+          <div class="col-sm-4">
+            &nbsp;&lt;&nbsp;
+            <input asp-for="DischargeStageOne" class="form-control form-control-inline" style="height:25px;width:60%;"/>
+            &nbsp;&lt;=&nbsp;
+          </div>
+          <div class="col-sm-1"><img src="/images/yellowbox.gif"/></div>
+          <div class="col-sm-4">
+            &nbsp;&lt;&nbsp;
+            <input asp-for="DischargeStageTwo" class="form-control form-control-inline" style="height:25px;width:60%;"/>
+            &nbsp;&lt;=&nbsp;
+          </div>
+          <div class="col-sm-1"><img src="/images/redbox.gif"/></div>
+        </div>
+      </div>
+      
+      <label class="control-label-left" style="padding-left:5px;">Location Chart Settings</label>
+      <div style="border:1px solid black; padding:5px;">
+        <div class="form-group">
+          <label class="control-label-left">Y-Axis Minimum:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+          <br/><input asp-for="YMin" class="form-control form-control-inline" placeholder="feet vs. 100ft" style="width:50%" onchange="UpdateRelativeFields()"/>
+          &nbsp;elev <span id="yMinimum">--</span> ft
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Y-Axis Maximum:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+          <br/><input asp-for="YMax" class="form-control form-control-inline" placeholder="feet vs. 100ft" style="width:50%" onchange="UpdateRelativeFields()"/>
+          &nbsp;elev <span id="yMaximum">--</span> ft
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Discharge Minimum:<span class="control-desc-inline">&nbsp;(cfs, for charts only)</span></label>
+          <br/><input asp-for="DischargeMin" class="form-control form-control-inline" placeholder="cfs" style="width:50%"/>
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Discharge Maximum:<span class="control-desc-inline">&nbsp;(cfs, for charts only)</span></label>
+          <br/><input asp-for="DischargeMax" class="form-control form-control-inline" placeholder="cfs" style="width:50%"/>
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Dry Ground Height:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+          <br/><input asp-for="GroundHeight" class="form-control form-control-inline" placeholder="feet vs. 100ft" style="width:50%" onchange="UpdateRelativeFields()"/>
+          <span asp-validation-for="GroundHeight" class="text-danger"></span>
+          &nbsp;elev <span id="groundHeight">--</span> ft
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Road Saddle Height:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+          <br/><input asp-for="RoadSaddleHeight" class="form-control form-control-inline" placeholder="feet vs. 100ft" style="width:50%" onchange="UpdateRelativeFields()"/>
+          &nbsp;elev <span id="roadSaddleHeight">--</span> ft
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Road Display Name:</label>
+          <input asp-for="RoadDisplayName" class="form-control" placeholder="Name" />
+        </div>
+      </div>
+      
+      <label class="control-label-left" style="padding-left:5px;">Permanent Markers<span class="control-desc-inline">&nbsp;(for benchmark redundancy)</span></label>
+      <div style="border:1px solid black; padding:5px;">
+        <div class="form-group">
+          <label class="control-label-left">Marker #1 Height:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+          <br/><input asp-for="MarkerOneHeight" class="form-control form-control-inline" placeholder="feet vs. 100ft" style="width:50%" onchange="UpdateRelativeFields()"/>
+          &nbsp;elev <span id="marker1">--</span> ft
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Marker #1 Description:<span class="control-desc-inline">&nbsp;(public)</span></label>
+          <textarea asp-for="MarkerOneDescription" class="form-control" cols="5" rows="2" placeholder="Description"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Marker #2 Height:<span class="control-desc-inline">&nbsp;(ft relative to benchmark)</span></label>
+          <br/><input asp-for="MarkerTwoHeight"  class="form-control form-control-inline" placeholder="feet vs. 100ft" style="width:50%" onchange="UpdateRelativeFields()"/>
+          &nbsp;elev <span id="marker2">--</span> ft
+        </div>
+        <div class="form-group">
+          <label class="control-label-left">Marker #2 Description:<span class="control-desc-inline">&nbsp;(public)</span></label>
+          <textarea asp-for="MarkerTwoDescription" class="form-control" cols="5" rows="2" placeholder="Description"></textarea>
+        </div>
+      </div>
+      <br/>
+      <br/>
+    </div>
+  </div>
+</form>
+
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(function () {
+
+            GetDevices();
+
+            UpdateRelativeFields();
+
+            $("#Latitude").change(function () {
+                updateMapMarker();
+            });
+
+            $("#Longitude").change(function () {
+                updateMapMarker();
+            });
+
+            $("#Green").change(function () {
+                var brownValue = parseFloat($("#Brown").val());
+                var greenValue = parseFloat($(this).val());
+                if (brownValue < greenValue) {
+                    alert("Red value can't be less than green value.");
+                    $("#Brown").focus();
+                }
+            });
+
+            //$("#Yellow").change(function () {
+            //    var greenValue = parseFloat($("#Green").val());
+            //    var yellowValue = parseFloat($(this).val());
+            //    if (yellowValue <= greenValue) {
+            //        alert("Level 2 value can't be less or equal to Level 1 value.");
+            //        $("#Yellow").focus();
+            //    }
+            //});
+
+            $("#Brown").change(function () {
+                var greenValue = parseFloat($("#Green").val());
+                var brownValue = parseFloat($(this).val());
+                if (brownValue < greenValue) {
+                    alert("Red value can't be less than green value.");
+                    $("#Brown").focus();
+                }
+            });
+
+            $("form").submit(function () {
+                if (!$(this).valid()) {
+                    return;
+                }
+
+                $("#DeviceId").removeAttr("disabled");
+                var greenValue = parseFloat($("#Green").val());
+                var brownValue = parseFloat($("#Brown").val());
+
+                if (isNaN(greenValue)&& isNaN(brownValue)) {
+                    $("#SeaLevel").removeAttr("disabled");
+                    return true;
+                }
+                if (brownValue >= greenValue && $("#locationNameValidation").val() == 'false') {
+                    $("#SeaLevel").removeAttr("disabled");
+                    return true;
+                }
+                else {
+                    $("#DeviceId").attr("disabled","disabled");
+                    alert("Please check your flood level entries");
+                    return false;
+                }
+            });
+
+            $("#btnChangeDevice").click(function(e){
+                e.preventDefault();
+                var confirmChange=confirm("Are you sure you want to change hardware on location?");
+                if(confirmChange)
+                {
+                    $("#DeviceIdSelect").css('display', 'inline');
+                    $("#DeviceIdLink").hide();
+                }
+            });
+
+            $("#DeviceIdSelect").change(function(){
+                UpdateDeviceStatus(parseInt($(this).children("option:selected").val()));
+            });
+        });
+
+        function UpdateRelativeFields() {
+            var benchmarkOffset = @FzCommon.Constants.BenchmarkOffsetFeet;
+            var benchmark = $("#BenchmarkElevation").val();
+            
+            if (benchmark != "") {
+                benchmark = parseFloat(benchmark);
+                UpdateRelativeField('RelativeSensorHeight', 'sensorHeight', benchmark, benchmarkOffset);
+                UpdateRelativeField('Green', 'greenLevel', benchmark, benchmarkOffset);
+                UpdateRelativeField('Brown', 'brownLevel', benchmark, benchmarkOffset);
+                UpdateRelativeField('YMin', 'yMinimum', benchmark, benchmarkOffset);
+                UpdateRelativeField('YMax', 'yMaximum', benchmark, benchmarkOffset);
+                UpdateRelativeField('GroundHeight', 'groundHeight', benchmark, benchmarkOffset);
+                UpdateRelativeField('RoadSaddleHeight', 'roadSaddleHeight', benchmark, benchmarkOffset);
+                UpdateRelativeField('MarkerOneHeight', 'marker1', benchmark, benchmarkOffset);
+                UpdateRelativeField('MarkerTwoHeight', 'marker2', benchmark, benchmarkOffset);
+            } else {
+                ClearRelativeField('sensorHeight');
+                ClearRelativeField('greenLevel');
+                ClearRelativeField('brownLevel');
+                ClearRelativeField('yMinimum');
+                ClearRelativeField('yMaximum');
+                ClearRelativeField('groundHeight');
+                ClearRelativeField('roadSaddleHeight');
+                ClearRelativeField('marker1');
+                ClearRelativeField('marker2');
+            }
+        }
+
+        function UpdateRelativeField(control, label, benchmark, benchmarkOffset) {
+            $("#" + label).text('--');
+            var controlVal = $('#' + control).val();
+            if (controlVal != "") {
+                controlVal = parseFloat(controlVal);
+                $("#" + label).text((benchmark + (controlVal - benchmarkOffset)).toFixed(2));
+            }
+        }
+
+        function ClearRelativeField(label) {
+            $("#" + label).text('--');
+        }
+
+        function UpdateDeviceStatus(deviceId) {
+            var tzOffset = -(new Date().getTimezoneOffset());
+            $.ajax({
+                url: "/Locations/GetDeviceReadingStatus?DeviceId=" + deviceId + "&tzOffset=" + tzOffset,
+                success: function (data) {
+                    if (data != undefined) {
+                        if (data.batteryPercent > 0) {
+                            $("#batteryLevel").text(data.batteryPercent.toFixed(2) + '%');
+                        } else {
+                            $("#batteryLevel").text('n/a');
+                        }
+                        $("#lastReading").text(data.lastReading.toFixed(2) + ' @@ ' + moment(data.lastReadingTime).format("MM/DD h:mm:ss a"));
+                    } else
+                    {
+                        $("#batteryLevel").text('n/a');
+                        $("#lastReading").text('n/a');
+                    }
+                },
+            });
+        }
+
+        function GetDevices() {
+            $.ajax({
+                url: "/Locations/GetDevices",
+                success: function (data) {
+                    var options = "";
+                    $.each(data, function (index, item) {
+                        options += "<option value='" + item.value + "'>" + item.text + "</option>";
+                    });
+                    $("#DeviceId").empty().html(options);
+                }
+            });
+        }
+
+        function CheckRankExist() {
+            lblRankExist.innerHTML = "";
+            var regionId = $("#RegionId").val();
+            var rank = $("#Rank").val();
+            if (regionId != "" && regionId != undefined && rank != "" && rank != undefined) {
+                $.get("/Locations/CheckRankExist?regionId=" + regionId + "&locationId=0&rank=" + rank, function (result) {
+                    if (result == true) {
+                        lblRankExist.innerHTML = "Duplicate rank.".fontcolor("red");
+                    }
+                    else {
+                        lblRankExist.innerHTML = "";
+
+                    }
+                });
+            }
+
+        }
+
+        function CheckPublicLocationIdExists() {
+            lblPublicLocationIdExists.innerHTML = "";
+            var locId = $("#PublicLocationId").val();
+            if (locId != "" && locId != undefined) {
+                $.get("/Locations/CheckPublicLocationIdExists?&locId=" + locId, function (result) {
+                    if (result == true) {
+                        lblPublicLocationIdExists.innerHTML = "That public location ID already exists.".fontcolor("red");
+                    }
+                    else {
+                        lblPublicLocationIdExists.innerHTML = "";
+                    }
+                });
+            }
+        }
+
+        function UpdateSeaLevelElevation() {
+
+            if ($("#GroundHeight").val() != null && $("#GroundHeight").val() != undefined && $("#GroundHeight").val() != "") {
+
+                if ($("#DeviceSeaLevelElevation").val() != null && $("#DeviceSeaLevelElevation").val() != undefined && $("#DeviceSeaLevelElevation").val() != "") {
+
+                    var GroundHeight = parseFloat($("#GroundHeight").val());
+                    var DeviceSeaValue = parseFloat($("#DeviceSeaLevelElevation").val());
+
+                    $("#SeaLevel").val(DeviceSeaValue-GroundHeight);
+                }
+                else{
+                    $("#SeaLevel").val("");
+
+                }
+            }
+            else{
+                $("#SeaLevel").val("");
+
+            }
+        }
+
+        var map;
+        var marker;
+        function initMap() {
+            var latlong = { lat: 47.608013, lng: -122.335167 };
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: latlong,
+                zoom:8
+            });
+
+            google.maps.event.addListener(map, 'click', function (event) {
+                latlong = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+                $("#Latitude").val(latlong.lat);
+                $("#Longitude").val(latlong.lng);
+                if (marker && marker.setMap) {
+                    marker.setMap(null);
+                }
+                marker = new google.maps.Marker({
+                    position: latlong,
+                    map: map
+                });
+            });
+        }
+
+        function updateMapMarker() {
+            var lat = parseFloat($("#Latitude").val());
+            var long = parseFloat($("#Longitude").val());
+            if (!isNaN(lat) && !isNaN(long)) {
+                latlong = { lat: lat, lng: long };
+                if (marker && marker.setMap) {
+                    marker.setMap(null);
+                }
+                marker = new google.maps.Marker({
+                    position: latlong,
+                    map: map
+                });
+                map.setCenter(latlong);
+            }
+        }
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=@FzCommon.FzConfig.Config[FzCommon.FzConfig.Keys.GoogleMapsApiKey]&callback=initMap" async defer></script>
+}

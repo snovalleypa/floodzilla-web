@@ -1,0 +1,68 @@
+.login-form-spacer {
+  padding-top: 20px;
+}
+.login-form-mainbtn {
+  width: 240px;
+}
+.login-form-text {
+  padding: 5px;
+}
+.login-label-inline {
+  /* !important is to override bootstrap's !important */
+  color:black !important;
+  margin-bottom: 0px;
+  margin-left: 5px;
+}
+.login-label-disabled-inline {
+  color:gray;
+  margin-bottom: 0px;
+  margin-left: 5px;
+}
+.login-label {
+  /* !important is to override bootstrap's !important */
+  color:black !important;
+  margin-bottom: 0px;
+  width: 100%;
+}
+.login-label-disabled {
+  color:gray;
+  margin-bottom: 0px;
+  width: 100%;
+}
+.login-singlerow-label {
+  color:black !important;
+  margin-bottom: 0px;
+}
+.login-field-text {
+  font-size: 14px;
+  line-height: 20px;
+  padding: 4px;
+}
+.login-form-control {
+  font-size: 14px;
+  line-height: 20px;
+}
+.login-form-check {
+  font-size: 14px;
+  line-height: 20px;
+}
+.login-form-row {
+  margin-bottom: 8px;
+}
+.login-form-button-group {
+  display: flex;
+  margin-top: 5px;
+}
+.login-form-error-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color:red;
+}
+.login-form-result-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  font-size: 16px;
+}

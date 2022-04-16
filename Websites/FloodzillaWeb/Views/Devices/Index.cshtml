@@ -1,0 +1,248 @@
+﻿@model IEnumerable<FloodzillaWeb.Models.FzModels.Devices>
+@{ 
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Devices";
+}
+
+<script>
+var usgsSites = {};
+@foreach (var usgsSite in ViewBag.UsgsSites)
+{
+<text>
+  usgsSites[@usgsSite.SiteId] = '@usgsSite.SiteName';
+</text>
+}
+</script>
+
+<div class="row">
+    <div class="col-lg-12">
+        <partial name="_showMessage" />
+        <div>
+            <a asp-action="Create" class="btn btn-primary">New Device</a>&nbsp;&nbsp;&nbsp;
+            <button class="btn btn-danger disabled" id="btnDelete">Delete</button>&nbsp;&nbsp;&nbsp;
+            <span class="showDeleted">
+              <button class="btn btn-danger disabled" id="btnUndelete">Undelete</button>
+            </span>
+            <span style="float:right;"><input type="checkbox" id="toggleDeleted">  Show deleted</input></span>
+        </div>
+        <div class="card card-info">
+            <div class="card-header">
+                <div class="card-title">Devices</div>
+            </div>
+            <div class="card-body">
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="checkAll" /></th>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>External ID</th>
+                            <th>USGS Site</th>
+                            <th>Location</th>
+                            <th>Device Type</th>
+                            <th>Update Interval</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>Active</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<div class="modal fade" tabindex="-1" role="dialog" id="LatestReading">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Latest Reading</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="DelConfirmModel" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <form asp-action="Delete" method="post">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">Confirm Delete</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="deleteList" id="deleteList" value="" />
+                    Are you sure you want to delete?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="UndelConfirmModel" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <form asp-action="Undelete" method="post">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">Confirm Undelete</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="undeleteList" id="undeleteList" value="" />
+                    Are you sure you want to undelete?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Undelete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@section Scripts{
+<environment names="Development">
+    <script src="~/js/Admin/AdminToggleDelete.js"></script>
+</environment>
+<environment names="Staging,Production">
+    <script src="~/js/Admin/AdminToggleDelete.min.js"></script>
+</environment>
+
+    <script>
+        var dataTable;
+
+        $('#toggleDeleted').change(function() {
+            UpdateTable();
+        });
+        
+        function InitTable() {
+            dataTable = $("table").DataTable({
+                paging: false,
+                dom: 'lBfrtip',
+                order: [[ 2, "asc" ]],
+                buttons: ['copy', 'excel', 'pdf'],
+                ajax: {
+                    "url": "/Devices/GetDevices?includeLocations=true&showDeleted=" + $('#toggleDeleted').is(':checked'),
+                    "type": "POST"
+                },
+                createdRow: function(row, data, dataIndex) {
+                    if (data.isDeleted) {
+                        $(row).addClass('table-danger');
+                    } else if (!data.isActive) {
+                        $(row).addClass('table-inactive');
+                    }
+                },
+                columns: [
+                          { data: renderCheckbox, width: '40px', orderable: false },
+                          { data: "deviceId", orderable: true },
+                          { data: "name", orderable: true, render: function(data, type, row) { return '<a tabindex="-1" class="showInfo"><span class="fa fa-info-circle"></span></a> ' + data ; }},
+                          { data: "externalDeviceId", defaultContent: '', orderable: true },
+                          { data: renderUsgsSiteId, width: '100px', orderable: true },
+                          { data: renderLocation, orderable: true },
+                          { data: renderDeviceType, orderable: true },
+                          { data: "sensorUpdateInterval", defaultContent: '', orderable: true },
+                          { data: "min", defaultContent: '', orderable: true },
+                          { data: "max", defaultContent: '', orderable: true },
+                          { data: "isActive", orderable: true, render: function(data, type, row) { return data ? 'Active' : 'Inactive'; }},
+                ]
+            });
+        }
+        function UpdateTable() {
+            dataTable.ajax.url("/Devices/GetDevices?includeLocations=true&showDeleted=" + $('#toggleDeleted').is(':checked'));
+            dataTable.ajax.reload();
+        }
+        function renderCheckbox(data) {
+            if (data == undefined || data == 0) {
+                return '';
+            }
+            if (data.deviceId == undefined || data.deviceId == 0) {
+                return '';
+            }
+            var cbox = '<input type="hidden" id="deviceId" value="' + data.deviceId + '"/><input type="checkbox" data-isdeleted="' + data.isDeleted + '" class="dt-body-center" id="chk_' + data.deviceId + '" value="' + data.deviceId + '"/>';
+            var edit = '';
+            if (!data.isDeleted) {
+                edit = '<a href="/Devices/Edit/' + data.deviceId + '"><span class="fa fa-edit"></span></a>';
+            }
+            return cbox + '&nbsp;&nbsp;' + edit;
+        }
+        function renderUsgsSiteId(data) {
+          if (!data.usgsSiteId) {
+            return '';
+          }
+          return usgsSites[data.usgsSiteId];
+        }
+        function renderLocation(data) {
+            var location = dataTable.ajax.json().locations.find(l => l.id == data.locationId);
+            if (location == null) {
+                return '';
+            }
+            return '<a href="/Locations/Edit/' + location.id + '">' + location.locationName + '</a>';
+        }
+        @* //$ TODO: Don't duplicate this... *@
+        function renderDeviceType(data) {
+            switch (data.deviceTypeId) {
+                case 1:
+                    return 'SVPA';
+                case 2:
+                    return 'USGS';
+                case 3:
+                    return 'Virtual';
+                case 4:
+                    return 'Senix';
+                case 5:
+                    return 'USGS Testing Gage';
+            }
+        }
+
+        $(function () {
+            InitTable();
+            InitAdminToggleDelete('#toggleDeleted', '#deleteList', '#undeleteList');
+
+            $("table>tbody").on("click", "a[class='showInfo']", function () {
+                $("#LatestReading p").empty().html('Loading...');
+                $("#LatestReading").modal("show");
+                var deviceId = $(this).closest("tr").find("#deviceId").val();
+                $.ajax({
+                    url: '@Url.Action("GetLatestDeviceReading")',
+                    data: { deviceId: deviceId },
+                    success: function (data) {
+                        var rec;
+                        if (data!=null && !data.noData)
+                        {
+                            rec = "Timestamp: " + moment.utc(data.reading.timestamp).tz(data.timeZone).format("MM/DD/YYYY hh:mm:ss a") + "<br />";
+                            if (data.reading.batteryVolt == null) {
+                                rec += "Battery: n/a";
+                            } else {
+                                rec += "Battery: " + (data.reading.batteryVolt / 1000.0) + "V";
+                            }
+                            if (data.reading.waterHeightFeet != null) {
+                                rec += "<br />Height: " + data.reading.waterHeightFeet + " ft";
+                            }
+                            if (data.reading.waterDischarge != null) {
+                                rec += "<br />Discharge: " + data.reading.waterDischarge + " cfs";
+                            }
+                            $("#LatestReading p").empty().html(rec);
+                        }
+                        else {
+                            $("#LatestReading p").empty().html("<div class='alert alert-danger'>No data found!</div>");
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

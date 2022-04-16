@@ -1,0 +1,14 @@
+@{
+    ViewData["Title"] = ViewData["Subject"];
+}
+
+Dear @Model.FirstName @Model.LastName,<br /><br />
+
+Please verify that this is your Floodzilla email by clicking on the following link: 
+<br /><br />
+<a href="@Model.CallbackUrl">Verify Email</a>
+<br /><br />
+Thanks,
+<br />
+SVPA
+

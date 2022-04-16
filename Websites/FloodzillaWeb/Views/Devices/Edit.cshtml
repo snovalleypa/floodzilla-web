@@ -1,0 +1,182 @@
+﻿@model FloodzillaWeb.Models.FzModels.Devices
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Edit Device";
+}
+<partial name="_showMessage" />
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div asp-validation-summary="All" class="text-danger"></div>
+<form asp-action="Edit" method="post" class="form-horizontal" autocomplete="off">
+  <input type="hidden" id="RegionId" value="1" />
+  <input type="hidden" asp-for="DeviceId" />
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="DeviceTypeId" class="control-label">Device Type:</label>
+    </div>
+    <div class="col-md-10">
+      <select asp-for="DeviceTypeId" asp-items="@ViewBag.AllowedNewDeviceTypes" class="form-control"></select>
+      <span asp-validation-for="DeviceTypeId" class="text-danger"></span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Name" class="control-label">Device Name:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Name" class="form-control" placeholder="Name" />
+      <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Description" class="control-label">Description:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Description" class="form-control" placeholder="Description" />
+      <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="ExternalDeviceId" class="control-label">External Device ID:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="ExternalDeviceId" class="form-control" placeholder="xx-xx-xx-xx-xx-xx-xx-xx" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="UsgsSiteId" class="control-label">USGS Site:</label>
+    </div>
+    <div class="col-md-10">
+      <select asp-for="UsgsSiteId" asp-items="@ViewBag.UsgsSiteChoices" class="form-control"></select>
+      <span asp-validation-for="UsgsSiteId" class="text-danger"></span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="LocationId" class="control-label">Location:</label>
+    </div>
+    <div class="col-md-10">
+      <select asp-for="LocationId" class="form-control" asp-items="@ViewBag.Locations"></select>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Min" class="control-label">Minimum Valid Reading (inches):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Min" type="number" class="form-control" placeholder="inches" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Max" class="control-label">Maximum Valid Reading (inches):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Max" type="number" class="form-control" placeholder="inches" />
+    </div>
+  </div>
+  
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="MaxStDev" class="control-label">Max Standard Deviation:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="MaxStDev" type="number" class="form-control" placeholder="Standard Deviation" />
+    </div>
+  </div>
+  
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Min" class="control-label">Sensor reading interval (minutes):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="SensorUpdateInterval" type="number" readonly class="form-control" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 offset-2">
+      <label><input type="checkbox" asp-for="IsActive" /> Active</label><br/>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Change Reason (optional):</label>
+    </div>
+    <div class="col-md-10">
+      <input type="text" name="ChangeReason" class="form-control" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+  </div>
+</form>
+@section Scripts{
+    <script src="~/js/jquery.easy-autocomplete.min.js"></script>
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        $(function () {
+
+            $("#DeviceId").change(function () {
+                $.ajax({
+                    url: "CheckDeviceIdExist?DeviceId=" + $(this).val(),
+                    success: function (data) {
+                        if (data == true)
+                            $("#deviceExist").show();
+                        else {
+                            $("#deviceExist").hide();
+                        }
+                    }
+                });
+            });
+
+            $("#Version").change(function () {
+                var version= parseInt($(this).val());
+                if (isNaN(version) || version<3) {
+                    $("#div_version3").hide();
+                    $("#div_version2").show();
+                }
+                else {
+                    $("#div_version3").show();
+                    $("#div_version2").hide();
+                }
+            });
+
+            GetLocation();
+        });
+
+        function GetLocation(){
+            var regionId=$("#RegionId").val();
+            var locationId=@(Model.LocationId??0);
+            $.ajax({
+                url:'/Devices/GetLocations?regionId='+regionId+'&locationId='+locationId,
+                success: function(data){
+                    var options = "";
+                    $.each(data, function (index, item) {
+                        if(item.selected==true)
+                            options += "<option value='" + item.value + "' selected>" + item.text + "</option>";
+                        else
+                            options += "<option value='" + item.value + "'>" + item.text + "</option>";
+                    });
+                    $("#LocationId").empty().html(options);
+                }
+            });
+        }
+
+    </script>
+}

@@ -1,0 +1,152 @@
+@model FloodzillaWeb.Controllers.TestReading
+
+@{ 
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Create Fake Readings";
+}
+
+<script>
+var gages = [
+@foreach (var tg in ViewBag.TestGages)
+{
+<text>
+    {
+    locationId: @tg.LocationId,
+    externalDeviceId: '@tg.ExternalDeviceId',
+    locationName: '@tg.LocationName',
+    groundHeight: @(tg.GroundHeight ?? 0),
+    roadSaddleHeight: @(tg.RoadSaddleHeight ?? 0),
+    yellow: @(tg.Yellow ?? 0),
+    red: @(tg.Red ?? 0),
+    },
+</text>
+}
+];
+</script>
+
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+          <div class="card-header">
+            <div class="card-title">Create Fake Readings</div>
+          </div>
+        </div>
+    </div>
+</div>
+
+<partial name="_showMessage" />
+
+<form asp-action="CreateReading" method="post" class="form-horizontal" autocomplete="off">
+<input type="hidden" asp-for="ExternalDeviceId" />
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Gage:</label>
+    </div>
+    <div class="col-md-10">
+      <select asp-for="LocationId" class="form-control" onchange="onGageChange();">
+        <option value="-1">- select gage -</option>
+      @foreach (var tg in ViewBag.TestGages)
+        {
+        <option value="@tg.LocationId">@tg.LocationName (@tg.DeviceName)</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Ground Height</label>
+    </div>
+    <div class="col-md-10">
+      <span id="groundHeight" class="form-control-plaintext">n/a</span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Road Saddle Height</label>
+    </div>
+    <div class="col-md-10">
+      <span id="roadSaddleHeight" class="form-control-plaintext">n/a</span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Yellow</label>
+    </div>
+    <div class="col-md-10">
+      <span id="yellow" class="form-control-plaintext">n/a</span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Red</label>
+    </div>
+    <div class="col-md-10">
+      <span id="red" class="form-control-plaintext">n/a</span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="MinutesAgo" class="control-label">Minutes Ago (careful):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="MinutesAgo" type="number" class="form-control" placeholder="minutes" />
+    </div>
+  </div>
+  
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="WaterHeight" class="control-label">Water Height:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="WaterHeight" step="any" type="number" class="form-control" placeholder="feet" />
+    </div>
+  </div>
+  
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button id="btnCreate" disabled="disabled" type="submit" class="btn btn-primary">Create Reading</button>
+    </div>
+  </div>
+
+</form>
+
+@section Scripts {
+<script>
+$(function () {
+    onGageChange();
+});
+
+function setVal(id, val) {
+    if (val) {
+        $(id).text(val.toFixed(2));
+    } else {
+        $(id).text("n/a");
+    }
+}
+
+function onGageChange() {
+    var gage = gages.find(g => g.locationId == $("#LocationId").val());
+    if (gage) {
+        setVal("#groundHeight", gage.groundHeight);
+        setVal("#roadSaddleHeight", gage.roadSaddleHeight);
+        setVal("#yellow", gage.yellow);
+        setVal("#red", gage.red);
+        console.log(gage.externalDeviceId);
+        $("#ExternalDeviceId").val(gage.externalDeviceId);
+        $("#btnCreate").attr("disabled", false);
+    } else {
+        $("#groundHeight").text("n/a");
+        $("#roadSaddleHeight").text("n/a");
+        $("#yellow").text("n/a");
+        $("#red").text("n/a");
+        $("#btnCreate").attr("disabled", true);
+    }
+}
+</script>
+}
