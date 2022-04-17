@@ -1,0 +1,14 @@
+/****** Object:  Table [Properties]    Script Date: 12/20/2019 11:32:51 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [Properties](
+	[PName] [nvarchar](256) NOT NULL,
+	[PValue] [nvarchar](max) NULL,
+ CONSTRAINT [PK_Properties] PRIMARY KEY CLUSTERED 
+(
+	[PName] ASC
+)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO

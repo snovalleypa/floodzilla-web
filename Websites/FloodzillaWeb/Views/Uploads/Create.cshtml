@@ -1,0 +1,213 @@
+﻿@model FloodzillaWeb.Models.FzModels.Uploads
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Upload Location Image";
+}
+<partial name="_showMessage" />
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div asp-validation-summary="All" class="text-danger"></div>
+<form asp-action="Create" method="post" class="form-horizontal" autocomplete="off" enctype="multipart/form-data">
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label for="UploadFile" class="control-label">Image:</label>
+    </div>
+    <div class="col-md-10">
+      <input type="file" name="UploadFile" id="UploadFile" value="" class="form-control" accept="image/*" />
+      <div class="progress" style="display:none;width:80%;">
+        <div class="progress-bar progress-bar-striped active" role="progressbar" style="width:100%">
+          Processing...
+        </div>
+      </div>
+      <div style="max-width:400px">
+        <img src="/images/preview.png" id="imgPreview" class="img-thumbnail" alt="Image Preview" />
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Image Details:</label>
+    </div>
+    <div class="col-md-10">
+      <p id="imgInfo" class="card form-control" readonly="true" style="height:200px; width:80%; overflow-y:scroll"></p>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="DateOfPicture" class="control-label">Date:</label>
+    </div>
+    <div class="col-md-10">
+      <div class="input-group-append" data-target="#DateOfPicture" data-toggle="datetimepicker">
+        <input type='text' class="form-control datetimepicker-input" id="DateOfPicture" asp-for="DateOfPicture" />
+        <span class="input-group-text">
+          <span class="fa fa-calendar"></span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Latitude" class="control-label">Latitude:</label>
+    </div>
+    <div class="col-md-10">
+      <input type="text" value="" class="form-control" readonly asp-for="Latitude" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Longitude" class="control-label">Longitude:</label>
+    </div>
+    <div class="col-md-10">
+      <input type="text" value="" class="form-control" readonly asp-for="Longitude" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Altitude" class="control-label">Altitude:</label>
+    </div>
+    <div class="col-md-10">
+      <input type="text" value="" class="form-control" readonly asp-for="Altitude" />
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="LocationId" class="control-label">Location:</label>
+    </div>
+    <div class="col-md-10">
+      <select class="form-control" asp-items="@ViewBag.Locations" asp-for="LocationId"></select>
+      <span style="color:red" asp-validation-for="LocationId"></span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Rank" class="control-label">Rank:</label>
+    </div>
+    <div class="col-md-10">
+      <input type="text" value="" class="form-control" placeholder="Rank" asp-for="Rank" onchange="CheckRankExist()" oninput="ValidateIntValues(this)" />
+      <span id="lblRankExist"></span>
+    </div>
+  </div>
+  
+  <div class="form-group row">
+    <div class="col-md-2 offset-2">
+      <label><input type="checkbox" asp-for="IsActive" /> Active</label><br/>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a href="Index?locationId=@ViewBag.LocationId" class="btn btn-secondary">Cancel</a>
+    </div>
+  </div>
+</form>
+@section Scripts{
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        $(function () {
+            // Setting default date time on calendar text fields
+            $('#DateOfPicture').datetimepicker({ defaultDate: moment(), format: "MM/DD/YYYY hh:mm:ss a" });
+        });
+
+        document.getElementById("UploadFile").onchange = function (e) {
+            var file = e.target.files[0]
+
+            var reader = new FileReader();
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+            reader.onloadend = function () {
+                ResetForm();
+                $(".progress").show();
+                $("#imgPreview").attr("src", reader.result);
+
+                // Create FormData object
+                var fileData = new FormData();
+                fileData.append("file", file);
+                $.ajax({
+                    url: "/Uploads/GetImageDetail",
+                    type: "POST",
+                    contentType: false, // Not to set any content header
+                    processData: false,
+                    data: fileData,
+                    success: function (result) {
+                        $(".progress").hide();
+                        if (result.msg == false) {
+                            alert("Image file withs extension(.jpg,.jpeg and .png) is allowed only.");
+                            return;
+                        }
+                        if (result.msg == "error") {
+                            return;
+                        }
+                        var locations = result.locations;
+                        var upload = result.upload;
+
+                        // Populating Image Locations in dropdown
+                        //var locationOptions = "";
+                        //$.each(locations, function (index, item) {
+                        //    if (item.selected == true) {
+                        //        locations += "<option value='" + item.value + "' selected>" + item.text + "</option>";
+                        //    }
+                        //    else {
+                        //        locations += "<option value='" + item.value + "'>" + item.text + "</option>";
+                        //    }
+                        //});
+                        //$("#LocationId").empty().html(locations);
+                        //upload.eventId != 0 ? $("#EventId").val(upload.eventId) : $("#EventId").val("");
+
+                        // Working on other properties.
+                        // Parsing datetime, exif return datetime in yyyy:mm:dd HH:mm:ss format which is invalid for moment.
+                        var parseDateTime;
+                        if (upload.dateOfPicture != undefined) {
+                            parseDateTime = moment(upload.dateOfPicture).format("MM/DD/YYYY hh:mm:ss a");
+                        }
+                        else {
+                            parseDateTime = moment().format("MM/DD/YYYY hh:mm:ss a");
+                        }
+                        $('#DateOfPicture').datetimepicker('date', parseDateTime);
+
+                        if (upload.latitude != undefined && upload.longitude != undefined) {
+                            $("#Latitude").val(upload.latitude);
+                            $("#Longitude").val(upload.longitude);
+                            $("#Altitude").val(upload.altitude);
+                        }
+                        $("#imgInfo").empty().html(upload.responseString);
+                        $("#ResponseString").val(upload.responseString);
+                    }
+                });
+            }
+        }
+
+        function ResetForm() {
+            $('#DateOfPicture').datetimepicker('date', moment().format("MM/DD/YYYY hh:mm:ss a"));
+            $("#imgInfo").empty();
+        }
+
+        function CheckRankExist() {
+            lblRankExist.innerHTML = "";
+            var locationId = $("#LocationId").val();
+            var rank = $("#Rank").val();
+            if (locationId != "" && locationId != undefined && rank != "" && rank != undefined) {
+                $.get("/Uploads/CheckRankExist?id=0&locationId=" +locationId +"&rank=" + rank, function (result) {
+                    if (result == true) {
+                        lblRankExist.innerHTML = "Duplicate rank.".fontcolor("red");
+                    }
+                    else {
+                        lblRankExist.innerHTML = "";
+
+                    }
+                });
+            }
+
+        }
+
+</script>
+}

@@ -1,0 +1,38 @@
+﻿@model FloodzillaWeb.Models.FzModels.Organizations
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Create Organization";
+}
+<partial name="_showMessage" />
+<h4>@ViewData["Title"]</h4>
+<hr />
+<div asp-validation-summary="All" class="text-danger"></div>
+<form asp-action="Create" class="form-horizontal" method="post" autocomplete="off">
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Name" class="control-label">Organization Name:</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="Name" class="form-control" placeholder="Name" />
+      <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 offset-2">
+      <label><input type="checkbox" asp-for="IsActive" /> Active</label>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+  </div>
+</form>
+@section Scripts{
+@{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

@@ -1,0 +1,54 @@
+@{
+    ViewData["Title"] = ViewData["Subject"];
+}
+
+<style>
+    body {
+      font-family: arial, sans-serif;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    div {
+    }
+    .title {
+      margin-bottom:20px;
+    }
+    .section-head {
+    }
+    .section-line {
+      margin-left: 10px;
+    }
+    .sig {
+    }
+    .sig-line {
+    }
+</style>
+
+<div class="title">Gage: <a href="https://floodzilla.com/gage/@Model.Model.Location.PublicLocationId">@Model.Model.Location.PublicLocationId @Model.Model.Location.LocationName</a></div>
+
+<div class="section-head">
+Last reading at @EmailHelpers.RenderTimeDate(Model.Model.Region, Model.Evt.EventTime)
+</div>
+<div class="section">
+<div class="section-line">Status: @Model.Status</div>
+<div class="section-line">@Model.Model.GetLevelAndRoadDelta() level</div>
+</div>
+@if (Model.Detail.Trends != null && Model.Detail.Trends.TrendValue != null && Model.Detail.Trends.TrendValue != 0) {
+  double trend = Model.Detail.Trends.TrendValue;
+  <div class="section-head">
+    <span>Trend:</span>
+  </div>
+  <div class="section">
+  <div class="section-line">@((trend > 0) ? "Rising" : "Falling") at @String.Format("{0:0.0}", trend) ft/hr</div>
+    @if (Model.Detail.RoadCrossing != null) {
+      <div class="section-line">Projected to be at road level at @EmailHelpers.RenderTime(Model.Model.Region, Model.Detail.RoadCrossing)</div>
+    }
+  </div>
+}
+<div class="sig">
+<div class="sig-line">-- </div>
+<div class="sig-line">Floodzilla Gage Network - <a href="https://floodzilla.com">https://floodzilla.com</a></div>
+<div class="sig-line">We sent this email to @Model.Model.AspNetUser.Email: <a href="@Model.Model.GetUnsubscribeLink()">unsubscribe</a></div>
+<div class="sig-line">Snoqualmie Valley Preservation Alliance (SVPA)</div>
+<div class="sig-line">4621 Tolt Avenue, Carnation, WA 98014</div>
+</div>

@@ -1,0 +1,32 @@
+@using Microsoft.AspNetCore.Identity
+@using FloodzillaWeb.Models
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <form asp-area="" asp-controller="Account" asp-action="LogOff" method="post" id="logoutForm" class="navbar-right" style="display:none;">
+    </form>
+
+    <li class="dropdown">
+        <a data-toggle="dropdown" data-target="#profile"><img src="~/images/DashboardIcons/round-person-online-36px.png" /></a>
+        <ul class="dropdown-menu dropdown-menu-right" id="#profile">
+            <li class="dropdown-item"><a>Hello @User.Identity.Name!</a></li>
+            <li class="dropdown-divider"></li>
+            <li class="dropdown-item">
+                <a asp-area="" asp-controller="Manage" asp-action="ChangePassword" title="Change Password">Change Password</a>
+            </li>
+            <li class="dropdown-item">
+                <a onclick="logoutForm.submit()">
+                    Log off
+                </a>
+            </li>
+        </ul>
+    </li>
+
+}
+else
+{
+    <li><a asp-area="" asp-controller="Account" asp-action="Login"><img src="~/images/DashboardIcons/round-person-36px.png" /></a></li>
+}

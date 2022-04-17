@@ -1,0 +1,97 @@
+﻿@model FloodzillaWeb.ViewModels.Users.UpdateUserViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Update User";
+    var Roles = (List<SelectListItem>)ViewBag.Roles;
+    var OrgsList = (List<SelectListItem>)ViewBag.Orgs;
+}
+
+<partial name="_showMessage" />
+<form asp-controller="Users" asp-action="Edit" method="post" class="form-horizontal" autocomplete="off">
+    <h4>Update Account</h4>
+    <hr />
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <input type="hidden" asp-for="AspNetUserId" />
+    <input type="hidden" asp-for="Uid" />
+    <input type="hidden" asp-for="oldRole" />
+
+    <div class="form-group row">
+      <div class="col-md-2 control-label">
+        <label asp-for="FirstName" class="control-label">First name:</label>
+      </div>
+      <div class="col-md-10">
+        <input asp-for="FirstName" class="form-control" />
+        <span asp-validation-for="FirstName" class="text-danger"></span>
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-md-2 control-label">
+        <label asp-for="LastName" class="control-label">Last name:</label>
+      </div>
+      <div class="col-md-10">
+        <input asp-for="LastName" class="form-control" />
+        <span asp-validation-for="LastName" class="text-danger"></span>
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-md-2 control-label">
+        <label asp-for="Email" class="control-label">Email address:</label>
+      </div>
+      <div class="col-md-10">
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-md-2 control-label">
+        <label asp-for="RoleName" class="control-label">Role:</label>
+      </div>
+      <div class="col-md-10">
+        <select asp-for="RoleName" asp-items="@Roles" class="form-control"></select>
+        <span asp-validation-for="RoleName" class="text-danger"></span>
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-md-2 control-label">
+        <label asp-for="OrganizationsID" class="control-label">Organization:</label>
+      </div>
+      <div class="col-md-10">
+        <select asp-for="OrganizationsID" id="OrganizationsID" class="form-control" asp-items="@OrgsList"></select>
+        <span id="orgValid"></span>
+      </div>
+    </div>
+    <div class="form-group row">
+        <div class="col-md-10 offset-2">
+            <button type="submit" class="btn btn-primary">Update</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+
+<script>
+        $(function () {
+            
+            $("form").submit(function (e) {
+                var role = $("#RoleName").val();
+                if (role == "Admin" || role == "Guest") {
+                    return true;
+                }
+                else {
+                    var orgId = $("#OrganizationsID").val();
+                    if (orgId != "" && orgId != undefined) {
+                        return true;
+                    }
+                    else {
+                        orgValid.innerHTML = "Please select organization.".fontcolor("red");
+                        return false;
+                    }
+
+                }
+            });
+
+        });
+</script>
+}

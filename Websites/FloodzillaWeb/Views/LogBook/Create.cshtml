@@ -1,0 +1,71 @@
+@model FloodzillaWeb.ViewModels.LogBook.LogBookPostViewModel
+@{ 
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Post to Log Book";
+}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.css" rel="stylesheet" />
+
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+          <div class="card-header">
+            <div class="card-title">Post to Log Book</div>
+          </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-12">
+    <partial name="_showMessage" />
+  </div>
+</div>
+
+<form asp-action="Create" method="post" class="form-horizontal" autocomplete="off">
+  <input type="hidden" asp-for="FixedTag" value="@ViewBag.FixedTag" />
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label class="control-label">Tags:</label>
+    </div>
+    <div class="col-md-10">
+      <select asp-for="Tags" name="tags" id="tags" multiple style="display:none;">
+        @foreach (var at in ViewBag.AvailableTags)
+        {
+        <option value="@at.GetTag()">@at.GetTagName()</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="Text" class="control-label">Log Book Message:</label>
+    </div>
+    <div class="col-md-10">
+      <textarea style="width:100%" rows="5" asp-for="Text"></textarea>
+    </div>
+  </div>
+
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+  </div>
+</form>
+
+  @section Scripts{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.jquery.js"></script>
+    <script>
+
+        var fixedTag = '@ViewBag.FixedTag';
+        $(function () {
+            if (fixedTag) {
+                $('#tags > option[value="' + fixedTag + '"]').prop('selected', true);
+                $('#tags > option[value="' + fixedTag + '"]').prop('disabled', true);
+            }
+            $('#tags').show();
+            $('#tags').chosen();
+        });
+    </script>
+}

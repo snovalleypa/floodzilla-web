@@ -1,0 +1,162 @@
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Recent Job Status";
+}
+
+<div class="modal fade" tabindex="-1" role="dialog" id="FullException">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content senix-raw-reading-modal">
+            <div class="modal-header">
+                <h4 class="modal-title">Full Exception Info</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body senix-raw-reading">
+                <pre><code>
+                </code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+          <div class="card-header">
+            <div class="card-title">Recent Job Statuses</div>
+          </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-5 col-lg-5 col-sm-5 col-xs-12">
+        <div class="form-group">
+          <input type="hidden" id="RegionId" value="@ViewBag.Region.RegionId" />
+            <label for="JobSelect">Job:</label><br />
+            <select id="JobSelect" style="display:inline" name="Job" class="form-control" asp-items="@ViewBag.Jobs"></select>
+        </div>
+    </div>
+</div>
+<div class="row" id="loading" style="display:none;">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        Loading...
+    </div>
+</div>
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+            <div class="card-header">
+                <div class="card-title">Recent Job Status</div>
+            </div>
+            <div class="card-body"></div>
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Job Name</th>
+                        <th>Machine Name</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Summary</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<div class="row" id="noData" style="display:none;">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        No entries found
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var dataTable;
+        function InitTable() {
+            dataTable = $("table").DataTable({
+                retrieve: true,
+                paging: false,
+                searching: false,
+                ordering: false,
+                language: { emptyTable: "...", infoEmpty: "", zeroRecords: "No data" },
+                "columns": [
+                { "data": renderJobName },
+                { "data": "machineName", "orderable": true, width: "10em" },
+                { "data": "startTime", "orderable": true, render: function (data, type, row) { return moment(data).format("MM/DD/YYYY hh:mm:ss a"); }},
+                { "data": "endTime", "orderable": true, render: function (data, type, row) { return moment(data).format("MM/DD/YYYY hh:mm:ss a"); }},
+                { "data": "summary", "orderable": true },
+                { "data": renderError },
+                ]
+            });
+            $('table').on('xhr.dt', function (e, settings, json, xhr) {
+                $('#loading').hide();
+                if (xhr.status == 200 && xhr.responseJSON.data && xhr.responseJSON.data.length > 0) {
+                    $('#results').show();
+                    $('#noData').hide();
+                }
+                else {
+                    $('#results').hide();
+                    $('#noData').show();
+                }
+            });
+        }
+
+        function onClickError(id) {
+            $("#FullException code").empty().html('Loading...');
+            $("#FullException").modal("show");
+            $.ajax({
+                url: '@Url.Action("GetFullJobRunException")',
+                data: { runId: id },
+                success: function (result) {
+                    $("#FullException code").empty().html(result);
+                }
+            });
+        }
+
+        function renderJobName(data) {
+            if (data == undefined || data == 0) {
+                return '';
+            }
+            if (data.jobName == undefined) {
+                return '';
+            }
+            return data.jobName.split('.').slice(-1)[0];
+        }
+
+        function renderError(data) {
+            if (data == undefined || data == 0) {
+                return '';
+            }
+            if (data.exception == undefined || data.exception == 0) {
+                return '';
+            }
+            return '<a href="#" onclick="onClickError(' + data.id + ');return false;" data-id="' + data.id + '">' + data.exception + '</a>';
+        }
+
+
+        function UpdateTable(job) {
+            dataTable.ajax.url("/Reports/GetJobRunLogs?jobName=" + job + "&regionId=" + $("#RegionId").val());
+            $('#loading').show();
+            $('#results').hide();
+            $('#noData').hide();
+            dataTable.ajax.reload(function () {
+                $('.highlight').each(function() { this.scrollIntoView(); });
+            });
+        }
+
+
+        $(function () {
+            InitTable();
+
+            var job = $("#JobSelect").val();
+            $("#JobSelect").change(function() {
+                window.location.href = "/Reports/JobStatus/?jobName=" + $("#JobSelect").val();
+            });
+            UpdateTable(job);
+        });
+    </script>
+}

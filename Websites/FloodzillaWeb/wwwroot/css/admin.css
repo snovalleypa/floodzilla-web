@@ -1,0 +1,15 @@
+.senix-raw-reading-modal {
+}
+.senix-raw-reading {
+  font-family: Consolas, source-code-pro, monospace .ace_editor;
+}
+
+.table > tbody > tr.datagap,
+.table > tbody > tr.datagap > td {
+  border-top: 3px solid #000;
+}
+
+.table > tbody > tr.highlight,
+.table > tbody > tr.highlight > td {
+  font-weight:bold;
+}

@@ -1,0 +1,6 @@
+CREATE PROCEDURE [GetJobRunLogJobNames]
+AS
+BEGIN
+    SELECT DISTINCT JobName FROM JobNames
+END
+GO

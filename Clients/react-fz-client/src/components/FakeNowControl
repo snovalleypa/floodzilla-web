@@ -1,0 +1,47 @@
+import React, { useContext } from "react";
+import { Link, useHistory } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faAngleLeft, faAngleDoubleRight, faAngleRight } from '@fortawesome/free-solid-svg-icons'
+import { DebugContext } from "./DebugContext";
+
+export default function FakeNowControl() {
+  const debug = useContext(DebugContext);
+  const history = useHistory();
+
+  const onFakeNowLeft = (e) => {
+    e.preventDefault();
+    debug.moveFakeNowLeft();
+  }
+
+  const onFakeNowFastforward = (e) => {
+    e.preventDefault();
+    debug.setFastforward(!debug.fastforward);
+  }
+
+  const onFakeNowClear = (e) => {
+    e.preventDefault();
+    debug.clearFakeNow();
+    history.push('/');
+  }
+
+  const onFakeNowRight = (e) => {
+    e.preventDefault();
+    debug.moveFakeNowRight();
+  }
+
+  return (
+    <div style={{marginTop: "12px"}}>
+      <Link to="/" className="text-center align-self-center" onClick={onFakeNowLeft} style={{color:"black",width:"100%"}}><FontAwesomeIcon icon={faAngleLeft} /></Link>
+      {/* use <a> in next line instead of Link because we want to force a full reload */}
+      {"  "}NOW: <a href={debug.getDebugUrl()} style={{color:"black"}}>{debug.fakeNow.format('YYYY-MM-DD hh:mm:ssA')}</a>{"  "}
+      <Link to="/" className="text-center align-self-center" onClick={onFakeNowClear} style={{color:"black",width:"100%"}}>X</Link>{" "}
+      <Link to="/"
+            className="text-center align-self-center"
+            onClick={onFakeNowFastforward}
+            style= {{ color: debug.fastforward ? "red":"gray",
+                      width:"100%"}}
+      ><FontAwesomeIcon icon={faAngleDoubleRight} /></Link>{" "}
+      <Link to="/" className="text-center align-self-center" onClick={onFakeNowRight} style={{color:"black",width:"100%"}}><FontAwesomeIcon icon={faAngleRight} /></Link>
+    </div>
+  );
+}

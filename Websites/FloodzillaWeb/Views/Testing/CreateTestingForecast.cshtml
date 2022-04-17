@@ -1,0 +1,38 @@
+@model string
+@{ 
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Create Fake Forecasts";
+}
+
+<script>
+</script>
+
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+          <div class="card-header">
+            <div class="card-title">Create Fake Forecasts</div>
+          </div>
+        </div>
+    </div>
+</div>
+
+<partial name="_showMessage" />
+
+<form asp-action="CreateTestingForecast" method="post" class="form-horizontal" autocomplete="off">
+
+  <div class="form-group row">
+    <div class="col-md-10 offset-2">
+      <button id="btnCreate" type="submit" class="btn btn-primary">Create Forecast</button>
+    </div>
+  </div>
+
+</form>
+
+@section Scripts {
+<script>
+$(function () {
+});
+
+</script>
+}

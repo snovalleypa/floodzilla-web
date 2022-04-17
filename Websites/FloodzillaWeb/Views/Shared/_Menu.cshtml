@@ -1,0 +1,57 @@
+@if (User.Identity.IsAuthenticated && !User.IsInRole("Guest"))
+{
+
+@* Items that are commented out in this file have not yet been ported to ASP.NET Core *@
+
+    <li class="dropdown">
+        <a data-toggle="dropdown" data-target="#">
+            <img src="~/images/DashboardIcons/round-setting-36px.png" />
+        </a>
+        <ul class="dropdown-menu dropdown-menu-right">
+            <li class="dropdown-item"><a href="/">Site Dashboard</a></li>
+            <li class="dropdown-item"><a href="/Admin">Admin Dashboard</a></li>
+            <li class="dropdown-divider"></li>
+            @if (User.IsInRole("Organization Admin") || User.IsInRole("Admin") || User.IsInRole("Organization Member"))
+            {
+                <li class="dropdown-item dropdown-submenu">
+                    <a tabindex="-1" href="#">Admin...</a>
+                    <ul class="dropdown-menu dropdown-menu-right">
+
+                        <li class="dropdown-item"><a asp-controller="LogBook" asp-action="Index" class="">Change Log</a></li>
+                        <li class="dropdown-item"><a asp-controller="Users" asp-action="Index" class="">Users</a></li>
+                        @*<li class="dropdown-item"><a asp-controller="DataSubscriptions" asp-action="Index" class="">Data Subscriptions</a></li>*@
+                        <li class="dropdown-item"><a asp-controller="FloodEvents" asp-action="Index" class="">Flood Events</a></li>
+                        <li class="dropdown-item"><a asp-controller="Regions" asp-action="Index" class="">Regions</a></li>
+                        <li class="dropdown-item"><a asp-controller="Organizations" asp-action="Index" class="">Organizations</a></li>
+                        <li class="dropdown-item"><a asp-controller="Uploads" asp-action="Index" class="">Uploads</a></li>
+                        @*<li class="dropdown-item"><a asp-controller="FlushCache" asp-action="Index" class="">Refresh Cache...</a></li>*@
+                    </ul>
+                </li>
+
+                <li class="dropdown-item dropdown-submenu">
+                    <a tabindex="-1" href="#">Sensors...</a>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        <li class="dropdown-item"><a asp-controller="Locations" asp-action="Index" class="">Locations</a></li>
+                        <li class="dropdown-item"><a asp-controller="Devices" asp-action="Index" class="">Devices</a></li>
+                        <li class="dropdown-item"><a asp-controller="Receivers" asp-action="Index" class="">Receivers</a></li>
+                    </ul>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("Organization Admin") || User.IsInRole("Gage Steward"))
+            {
+                <li class="dropdown-item dropdown-submenu">
+                    <a tabindex="-1" href="#">Reports...</a>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        <li class="dropdown-item"><a asp-controller="Reports" asp-action="Index" class="">Location Readings</a></li>
+                        <li class="dropdown-item"><a asp-controller="Reports" asp-action="LatestStats" class="">Gage Statistics Summary</a></li>
+                        <li class="dropdown-item"><a asp-controller="Reports" asp-action="Stats" class="">Gage Statistics</a></li>
+                        <li class="dropdown-item"><a asp-controller="Reports" asp-action="JobStatus" class="">Recent Job Statuses</a></li>
+                        <li class="dropdown-item"><a asp-controller="Reports" asp-action="SenixLogs" class="">Senix Listener Logs</a></li>
+                    </ul>
+                </li>
+            }
+        </ul>
+    </li>
+
+}

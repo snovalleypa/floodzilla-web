@@ -1,0 +1,11 @@
+@{
+    Layout = "_EmptyLayout";
+    FzCommon.RegionBase region = (FzCommon.RegionBase)(ViewBag.Region);
+}
+window.regionSettings = {
+  id: @region.RegionId,
+  name: '@region.RegionName',
+  timezone: '@region.IanaTimeZone',
+  latitude: @region.Latitude,
+  longitude: @region.Longitude,
+};

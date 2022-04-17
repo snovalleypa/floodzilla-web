@@ -1,0 +1,105 @@
+@{
+    ViewData["Title"] = ViewData["Subject"];
+}
+
+<style>
+    body {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+    table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+    tr.table-danger, tr.table-danger > td {
+      background-color: #f5c6cb;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    tr:nth-child(even) {
+        background-color: #eeeeee;
+    }
+</style>
+
+<h4>Statuses of sensors in @Model.Model.Region.RegionName:</h4>
+
+<br />
+@if (Model.LateSensors.Count > 0) {
+<span>No update during the last @Model.LateSensorThreshold hours:</span>
+<br />
+<table>
+  <tr><th>Location</th><th>Last Update</th></tr>
+  @foreach (DailyStatusEmailModel.LocationStatus ls in Model.LateSensors) {
+    <tr>
+      <td><a href="@EmailHelpers.GetGageLink(Model.Model.Region, ls.PublicLocationId)">@ls.LocationName [@ls.PublicLocationId]</a>
+         (<a href="@EmailHelpers.GetGageAdminLink(Model.Model.Region, ls.LocationId)">admin</a>)</td>
+      <td>@FzCommonUtility.ToRegionTimeFromUtc(ls.LastUpdate)</td>
+    </tr>
+  }
+</table>
+<br />
+} else {
+<span><br />All sensors have updated within the last @Model.LateSensorThreshold hours!<br /></span>
+}
+<br />
+
+@if (Model.LowBattery.Count > 0) {
+<span>Low battery level:</span>
+<br />
+<table>
+  <tr><th>Location</th><th>Last Update</th><th>Battery Level</th></tr>
+  @foreach (DailyStatusEmailModel.LocationStatus ls in Model.LowBattery) {
+    <tr>
+      <td><a href="@EmailHelpers.GetGageLink(Model.Model.Region, ls.PublicLocationId)">@ls.LocationName [@ls.PublicLocationId]</a>
+         (<a href="@EmailHelpers.GetGageAdminLink(Model.Model.Region, ls.LocationId)">admin</a>)</td>
+      <td>@FzCommonUtility.ToRegionTimeFromUtc(ls.LastUpdate)</td>
+      <td style="color: @EmailHelpers.GetBatteryColor(ls.BatteryMillivolt);">@FzCommonUtility.CalculateBatteryVoltPercentage(ls.BatteryMillivolt)%</td>
+    </tr>
+  }
+</table>
+<br />
+} else {
+<span><br />All sensors have battery level above @Model.BatteryThresholdPercent%!<br /></span>
+}
+<br />
+
+Latest gage statistics:
+<br />
+<table>
+  <tr>
+    <th>Location</th>
+    <th>Date</th>
+    <th>Avg Battery</th>
+    <th>Percent Received</th>
+    <th>Avg Rssi</th>
+  </tr>
+@foreach (DailyStatusEmailModel.LocationStatistics stats in Model.Model.LatestStatistics) {
+  string rowClass = "";
+  TimeSpan age = DateTime.UtcNow - stats.Stats.Date;
+  if (age.TotalHours > 48)
+  {
+      rowClass = "table-danger";
+  }
+  <tr class="@rowClass">
+    <td><a href="@EmailHelpers.GetGageStatsLink(Model.Model.Region, stats.LocationId)">@stats.LocationName</a>
+       (<a href="@EmailHelpers.GetGageAdminLink(Model.Model.Region, stats.LocationId)">admin</a>)</td>
+    <td >@stats.DateInRegionTime.ToString("d")</td>
+    <td>@Math.Round(stats.Stats.AverageBatteryMillivolts.Value / 1000.0, 3)V</td>
+    <td>@Math.Round(stats.Stats.PercentReadingsReceived.Value, 2)%</td>
+    <td>@Math.Round(stats.Stats.AverageRssi.Value, 2)</td>
+  </tr>
+}
+</table>
+
+<br /><br />
+Thanks,
+<br />
+SVPA Floodzilla Gage Network
+<br /><br />

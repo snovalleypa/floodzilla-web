@@ -1,0 +1,53 @@
+/****** Object:  Table [LocationsBackup]    Script Date: 12/20/2019 11:32:51 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [LocationsBackup](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[LocationName] [varchar](100) NOT NULL,
+	[Description] [varchar](300) NULL,
+	[TimeZone] [varchar](100) NOT NULL,
+	[RegionId] [int] NOT NULL,
+	[Latitude] [float] NULL,
+	[Longitude] [float] NULL,
+	[Address] [nvarchar](max) NULL,
+	[GroundHeight] [float] NOT NULL,
+	[Green] [float] NULL,
+	[Brown] [float] NULL,
+	[Yellow] [float] NULL,
+	[IsActive] [bit] NOT NULL,
+	[IsPublic] [bit] NOT NULL,
+	[IsDeleted] [bit] NOT NULL,
+	[GeoData] [geography] NULL,
+	[NearPlaces] [nvarchar](max) NULL,
+	[Reason] [nvarchar](max) NULL,
+	[ContactInfo] [nvarchar](max) NULL,
+	[LocationUpdateMinutes] [int] NULL,
+	[IsOffline] [bit] NOT NULL,
+	[SeaLevel] [float] NULL,
+	[LocationNumber] [varchar](50) NULL,
+	[Rank] [float] NULL,
+	[YMin] [float] NULL,
+	[YMax] [float] NULL,
+	[LocalReferenceDescription] [varchar](max) NULL,
+	[StageZeroHeight] [float] NULL,
+	[SensorHeightAboveReference] [float] NULL,
+	[LocalReferenceElevation] [float] NULL,
+	[ModifiedBy] [int] NULL,
+	[ModifiedOn] [datetime] NULL,
+	[CreatedBy] [int] NULL,
+	[CreatedOn] [datetime] NULL,
+	[PublicLocationId] [varchar](50) NULL,
+	[BenchmarkElevation] [float] NULL,
+	[BenchmarkIsProvisional] [bit] NOT NULL,
+	[BenchmarkDescription] [varchar](300) NULL,
+	[RelativeSensorHeight] [float] NULL,
+	[RoadSaddleHeight] [float] NULL,
+	[RoadDisplayName] [varchar](300) NULL,
+	[MarkerOneHeight] [float] NULL,
+	[MarkerOneDescription] [varchar](300) NULL,
+	[MarkerTwoHeight] [float] NULL,
+	[MarkerTwoDescription] [varchar](300) NULL
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO

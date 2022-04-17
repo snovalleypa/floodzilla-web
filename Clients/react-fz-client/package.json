@@ -1,0 +1,51 @@
+{
+  "name": "react-fz-client",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.30",
+    "@fortawesome/free-solid-svg-icons": "^5.14.0",
+    "@fortawesome/react-fontawesome": "^0.1.11",
+    "bootstrap": "^4.5.0",
+    "google-map-react": "^1.1.7",
+    "highcharts": "^8.1.2",
+    "highcharts-react-official": "^3.0.0",
+    "moment": "^2.27.0",
+    "moment-timezone": "^0.5.31",
+    "popper.js": "^1.16.1",
+    "query-string": "^6.13.1",
+    "react": "^16.13.1",
+    "react-bootstrap": "^1.2.2",
+    "react-dates": "^21.8.0",
+    "react-dom": "^16.13.1",
+    "react-router-dom": "^5.3.0",
+    "react-scripts": "3.4.0"
+  },
+  "scripts": {
+    "start": "REACT_APP_STAGE=dev react-scripts start",
+    "swstart": "set HTTPS=true&&set REACT_APP_STAGE=dev&&react-scripts start",
+    "wstart": "set REACT_APP_STAGE=dev&&react-scripts start",
+    "build": "react-scripts build",
+    "test": "REACT_APP_STAGE=dev react-scripts test",
+    "wtest": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "jest-fetch-mock": "^2.1.2"
+  }
+}

@@ -1,0 +1,18 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [GetPreviousNoaaForecastSet]
+AS
+BEGIN
+
+  DECLARE @target DATETIME
+  SET ROWCOUNT 1
+  SELECT DISTINCT @target=Created FROM NoaaForecasts ORDER BY Created DESC OFFSET 1 ROWS
+  SET ROWCOUNT 0
+  SELECT * FROM NoaaForecasts 
+    WHERE Created = @target
+    ORDER BY ForecastId ASC
+END
+GO
