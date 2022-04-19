@@ -357,7 +357,7 @@ export function GageDataContextProvider(props) {
     let chartRange = new ChartRange();
     chartRange.changeDays(forecastListener.chartTimespan.asDays());
 
-    const url = _getForecastUrl(forecastListener.gageIds || forecastListener.gage.id, chartRange.apiStartDateString, chartRange.apiEndDateString);
+    const url = _getForecastUrl(forecastListener.gageIds, chartRange.apiStartDateString, chartRange.apiEndDateString);
 
     forecastListener.timestamp = debug.getNow();
     try {
