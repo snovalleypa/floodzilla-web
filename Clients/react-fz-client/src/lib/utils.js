@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import queryStringUtil from "query-string";
-import moment from "moment";
+import moment from "moment-timezone";
 
 export function generateGagePath({ gage, queryParams = {} }) {
   let queryString = queryStringUtil.stringify(queryParams);
