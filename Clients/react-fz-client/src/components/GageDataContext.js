@@ -207,11 +207,11 @@ export function GageDataContextProvider(props) {
 
   const _getChartDataUrl = (gageId, apiStartDateString, apiEndDateString, lastReadingId, includeStatus, includePredictions) => {
     return Constants.readingApi.GET_READINGS_URL
-           + "?getMinimalReadings=true&regionId=" + window.regionSettings.id
+           + "?regionId=" + window.regionSettings.id
            + "&id=" + gageId
            + (apiStartDateString ? ("&fromDateTime=" + apiStartDateString) : "")
            + (apiEndDateString ? ("&toDateTime=" + apiEndDateString) : "")
-           + (lastReadingId ? ("&lastReadingId=" + lastReadingId) : "")
+           + (lastReadingId ? ("&lastReadingId=" + lastReadingId) : "&getMinimalReadings=true")
            + (includeStatus ? "&includeStatus=true" : "")
            + (includePredictions ? "&includePredictions=true" : "");
   }
@@ -450,7 +450,7 @@ export function GageDataContextProvider(props) {
       let listener = GageDataContextProvider._listeners[gageid];
       if (now.diff(listener.timestamp) > listener.refreshInterval) {
         try {
-          fetchForecastForListener(listener);
+          fetchLiveChartDataForListener(listener);
         } catch {
           // just eat this; it will have been handled elsewhere...
         }
