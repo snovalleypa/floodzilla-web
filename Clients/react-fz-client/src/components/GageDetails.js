@@ -14,7 +14,7 @@ import "react-dates/initialize";
 import "react-dates/lib/css/_datepicker.css";
 import queryStringUtil from "query-string";
 import Map from "./Map";
-import moment from "moment";
+import moment from "moment-timezone";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faArrowCircleLeft, faArrowCircleRight } from '@fortawesome/free-solid-svg-icons'
 import { SessionContext, SessionState } from "./SessionContext";

@@ -1,7 +1,7 @@
 import Constants from "../constants";
+import { SessionState } from "../components/SessionContext";
 
 export default class SubscriptionManager {
-
   static _regionId = 0;
   static _session = null;
   static _settings = null;
@@ -42,15 +42,26 @@ export default class SubscriptionManager {
     if (SubscriptionManager._subscribed) {
       return SubscriptionManager._subscribed;
     }
-
-    const result = await SubscriptionManager._session.authFetch(this.getSubscriptionsUrl(),
-                                                 'GET',
-                                                 null,
-                                                 true,
-                                                 (response) => {},
-                                                 (message) => { throw message; });
-    SubscriptionManager._subscribed = result;
-    return SubscriptionManager._subscribed;
+    if (SubscriptionManager._session.sessionState !== SessionState.LOGGED_IN) {
+      return [];
+    }
+    try {
+      const result = await SubscriptionManager._session.authFetch(
+        this.getSubscriptionsUrl(),
+        "GET",
+        null,
+        true,
+        (response) => {},
+        (message) => {
+          throw message;
+        }
+      );
+      SubscriptionManager._subscribed = result;
+      return SubscriptionManager._subscribed;
+    } catch (e) {
+      console.warn("failed to get subscription data", e);
+      return [];
+    }
   }
 
   async setGageSubscription(gageid, enabled) {
@@ -89,4 +100,3 @@ export default class SubscriptionManager {
     return Constants.subscriptionApi.SUBSCRIPTIONS_URL + '/' + SubscriptionManager._regionId;
   }
 }
-
