@@ -180,9 +180,9 @@ namespace FzCommon
                 if (result != null)
                 {
                     result.Result = "Saved as deleted (LScale is missing)";
+                    result.ShouldSave = true;
+                    result.ShouldSaveAsDeleted = true;
                 }
-                result.ShouldSave = true;
-                result.ShouldSaveAsDeleted = true;
                 return false;
             }
 
