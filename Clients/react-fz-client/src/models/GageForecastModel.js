@@ -19,14 +19,19 @@ export default class GageForecastModel {
     if (!forecast || !forecast.dataPoints || !forecast.dataPoints[0]) {
       return null;
     }
+    let cutoff = moment().subtract(24, 'hours')
     let max = forecast.dataPoints[0].waterDischarge;
     let maxReading = forecast.dataPoints[0];
-    forecast.dataPoints.forEach(d => {
-      if (d.waterDischarge >= max) {
-        maxReading = d;
-        max = d.waterDischarge;
+    for (let i = 1; i < forecast.dataPoints.length; i++) {
+      const reading = forecast.dataPoints[i];
+      if (reading.timestamp < cutoff) {
+        break;
       }
-    });
+      if (reading.waterDischarge >= max) {
+        maxReading = reading;
+        max = reading.waterDischarge;
+      }
+    }
     return maxReading;
   }
 
