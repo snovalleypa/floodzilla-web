@@ -1,3 +1,5 @@
+#define DISCARD_MISMATCHED_READINGS
+
 using System.ComponentModel.DataAnnotations;
 using System.Xml;
 using Microsoft.Data.SqlClient;
@@ -175,9 +177,29 @@ namespace FzCommon
                         // too far out of synch, we can just ignore this.
                         if (dischargeSeries.Values[0].Value.Count > 20 ||  waterHeightSeries.Values[0].Value.Count > 20)
                         {
+#if DISCARD_MISMATCHED_READINGS
+                            int i = 0;
+                            while (i < dischargeSeries.Values[0].Value.Count)
+                            {
+                                if (dischargeSeries.Values[0].Value[i].DateTime.Ticks != waterHeightSeries.Values[0].Value[i].DateTime.Ticks)
+                                {
+                                    waterHeightSeries.Values[0].Value.RemoveAt(i);
+                                }
+                                else
+                                {
+                                    i++;
+                                }
+                            }
+                            while (i < waterHeightSeries.Values[0].Value.Count)
+                            {
+                                waterHeightSeries.Values[0].Value.RemoveAt(i);
+                            }
+                        }
+#else
                             ErrorManager.ReportError(ErrorSeverity.Major, "UsgsSite.FetchUsgsReadings", String.Format("USGS response had mismatch between discharge count {0} and water height count {1}.\n URL: {2}", dischargeSeries.Values[0].Value.Count, waterHeightSeries.Values[0].Value.Count, url));
                         }
                         return null;
+#endif
                     }
                 }
 
