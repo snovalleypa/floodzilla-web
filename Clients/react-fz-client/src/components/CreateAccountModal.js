@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
@@ -25,6 +25,29 @@ export default function CreateAccountModal(props) {
   const [ renderedCaptcha, setRenderedCaptcha ] = useState(false);
   const [ error, setError ] = useState('');
   const [ isFormValid, setIsFormValid ] = useState(false);
+
+  useEffect(() => {
+    let valid = true;
+    let pwError = "";
+    if (password.length > 0 && password.length < Constants.PASSWORD_MIN_LENGTH) {
+      pwError = `Password must be at least ${Constants.PASSWORD_MIN_LENGTH} characters.`;
+      valid = false;
+    }
+    setPasswordError(pwError);
+    let mismatchError = "";
+    if (confirmPassword.length > 0 && password !== confirmPassword) {
+      mismatchError = "Passwords do not match."
+      valid = false;
+    }
+    setPasswordMismatch(mismatchError);
+    if (firstName.length === 0 ||
+        lastName.length === 0 ||
+        email.length === 0 ||
+        password.length === 0) {
+      valid = false;
+    }
+    setIsFormValid(valid);
+  }, [firstName, lastName, email, password, confirmPassword])
 
   const closeModal = () => {
     setError('');
@@ -66,15 +89,12 @@ export default function CreateAccountModal(props) {
 
   const handleFirstNameChange = (event) => {
     setFirstName(event.target.value);
-    validateForm();
   }
   const handleLastNameChange = (event) => {
     setLastName(event.target.value);
-    validateForm();
   }
   const handleEmailChange = (event) => {
     setEmail(event.target.value);
-    validateForm();
   }
   const handlePasswordChange = (event) => {
     setPassword(event.target.value);
@@ -84,39 +104,6 @@ export default function CreateAccountModal(props) {
   }
   const handleRememberMeChange = (event) => {
     setRememberMe(event.target.checked);
-  }
-  const handlePasswordBlur = (event) => {
-    validatePassword();
-    validateForm();
-  }
-  const handleConfirmPasswordBlur = (event) => {
-    validatePassword();
-    validateForm();
-  }
-
-  const validateForm = () => {
-    var valid = true;
-    if (firstName.length === 0 ||
-        lastName.length === 0 ||
-        email.length === 0 ||
-        password.length === 0 ||
-        confirmPassword.length === 0) {
-      valid = false;
-    }
-    setIsFormValid(valid);
-  }
-
-  const validatePassword = () => {
-    if (password.length < Constants.PASSWORD_MIN_LENGTH) {
-      setPasswordError('Password must be at least ' + Constants.PASSWORD_MIN_LENGTH + ' characters.');
-    } else {
-      setPasswordError('');
-    }
-    if (confirmPassword.length > 0 && password !== confirmPassword) {
-      setPasswordMismatch('Passwords do not match');
-    } else {
-      setPasswordMismatch('');
-    }
   }
 
   window.createrecaptcha = (response) => {
@@ -163,7 +150,7 @@ export default function CreateAccountModal(props) {
         <div className="form-group">
           <LoginField
              label={<>Password:</>}
-             ctrl={<input type="password" name="password" className="form-control login-form-control" value={password} onChange={handlePasswordChange} onBlur={handlePasswordBlur}/>}
+             ctrl={<input type="password" name="password" className="form-control login-form-control" value={password} onChange={handlePasswordChange} />}
            />
           {passwordError && <LoginField
              label={<></>}
@@ -171,7 +158,7 @@ export default function CreateAccountModal(props) {
            />}
           <LoginField
              label={<>Confirm Password:</>}
-             ctrl={<input type="password" name="confirmPassword" className="form-control login-form-control" value={confirmPassword} onChange={handleConfirmPasswordChange} onBlur={handleConfirmPasswordBlur} />}
+             ctrl={<input type="password" name="confirmPassword" className="form-control login-form-control" value={confirmPassword} onChange={handleConfirmPasswordChange} />}
            />
           {passwordMismatch && <LoginField
              label={<></>}
@@ -191,7 +178,7 @@ export default function CreateAccountModal(props) {
       <div className="form-group">
         {isLoading
          ? <Image className="login-loading" src="/img/loading.gif" />
-         : <Button disabled={(passwordError || passwordMismatch || !isFormValid)} type="submit" variant="primary">Create Account</Button>
+         : <Button disabled={!isFormValid} type="submit" variant="primary">Create Account</Button>
         }
       </div>
     </Modal.Footer>
