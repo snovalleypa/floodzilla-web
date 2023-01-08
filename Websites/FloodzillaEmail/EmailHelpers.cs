@@ -32,6 +32,11 @@ public class EmailHelpers
         return String.Format("{0}/forecast?gageIds={1}", region.BaseURL, gageIds);
     }
 
+    public static string GetForecastLink(RegionBase region)
+    {
+        return String.Format("{0}/forecast", region.BaseURL);
+    }
+
     public static string GetBatteryColor(int? millivolt)
     {
         double percent = FzCommonUtility.CalculateBatteryVoltPercentage(millivolt) ?? 100;

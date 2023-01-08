@@ -22,9 +22,7 @@ export function formatTrend(trend) {
 }
 export function formatFlowTrend(trend) {
   let fmtTrend = trend.toLocaleString(undefined, { maximumFractionDigits: 0 })
-  if (trend < 0) {
-    fmtTrend = "-" + fmtTrend
-  } else {
+  if (trend > 0) {
     fmtTrend = "+" + fmtTrend
   }
   return fmtTrend + " cfs/hr";
