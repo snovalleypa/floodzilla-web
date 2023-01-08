@@ -40,7 +40,7 @@
 
 <div style="width:100%; font-family:Arial,sans-serif; font-size:13px; margin-top:10px;">
 @foreach (ForecastEmailModel.ModelGageData mgd in Model.Model.GageForecasts) {
-  <span style="font-weight:normal; font-size:16px; color:#CC6600;">@mgd.GageName</span><span style="font-size:12px"> - <a href="@EmailHelpers.GetForecastLink(Model.Model.Region, mgd.GageId)">View Forecast</a></span>
+  <span style="font-weight:normal; font-size:16px; color:#CC6600;">@mgd.GageName</span><span style="font-size:12px"> - <a href="@EmailHelpers.GetForecastLink(Model.Model.Region)">View Forecast</a></span>
 <!-- todo: link to individual details view in forecast when it's done -->
 
   @if (mgd.Readings != null && mgd.Readings.Count > 0) {
