@@ -233,8 +233,8 @@ function GageForecastReadingRow({ isWarning, reading, delta }) {
   return (
   <tr className={isWarning ? "reading-warning" : "reading"}>
     <td width="180">{reading.timestamp.format('ddd M/D hh:mm a')}</td>
-    {reading.reading && <td width="110">{reading.reading} ft</td>}
-    <td colSpan={colspan} width={tdWidth}>{reading.waterDischarge} cfs {(delta !== 0 && delta) && "(" + ((delta > 0) ? "+" : "") + delta + "/hr)"}</td>
+    {reading.reading && <td width="110">{utils.formatHeight(reading.reading)}</td>}
+    <td colSpan={colspan} width={tdWidth}>{utils.formatFlow(reading.waterDischarge)} {(delta !== 0 && delta) && "(" + utils.formatFlowTrend(delta) + ")"}</td>
   </tr>
   );
 }
