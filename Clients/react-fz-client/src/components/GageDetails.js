@@ -22,6 +22,7 @@ import SubscriptionManager from "../lib/SubscriptionManager";
 export default function GageDetails({
   gageFromDashboard,
   gageStatus,
+  gageStatusList,
   gageList,
   isMobile,
   viewGageDetails,
@@ -167,6 +168,7 @@ export default function GageDetails({
           <div className="col-md-4 col-lg-4 d-sm-none d-md-block gage-details-full-map">
             <Map
               gageList={gageList}
+              gageStatusList={gageStatusList}
               gageSelected={gage}
               viewGageDetails={viewGageDetails}
               isMobile={isMobile}
@@ -221,6 +223,7 @@ export default function GageDetails({
               <div style={{ width: "100%", height: 400 }}>
                 <Map
                   gageList={gageList}
+                  gageStatusList={gageStatusList}
                   gageSelected={gage}
                   viewGageDetails={viewGageDetails}
                   isMobile={isMobile}

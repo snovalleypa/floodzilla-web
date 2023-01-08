@@ -13,7 +13,7 @@ import {
   useHistory,
 } from "react-router-dom";
 
-export default function GageView({ gageList, isMobile, reloadGageList }) {
+export default function GageView({ gageList, gageStatusList, isMobile, reloadGageList }) {
   const [_gageSelected, setGageSelected] = useState(null);
   const { pathname, search } = useLocation();
   const pathnameChanged = utils.useCompare(pathname);
@@ -104,6 +104,7 @@ export default function GageView({ gageList, isMobile, reloadGageList }) {
                 )
               }
               gageStatus={gageData.getGageStatus(routeMatch.params.gageId)}
+              gageStatusList={gageStatusList}
               gageList={gageList}
               viewGageDetails={viewGageDetails}
               isMobile={isMobile}
