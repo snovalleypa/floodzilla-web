@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { useHistory, useLocation, useParams, Link, Redirect } from "react-router-dom";
 
 import GageChartController from "./GageChartController";
-import "../style/LocationDetails.css";
 import GageStatus from "./GageStatus";
 import TrendIcon from "./TrendIcon";
 import Loading from "./Loading";
@@ -162,84 +161,101 @@ export default function GageDetails({
 
       <br />
       {chart}
-
       <div className="row">
-        {currentRange.current && currentRange.current.isNow && currentStatus.currentStatus && currentStatus.currentStatus.lastReading && (
-          <CalloutReadingBox
-            label={'Last Reading'}
-            showTimeAgo={true}
-            gage={gage}
-            gageStatus={currentStatus}
-            currentStatus={currentStatus.currentStatus}
-            reading={currentStatus.currentStatus.lastReading}
-          />
+        {/* fullscreen-mode map shows up as the left column */}
+        {!isMobile && gageList && gage && (
+          <div className="col-md-4 col-lg-4 d-sm-none d-md-block gage-details-full-map">
+            <Map
+              gageList={gageList}
+              gageSelected={gage}
+              viewGageDetails={viewGageDetails}
+              isMobile={isMobile}
+            />
+          </div>
         )}
-        {currentRange.current && !(currentRange.current.isNow) && currentStatus.peakStatus && currentStatus.peakStatus.lastReading && (
-          <CalloutReadingBox
-            label={'Peak'}
-            showTimeAgo={false}
-            gage={gage}
-            gageStatus={currentStatus}
-            currentStatus={currentStatus.peakStatus}
-            reading={currentStatus.peakStatus.lastReading}
-          />
-        )}
-        {gage && gage.locationImages && gage.locationImages.length > 0 && (
-        <div
-          className="col-lg-6 col-md-6 col-sm-6 col-xs-12 center-text"
-          style={{ paddingBottom: 10 }}
-          id="images-gallery2"
-        >
-          <img
-            className="img-responsive mx-auto"
-            style={{ display:"block",maxHeight: 400 }}
-            src={
-              Constants.GAGE_IMAGE_BASE_URL +
-              "medium/" +
-              gage.locationImages[0]
-            }
-            alt={gage.locationName + " photo"}
-          />
-        </div>
-        )}
-        <GageInfoBox gage={gage} />
-        <StatusLevels gage={gage} session={session} isSubscribed={isSubscribed} onGetAlerts={onGetAlerts} />
-      </div>
-      {isMobile && gageList && gage && (
-        <div style={{ width: "100%", height: 400 }}>
-          <Map
-            gageList={gageList}
-            gageSelected={gage}
-            viewGageDetails={viewGageDetails}
-            isMobile={isMobile}
-          />
-        </div>
-      )}
+        <div className="col-md-8 col-lg-8 col-sm-12 col-xs-12">
+          <div className="row">
+            {currentRange.current && currentRange.current.isNow && currentStatus.currentStatus && currentStatus.currentStatus.lastReading && (
+              <CalloutReadingBox
+                label={'Last Reading'}
+                showTimeAgo={true}
+                gage={gage}
+                gageStatus={currentStatus}
+                currentStatus={currentStatus.currentStatus}
+                reading={currentStatus.currentStatus.lastReading}
+              />
+            )}
+            {currentRange.current && !(currentRange.current.isNow) && currentStatus.peakStatus && currentStatus.peakStatus.lastReading && (
+              <CalloutReadingBox
+                label={'Peak'}
+                showTimeAgo={false}
+                gage={gage}
+                gageStatus={currentStatus}
+                currentStatus={currentStatus.peakStatus}
+                reading={currentStatus.peakStatus.lastReading}
+              />
+            )}
+            {gage && gage.locationImages && gage.locationImages.length > 0 && (
+            <div
+              className="col-lg-6 col-md-12 col-sm-12 col-xs-12 center-text"
+              style={{ paddingBottom: 10 }}
+              id="images-gallery2"
+            >
+              <img
+                className="img-responsive mx-auto"
+                style={{ display:"block",maxHeight: 400 }}
+                src={
+                  Constants.GAGE_IMAGE_BASE_URL +
+                  "medium/" +
+                  gage.locationImages[0]
+                }
+                alt={gage.locationName + " photo"}
+              />
+            </div>
+            )}
+            <GageInfoBox gage={gage} />
+            <StatusLevels gage={gage} session={session} isSubscribed={isSubscribed} onGetAlerts={onGetAlerts} />
 
-      {(upstreamGage || downstreamGage) && (
-        <div className="row" style={{ margin: "auto" }}>
-          {!upstreamGage && (
-            <div className="col-lg-5 col-md-5 col-sm-6 col-xs-12"></div>
-          )}
-          {upstreamGage && (
-            <LinkToNeighbor
-              gage={upstreamGage}
-              downstream={false}
-              queryParams={queryParams}
-            />
-          )}
-          {!downstreamGage && (
-            <div className="col-lg-5 col-md-5 col-sm-6 col-xs-12"></div>
-          )}
-          {downstreamGage && (
-            <LinkToNeighbor
-              gage={downstreamGage}
-              downstream={true}
-              queryParams={queryParams}
-            />
-          )}
+            {/* mobile-mode map shows up as a callout box near the bottom of the list*/}
+            {isMobile && gageList && gage && (
+              <div style={{ width: "100%", height: 400 }}>
+                <Map
+                  gageList={gageList}
+                  gageSelected={gage}
+                  viewGageDetails={viewGageDetails}
+                  isMobile={isMobile}
+                />
+              </div>
+            )}
+
+
+            {(upstreamGage || downstreamGage) && (
+              <div className="row" style={{ margin: "auto" }}>
+                {!upstreamGage && (
+                  <div className="col-lg-5 col-md-5 col-sm-6 col-xs-12"></div>
+                )}
+                {upstreamGage && (
+                  <LinkToNeighbor
+                    gage={upstreamGage}
+                    downstream={false}
+                    queryParams={queryParams}
+                  />
+                )}
+                {!downstreamGage && (
+                  <div className="col-lg-5 col-md-5 col-sm-6 col-xs-12"></div>
+                )}
+                {downstreamGage && (
+                  <LinkToNeighbor
+                    gage={downstreamGage}
+                    downstream={true}
+                    queryParams={queryParams}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

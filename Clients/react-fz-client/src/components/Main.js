@@ -11,6 +11,7 @@ import "../style/Dashboard.css";
 import "../style/DashboardMenu.css";
 import Dashboard from "./Dashboard";
 import FloodView from "./FloodView";
+import GageView from "./GageView";
 import Forecast from "./Forecast";
 import Header from "./Header";
 import PrivacyPolicy from "./Privacy";
@@ -249,7 +250,21 @@ export default function Main() {
         <Route path="/user/changeemail">
           <ChangeEmail />
         </Route>
-        <Route path={["/gage/:gageId", "/"]}>
+        <Route path="/gage/:gageId">
+          {(!loadError || gageList) && (
+            <GageView
+              gageId={gageId}
+              gageList={filteredGageList}
+              gageStatusList={gageStatusList}
+              isMobile={isMobile}
+              reloadGageList={reloadGageList}
+            />
+          )}
+          {loadError && !gageList && (
+            <div className="error-message">Error loading page.</div>
+          )}
+        </Route>
+        <Route path="/">
           {(!loadError || gageList) && (
             <Dashboard
               gageList={filteredGageList}
