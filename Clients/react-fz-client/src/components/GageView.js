@@ -1,8 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
-import DashboardGage from "./DashboardGage";
-import Map from "./Map";
-import Footer from "./Footer";
-import Loading from "./Loading";
+import "../style/LocationDetails.css";
+import GageDetails from "./GageDetails";
 import Constants from "../constants";
 import * as utils from "../lib/utils";
 import queryStringUtil from "query-string";
@@ -15,11 +13,11 @@ import {
   useHistory,
 } from "react-router-dom";
 
-export default function Dashboard({ gageList, gageStatusList, isMobile, reloadGageList }) {
-  const [gageSelected, setGageSelected] = useState(null);
-  const { pathname } = useLocation();
+export default function GageView({ gageList, gageStatusList, isMobile, reloadGageList }) {
+  const [_gageSelected, setGageSelected] = useState(null);
+  const { pathname, search } = useLocation();
   const pathnameChanged = utils.useCompare(pathname);
-  const queryParams = queryStringUtil.parse(useLocation().search);
+  const queryParams = queryStringUtil.parse(search);
   const routeMatch = useRouteMatch("/gage/:gageId");
   const routeMatchChanged = utils.useCompare(routeMatch);
   const history = useHistory();
@@ -93,50 +91,25 @@ export default function Dashboard({ gageList, gageStatusList, isMobile, reloadGa
   return (
     <div className="Dashboard">
       <div className="container-fluid body-content">
-        <div className="row"
+        <div
+          id="gageDetailsMainArea"
         >
-          {!isMobile && (
-              <div
-                className="col-md-4 col-lg-4 map-sticky d-sm-none d-md-block"
-                id="map-area"
-              >
-                <span id="lbl_map"></span>
-                <div id="map" className="map">
-                  <Map
-                    gageList={gageList}
-                    gageStatusList={gageStatusList}
-                    gageSelected={gageSelected}
-                    viewGageDetails={viewGageDetails}
-                  />
-                </div>
-              </div>
-          )}
-          <div
-            className="col-lg-8 col-md-8 offset-lg-4 offset-md-4 col-sm-12 col-xs-12"
-            id="mainArea"
-          >
-            <div className="overlay">
-              <div className="loader"></div>
-            </div>
-            <span id="lbl_msg"></span>
-            <input type="hidden" id="Region" value={window.regionSettings.id} />
-            <div id="div_content">
-              <div id="div_dashboard">
-                {gageList &&
-                  gageList.map(gage => (
-                    <DashboardGage
-                      gage={gage}
-                      gageStatus={gageData.getGageStatus(gage.id)}
-                      key={gage.id}
-                      viewDetails={() => viewGageDetails(gage)}
-                      resize={pathname === "/"}
-                      isMobile={isMobile}
-                    />
-                  ))}
-                {!gageList && <Loading />}
-              </div>
-            </div>
-            {gageList && <Footer />}
+          <div id="div_detail">
+            {gageList && <GageDetails
+              gageFromDashboard={
+                gageList &&
+                gageList.find(
+                  g =>
+                    g.id === routeMatch.params.gageId
+                )
+              }
+              gageStatus={gageData.getGageStatus(routeMatch.params.gageId)}
+              gageStatusList={gageStatusList}
+              gageList={gageList}
+              viewGageDetails={viewGageDetails}
+              isMobile={isMobile}
+            />
+            }
           </div>
         </div>
       </div>
