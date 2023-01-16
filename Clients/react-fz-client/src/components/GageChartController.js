@@ -234,7 +234,7 @@ export default function GageChartController({
               }
             </div>
 
-            <div className="col-lg-2 col-md-2 col-sm-2 col-xs-2 text-right d-none d-sm-flex">
+            <div className="col-lg-2 col-md-2 col-sm-2 col-xs-2 d-none d-sm-flex">
               {!isMobile && <RefreshButton chartRange={chartRange} checkForUpdates={checkForUpdates} />}
             </div>
           </div>
@@ -299,7 +299,7 @@ function CrestInfo({ chartData, chartRange }) {
 
 function RefreshButton({ chartRange, checkForUpdates }) {
   return (
-    <div onClick={checkForUpdates}>
+    <div onClick={checkForUpdates} className="ml-auto">
       <img
         src={`${Constants.RESOURCE_BASE_URL}/images/DashboardIcons/baseline-refresh-24px.png`}
         className={(chartRange.isNow) ? "pull-right gcc-btn-refresh btn-refresh" : "pull-right gcc-btn-refresh btn-refresh-hide"}
