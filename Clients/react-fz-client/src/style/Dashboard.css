@@ -179,12 +179,17 @@ body {
   min-height: 170px;
 }
 
-.box {
+.dashboard-gage-box {
   border: solid 1px #d8d8d8;
   border-right: none;
   padding-top: 3%;
   padding-left: 4%;
   min-height: 170px;
+  z-index: 2;
+  text-shadow: 1px 1px 2px #fff, -1px 1px 2px #fff, 1px -1px 2px #fff,
+    -1px -1px 2px #fff;
+  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0);
 }
 
 .Title {
@@ -290,11 +295,19 @@ body {
 }
 
 /* Chart Styles*/
+/* Note: .chart-box now has the settings that were previously used in bootstrap 'medium'
+   sizing, because we want to always show the overlapped chart/info view on the dashboard. */
 .chart-box {
   height: 170px;
   border: solid 1px #d8d8d8;
   padding-left: 0;
   padding-right: 0;
+  z-index: 1;
+  position: absolute;
+  left: 0px;
+  margin-left: -4px;
+  margin-right: -4px;
+  width: calc(6px + 100%);
 }
 
 .No-Data-Chart {
@@ -357,24 +370,7 @@ footer a {
 #div_detail {
   padding: "10px";
 }
-/* bootstrap md */
-@media only screen and (max-width: 991.98px) {
-  .chart-box {
-    z-index: 1;
-    position: absolute;
-    left: 0px;
-    margin-left: -4px;
-    margin-right: -4px;
-    width: calc(6px + 100%);
-  }
-  .box {
-    z-index: 2;
-    text-shadow: 1px 1px 2px #fff, -1px 1px 2px #fff, 1px -1px 2px #fff,
-      -1px -1px 2px #fff;
-    opacity: 0.9;
-    background-color: rgba(255, 255, 255, 0);
-  }
-}
+
 /* bootstrap sm */
 @media only screen and (max-width: 767.98px) {
   .container-fluid {
