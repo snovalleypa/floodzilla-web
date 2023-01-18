@@ -1,0 +1,42 @@
+@model FloodzillaWeb.Controllers.SmsForecastTestModel
+
+@{ 
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Send Forecast SMS Test";
+}
+
+<div class="row">
+    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+        <div class="card card-info">
+          <div class="card-header">
+            <div class="card-title">Testing Tools</div>
+          </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+  <div class="col-sm">
+    <div class="card">
+      <div class="card-header">Forecast SMS Testing</div>
+      <div class="card-body">
+        <div><span style="color: red; text-weight: bold;">@ViewBag.ForecastSmsTestError</span></div>
+        <div><span style="text-weight: bold;">@ViewBag.ForecastSmsTestResult</span></div>
+        <div>DANGER! Send a forecast SMS.  Forecast IDs must be found by database inspection...</div>
+        <div style="width:500px;">
+          <form asp-action="SendForecastSmsTest" method="post" class="form-horizontal" autocomplete="off">
+            <div>
+              <label asp-for="SmsTestNumber">Mobile Number to send SMS to:</label>
+              <input type="text" asp-for="SmsTestNumber" placeholder="9999999999">
+            </div>
+            <div>
+              <label asp-for="SmsTestForecastId">Forecast Id:</label>
+              <input type="text" asp-for="SmsTestForecastId" placeholder="e.g 10949">
+            </div>
+            <button type="submit" class="btn btn-primary">Send Test SMS</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div

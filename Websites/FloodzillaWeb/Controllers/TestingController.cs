@@ -15,6 +15,11 @@ using FzCommon.Processors;
 
 namespace FloodzillaWeb.Controllers
 {
+    public class SmsForecastTestModel
+    {
+        public string SmsTestNumber { get; set; }
+        public int SmsTestForecastId { get; set; }
+    }
 
     public class TestReading
     {
@@ -233,12 +238,13 @@ namespace FloodzillaWeb.Controllers
                     break;
 
                 case "flooding":
-                    ret.Previous = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 1014);
-                    ret.New = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 1020);
+                    ret.Previous = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 10948);
+                    ret.New = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 10949);
                     break;
+
                 case "clear":
-                    ret.Previous = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 1080);
-                    ret.New = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 1086);
+                    ret.Previous = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 10972);
+                    ret.New = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, 10973);
                     break;
             }
             return ret;
@@ -323,6 +329,54 @@ namespace FloodzillaWeb.Controllers
             return View();
         }
 
+        public IActionResult SendForecastSmsTest()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendForecastSmsTest(SmsForecastTestModel model)
+        {
+            ViewBag.ForecastSmsTestResult = "";
+            ViewBag.ForecastSmsTestError = "";
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    throw new ApplicationException("Form is invalid.");
+                }
+                using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+                {
+                    await sqlcn.OpenAsync();
+                    NoaaForecastSet current = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, model.SmsTestForecastId);
+                    int minId = model.SmsTestForecastId;
+                    foreach (var forecast in current.Forecasts)
+                    {
+                        if (forecast.ForecastId < minId)
+                        {
+                            minId = forecast.ForecastId;
+                        }
+                    }
+                    // Assume that we didn't skip any IDs.  This is test code, it's fine.
+                    NoaaForecastSet prev = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, minId - 1);
+                    ForecastEmailModel emailModel = await NoaaForecastProcessor.BuildEmailModel(sqlcn, current, prev);
+                    emailModel.GetSmsText();
+                    SmsClient client = new SmsClient();
+                    SmsSendResult result = await client.SendSms(model.SmsTestNumber, "test@floodzilla.com", emailModel);
+                    if (result != SmsSendResult.Success) 
+                    {
+                        throw new ApplicationException("Result: " + result.ToString());
+                    }
+                    ViewBag.ForecastSmsTestResult = "Sent SMS";
+                }                
+            }
+            catch (Exception e)
+            {
+                ViewBag.ForecastSmsTestError = "Error sending SMS test: " + e.Message;
+            }
+            return View();
+        }
 
         [HttpGet]
         [AllowAnonymous]
@@ -462,7 +516,6 @@ namespace FloodzillaWeb.Controllers
             {
                 RegionName = FIRST_REGION_NAME,
                 IsActive = true,
-                Organizations = _context.Organizations.FirstOrDefault(),
             };
             _context.Regions.Add(firstRegion);
             int res = await _context.SaveChangesAsync();

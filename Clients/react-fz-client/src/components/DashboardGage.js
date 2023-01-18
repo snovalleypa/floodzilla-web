@@ -15,7 +15,7 @@ export default function DashboardGage({ gage, gageStatus, viewDetails, resize, i
       id={"gage_" + gage.id}
     >
       <div className="row row-hover gage-row">
-        <div className="col-lg-8 col-md-12 col-sm-12 col-xs-12 box">
+        <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12 dashboard-gage-box">
           <div className="Title">
             <span className="types types-text" style={{ float: "right" }}>
               {gage.id}
@@ -28,7 +28,7 @@ export default function DashboardGage({ gage, gageStatus, viewDetails, resize, i
             style={{ padding: 0 }}
           >
             <div
-              className="col-lg-5 col-md-6 col-sm-5 col-xs-5 float-left"
+              className="col-lg-6 col-md-6 col-sm-5 col-xs-5 float-left"
               style={{ marginLeft: "-16px", width: "auto"}}
             >
               {!gageStatus
@@ -63,7 +63,7 @@ export default function DashboardGage({ gage, gageStatus, viewDetails, resize, i
             </div>
           </div>
         </div>
-        <div className="col-lg-4 col-md-12 col-sm-12 col-xs-12 chart-box">
+        <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12 chart-box">
           <GageChart
             gage={gage}
             gageStatus={gageStatus}
