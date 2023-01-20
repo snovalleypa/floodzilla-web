@@ -43,8 +43,8 @@ export default class ForecastChartOptionsBuilder {
     if (!isCombinedForecast) {
       return true;
     }
-    // Suppress Carnation for combined forecast
-    return (forecast.noaaForecast?.noaaSiteId !== "CRNW1");
+    // For the combined forecast, only show Falls.
+    return (forecast.noaaForecast?.noaaSiteId === "SQUW1");
   }
 
   setOptions(forecast) {
