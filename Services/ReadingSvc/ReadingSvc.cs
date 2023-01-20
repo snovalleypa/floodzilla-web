@@ -180,10 +180,10 @@ namespace ReadingSvc
             {
                 if (gageId.Contains("/"))
                 {
-                    string subGageIds = gageId.Replace("/", ",");
+                    string[] subGageIds = gageId.Split("/");
 
                     // Cheat and just recurse here...
-                    Dictionary<string, ReadingStoreResponse> subResult = await GetForecastsUTC(regionId, subGageIds, fromDateTime, toDateTime, returnUtc);
+                    Dictionary<string, ReadingStoreResponse> subResult = await GetForecastsUTC(regionId, String.Join(',', subGageIds), fromDateTime, toDateTime, returnUtc);
 
                     ReadingStoreResponse sums = new ReadingStoreResponse()
                     {
@@ -199,11 +199,19 @@ namespace ReadingSvc
                         ActualReadings = null,
                     };
 
+                    // Find out if we have a metagage that matches this exact set of gages; if so, return its flood-stage values.
+                    Metagage? metagage = Metagages.FindMatchingMetagage(subGageIds);
+                    if (metagage != null)
+                    {
+                        sums.DischargeStageOne = metagage.StageOne;
+                        sums.DischargeStageTwo = metagage.StageTwo;
+                    }
+
                     List<NoaaForecast> sourceForecasts = new List<NoaaForecast>();
                     List<Queue<GageReading>> subReadings = new List<Queue<GageReading>>();
 
                     // If we don't have one of the subresponses, bail
-                    foreach (string subGageId in subGageIds.Split(','))
+                    foreach (string subGageId in subGageIds)
                     {
                         // This basically means an invalid ID was passed in
                         if (!subResult.ContainsKey(subGageId))

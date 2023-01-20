@@ -1,6 +1,8 @@
 import moment from "moment-timezone";
 import * as Highcharts from "highcharts/highstock";
 
+const STAGE_TWO_YAXIS_MARGIN = 500;
+
 export default class ForecastChartOptionsBuilder {
   constructor(gageInfo, forecast, timezone, daysBefore, daysAfter) {
     this._gageInfo = gageInfo;
@@ -10,7 +12,9 @@ export default class ForecastChartOptionsBuilder {
     this._daysAfter = daysAfter;
     this._options = {};
 
-    this.setOptions(forecast);
+    if (forecast) {
+      this.setOptions(forecast);
+    }
 
     return this;
   }
@@ -19,30 +23,72 @@ export default class ForecastChartOptionsBuilder {
     return this._options;
   }
 
-  setOptions(forecast) {
+  getFloodStageLabel(gageForecast, isCombinedForecast) {
+    //$ TODO: Put these short names into the Location object?
+    switch (gageForecast.noaaForecast?.noaaSiteId) {
+      default: 
+        return "";
+      case "SQUW1":
+        return isCombinedForecast ? "Falls/Carnation" : "Falls";
+      case "CRNW1":
+        return "Carnation";
 
+      //$ TODO: Forks doesn't have any identifying info in the forecast object currently...
+      case "":
+        return "Forks";
+      }
+  }
+
+  shouldShowFloodLine(forecast, isCombinedForecast) {
+    if (!isCombinedForecast) {
+      return true;
+    }
+    // Suppress Carnation for combined forecast
+    return (forecast.noaaForecast?.noaaSiteId !== "CRNW1");
+  }
+
+  setOptions(forecast) {
     const now = moment();
 
-    //$ TODO: make this general; don't hardcode numbers
+    let stageOne = 0;
+    let stageTwo = 0;
+    let floodLines = [];
     let floodBand = [];
-    let floodLine = [];
+    const isCombinedForecast = Object.values(forecast.forecasts).length > 1;
 
-    floodBand[0]={ // Flooding
-      from: 19400,
-      to:  10000000,
-      color: 'rgba(68, 170, 213, 0.1)'
-    };
-    floodLine[0]={
-      color: '#999',
-      width: 1,
-      value: 19400,
-      dashStyle: "dash",
-      label: {
-        text: 'Flood Stage (Carnation & Falls)',
-        style: {
-          color:  '#606060'
+    // Find appropriate flood/warning levels for this chart.  For the combined chart we want to
+    // find the highest available levels for the warning bands; we will go ahead and show a flood-stage line
+    // for every available forecast.
+    Object.values(forecast.forecasts).forEach((f) => {
+      if (f.dischargeStageOne && (f.dischargeStageOne > stageOne)) {
+        stageOne = f.dischargeStageOne;
+      }
+      if (f.dischargeStageTwo) {
+        if (f.dischargeStageTwo > stageTwo) {
+          stageTwo = f.dischargeStageTwo;
+        }
+        const showFloodLine = this.shouldShowFloodLine(f, isCombinedForecast);
+        if (showFloodLine) {
+          floodLines.push({
+            color: "#999",
+            width: 1,
+            value: f.dischargeStageTwo,
+            dashStyle: "dash",
+            label: {
+              text: "Flood Stage " + this.getFloodStageLabel(f, isCombinedForecast),
+              style: {
+                color:  '#606060'
+              }
+            }
+          })
         }
       }
+    })
+
+    floodBand[0]={ // Flooding
+      from: stageTwo,
+      to:  10000000,
+      color: 'rgba(68, 170, 213, 0.1)'
     };
 
     this._options = {
@@ -103,7 +149,8 @@ export default class ForecastChartOptionsBuilder {
         startOnTick: false,
         endOnTick: false,
         plotBands: floodBand,
-        plotLines: floodLine,
+        plotLines: floodLines,
+        softMax: stageTwo + STAGE_TWO_YAXIS_MARGIN,
         title: {
           text: "Discharge (cfs)",
         },
