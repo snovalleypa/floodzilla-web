@@ -26,8 +26,10 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
-                        <th>Organization</th>
                         <th>Created On</th>
+                        <th>Login Type</th>
+                        <th>Email<br/>Verified?</th>
+                        <th>Phone<br/>Verified?</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -118,8 +120,10 @@
                           { data: renderName, orderable: true },
                           { data: "email", orderable: true },
                           { data: "roleName", defaultContent: '', orderable: true },
-                          { data: "orgName", defaultContent: '', orderable: true },
-                          { data: "createdOn", defaultContent: '', orderable: true, render: function (data, type, row) { return (data !== undefined) ? moment(data).format("MM/DD/YYYY hh:mm:ss a") : ''; }},
+                          { data: "createdOn", defaultContent: '', orderable: true, render: function (data, type, row) { return (data !== undefined) ? moment(data).format("YYYY-MM-DD hh:mm:ss a") : ''; }},
+                          { data: "hasPassword", defaultContent: '', orderable: true, render: function (data, type, row) { return (data) ? 'Password' : 'Social' }},
+                          { data: "isEmailVerified", defaultContent: '', orderable: true, render: function (data, type, row) { return (data) ? 'Yes' : '' }},
+                          { data: "isPhoneVerified", defaultContent: '', orderable: true, render: function (data, type, row) { return (data) ? 'Yes' : '' }},
                 ]
             });
         }

@@ -16,5 +16,8 @@ namespace FloodzillaWeb.ViewModels.Users
         public int OrgId { get; set; }
         public string OrgName { get; set; }
         public DateTime? CreatedOn { get; set; }
+        public bool IsEmailVerified { get; set; }
+        public bool IsPhoneVerified { get; set; }
+        public bool HasPassword { get; set; }
     }
 }
