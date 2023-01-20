@@ -1,5 +1,15 @@
 namespace FzCommon
 {
+    public class Metagage
+    {
+        public string Id;
+        public string SiteIds;
+        public string Name;
+        public string ShortName;
+        public double StageOne;
+        public double StageTwo;
+    }
+
     public class Metagages
     {
         //$ TODO: Support different regions
@@ -18,6 +28,38 @@ namespace FzCommon
                 if (MetagageIds[i] == gage)
                 {
                     return MetagageShortNames[i];
+                }
+            }
+            return null;
+        }
+
+        public static Metagage? FindMatchingMetagage(string[] subGageIds)
+        {
+            Array.Sort(subGageIds);
+            for (int i = 0; i < MetagageIds.Length; i++)
+            {
+                string[] metaIds = MetagageIds[i].Split("/");
+                Array.Sort(metaIds);
+                bool match = true;
+                for (int idIndex = 0; idIndex < subGageIds.Length; idIndex++)
+                {
+                    if (metaIds[idIndex] != subGageIds[idIndex])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match)
+                {
+                    return new Metagage()
+                    {
+                        Id = MetagageIds[i],
+                        SiteIds = MetagageSiteIds[i],
+                        Name = MetagageNames[i],
+                        ShortName = MetagageShortNames[i],
+                        StageOne = MetagageStageOnes[i],
+                        StageTwo = MetagageStageTwos[i],
+                    };
                 }
             }
             return null;

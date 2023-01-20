@@ -70,6 +70,10 @@ namespace ReadingSvc
         public double PredictedFeetPerHour;
         public double PredictedCfsPerHour;
 
+        // Will only be set if forecasts are requested.
+        public double? DischargeStageOne;
+        public double? DischargeStageTwo;
+
         // Temporary, for debugging, to compare predictions to reality.
         public List<ApiGageReading> ActualReadings;
     }
@@ -141,6 +145,8 @@ namespace ReadingSvc
             DeviceBase device = null;
             UsgsSite usgsSite = null;
             NoaaForecast noaaForecast = null;
+            double? dischargeStageOne = null;
+            double? dischargeStageTwo = null;
             using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
             {
                 sqlcn.Open();
@@ -181,6 +187,8 @@ namespace ReadingSvc
                                         item.Timestamp = region.ToRegionTimeFromUtc(item.Timestamp);
                                     }
                                 }
+                                dischargeStageOne = location.DischargeStageOne;
+                                dischargeStageTwo = location.DischargeStageTwo;
                             }
                         }
                     }
@@ -325,6 +333,8 @@ namespace ReadingSvc
                     PredictedFeetPerHour = feetPerHour,
                     PredictedCfsPerHour = cfsPerHour,
                     ActualReadings = actualReadings,
+                    DischargeStageOne = dischargeStageOne,
+                    DischargeStageTwo = dischargeStageTwo,
                 };
             }
         }
