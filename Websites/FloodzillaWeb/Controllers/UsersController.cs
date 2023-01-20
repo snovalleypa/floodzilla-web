@@ -66,6 +66,9 @@ namespace FloodzillaWeb.Controllers
                         OrgName = item.Organizations?.Name,
                         IsDeleted = item.IsDeleted,
                         CreatedOn = region.ToRegionTimeFromUtc(item.CreatedOn),
+                        IsEmailVerified = item.AspNetUser.EmailConfirmed,
+                        IsPhoneVerified = item.AspNetUser.PhoneNumberConfirmed,
+                        HasPassword = !String.IsNullOrEmpty(item.AspNetUser.PasswordHash),
                     });
                 }
             }
