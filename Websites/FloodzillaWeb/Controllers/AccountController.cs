@@ -680,6 +680,7 @@ namespace FloodzillaWeb.Controllers
                         case SmsSendResult.InvalidNumber:
                             return BadRequest("Invalid Phone Number.");
                         case SmsSendResult.Failure:
+                        case SmsSendResult.NotSending:
                             return StatusCode(500, "An error occurred while processing this request.");
                     }
                 }

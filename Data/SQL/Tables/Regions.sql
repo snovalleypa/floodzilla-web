@@ -18,6 +18,7 @@ CREATE TABLE [Regions](
 	[IsPublic] [bit] NOT NULL,
 	[OrganizationsId] [int] NOT NULL,
 	[BaseURL] [nvarchar](400) NULL,
+	[SmsFormatBaseURL] [nvarchar](400) NULL,
 	[TempADCTestsCount] [int] NULL,
 	[DefaultADCTestsCount] [int] NULL,
 	[TempADCTestsCountValidTill] [datetime] NULL,

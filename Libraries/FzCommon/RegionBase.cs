@@ -25,6 +25,8 @@ namespace FzCommon
         [Url(ErrorMessage = "Invalid URL.")]
         public string? BaseURL { get; set; }
 
+        public string? SmsFormatBaseURL { get; set; }
+
         public string? NotifyList { get; set; }
         public int? SensorOfflineThreshold { get; set; }
         public string? SlackNotifyUrl { get; set; }
@@ -142,7 +144,7 @@ namespace FzCommon
 
         private static string GetColumnList()
         {
-            return "RegionId, OrganizationsId, RegionName, Address, Latitude, Longitude, WindowsTimeZone, IanaTimeZone, BaseURL, "
+            return "RegionId, OrganizationsId, RegionName, Address, Latitude, Longitude, WindowsTimeZone, IanaTimeZone, BaseURL, SmsFormatBaseURL, "
                   +"IsActive, IsDeleted, IsPublic, NotifyList, SensorOfflineThreshold, SlackNotifyUrl";
         }
 
@@ -159,6 +161,7 @@ namespace FzCommon
                 WindowsTimeZone = SqlHelper.Read<string>(reader, "WindowsTimeZone"),
                 IanaTimeZone = SqlHelper.Read<string>(reader, "IanaTimeZone"),
                 BaseURL = SqlHelper.Read<string>(reader, "BaseURL"),
+                SmsFormatBaseURL = SqlHelper.Read<string>(reader, "SmsFormatBaseURL"),
                 IsActive = SqlHelper.Read<bool>(reader, "IsActive"),
                 IsDeleted = SqlHelper.Read<bool>(reader, "IsDeleted"),
                 IsPublic = SqlHelper.Read<bool>(reader, "IsPublic"),

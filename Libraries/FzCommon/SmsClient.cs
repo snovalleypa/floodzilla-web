@@ -25,6 +25,7 @@ namespace FzCommon
         Success,
         InvalidNumber,
         Failure,
+        NotSending,
     }
 
     public class SmsClient
@@ -36,11 +37,16 @@ namespace FzCommon
         // email is only used for testing...
         public async Task<SmsSendResult> SendSms(string phone, string email, EmailModel model)
         {
+            string? smsText = model.GetSmsText();
+            if (String.IsNullOrEmpty(smsText))
+            {
+                return SmsSendResult.NotSending;
+            }
             SmsSendRequest req = new SmsSendRequest()
             {
                 Phone = phone,
                 Email = email,
-                SmsText = model.GetSmsText(),
+                SmsText = smsText,
             };
 
             string smsSendUrl = FzConfig.Config[FzConfig.Keys.SmsSendServiceUrl];

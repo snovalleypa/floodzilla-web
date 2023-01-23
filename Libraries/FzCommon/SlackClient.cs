@@ -93,7 +93,7 @@ namespace FzCommon
             return String.Format("{0} ({1})", escapedName, location.PublicLocationId);
         }
 
-        private static string FormatLink(string title, string url)
+        public static string FormatLink(string title, string url)
         {
             return String.Format("<{0}|{1}>", EscapeForMrkdwn(url), EscapeForMrkdwn(title));
         }
@@ -114,28 +114,6 @@ namespace FzCommon
         {
             string url = String.Format("{0}/Reports/?locationId={1}", region.BaseURL, location.Id);
             return FormatLink(title, url);
-        }
-
-        // Logic taken from Old Floodzilla.
-        private static string FormatSmartDate(RegionBase region, DateTime utc)
-        {
-            DateTime local = region.ToRegionTimeFromUtc(utc);
-            DateTime utcNow = DateTime.UtcNow;
-            string ret = null;
-            if (Math.Abs((utc - utcNow).TotalDays) < 6)
-            {
-                ret = local.ToString("ddd h");
-            }
-            else
-            {
-                ret = local.ToString("M/d h");
-            }
-            if (local.Minute != 0)
-            {
-                ret += ":" + local.ToString("mm");
-            }
-            ret += local.ToString("tt").ToLower();
-            return ret;
         }
 
         //$ TODO: Region?
@@ -296,42 +274,8 @@ namespace FzCommon
 
         public static async Task SendForecastNotification(ForecastEmailModel emailModel)
         {
-            string message = "Flooding? ";
+            string message = emailModel.GetShortText(true);
             string url = FzConfig.Config[FzConfig.Keys.SlackForecastNotificationUrl];
-            if (emailModel.IsCurrentlyFlooding() && !emailModel.HasFlooding)
-            {
-                message += "Yes, but new forecast is clear";
-            }
-            else if (emailModel.IsCurrentlyFlooding())
-            {
-                message += "Yes";
-            }
-            else if (emailModel.HasFlooding)
-            {
-                message += "Not now, but soon...";
-            }
-            else if (emailModel.OldForecastHadFlooding)
-            {
-                message += "Not any more...";
-            }
-            else
-            {
-                message += "No";
-            }
-            foreach (ForecastEmailModel.ModelGageData mgd in emailModel.GageForecasts)
-            {
-                foreach (NoaaForecastItem peak in mgd.Forecast.Peaks)
-                {
-                    if (peak.Discharge >= mgd.WarningCfsLevel)
-                    {
-                        message += String.Format("\n {0}: {1} {2:0}! {3}",
-                                                 mgd.GageShortName,
-                                                 FormatSmartDate(emailModel.Region, peak.Timestamp),
-                                                 peak.Discharge,
-                                                 FormatLink("View", String.Format("{0}/forecast?gageIds={1}", emailModel.Region.BaseURL, mgd.GageId)));
-                    }
-                }
-            }
             await NotifySlack(url, message, TextType);
         }
     }

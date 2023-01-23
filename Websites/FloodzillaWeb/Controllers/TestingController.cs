@@ -17,7 +17,7 @@ namespace FloodzillaWeb.Controllers
 {
     public class SmsForecastTestModel
     {
-        public string SmsTestNumber { get; set; }
+        public string? SmsTestNumber { get; set; }
         public int SmsTestForecastId { get; set; }
     }
 
@@ -361,14 +361,17 @@ namespace FloodzillaWeb.Controllers
                     // Assume that we didn't skip any IDs.  This is test code, it's fine.
                     NoaaForecastSet prev = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, minId - 1);
                     ForecastEmailModel emailModel = await NoaaForecastProcessor.BuildEmailModel(sqlcn, current, prev);
-                    emailModel.GetSmsText();
-                    SmsClient client = new SmsClient();
-                    SmsSendResult result = await client.SendSms(model.SmsTestNumber, "test@floodzilla.com", emailModel);
-                    if (result != SmsSendResult.Success) 
+                    ViewBag.ForecastSmsText = emailModel.GetSmsText();
+                    if (model.SmsTestNumber != null)
                     {
-                        throw new ApplicationException("Result: " + result.ToString());
+                        SmsClient client = new SmsClient();
+                        SmsSendResult result = await client.SendSms(model.SmsTestNumber, "test@floodzilla.com", emailModel);
+                        if (result != SmsSendResult.Success)
+                        {
+                            throw new ApplicationException("Result: " + result.ToString());
+                        }
+                        ViewBag.ForecastSmsTestResult = "Sent SMS to " + model.SmsTestNumber;
                     }
-                    ViewBag.ForecastSmsTestResult = "Sent SMS";
                 }                
             }
             catch (Exception e)

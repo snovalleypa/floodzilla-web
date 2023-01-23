@@ -214,7 +214,7 @@ namespace FzCommon.Processors
                 await model.SendEmailToUserList(sqlcn,
                                                 FzConfig.Config[FzConfig.Keys.EmailFromAddress],
                                                 users,
-                                                false,
+                                                true,
                                                 sbResult,
                                                 sbDetails);
             }
