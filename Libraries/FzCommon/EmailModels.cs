@@ -8,13 +8,35 @@ namespace FzCommon
 {
     public abstract class EmailModel
     {
+        // Logic taken from Old Floodzilla.
+        public static string FormatSmartDate(RegionBase region, DateTime utc)
+        {
+            DateTime local = region.ToRegionTimeFromUtc(utc);
+            DateTime utcNow = DateTime.UtcNow;
+            string ret = null;
+            if (Math.Abs((utc - utcNow).TotalDays) < 6)
+            {
+                ret = local.ToString("ddd h");
+            }
+            else
+            {
+                ret = local.ToString("M/d h");
+            }
+            if (local.Minute != 0)
+            {
+                ret += ":" + local.ToString("mm");
+            }
+            ret += local.ToString("tt").ToLower();
+            return ret;
+        }
+
         public const string SubjectHeader = "x-email-subject";
 
         public abstract string GetSourcePath();
         public abstract string Serialize();
 
         // If the model supports a SMS version, it should return the text here.
-        public virtual string GetSmsText()
+        public virtual string? GetSmsText()
         {
             throw new ApplicationException("GetSmsText not supported");
         }
@@ -120,7 +142,7 @@ namespace FzCommon
             return JsonConvert.DeserializeObject<VerifyPhoneSmsEmailModel>(body);
         }
 
-        public override string GetSmsText()
+        public override string? GetSmsText()
         {
             return "From Floodzilla: Please enter the following code on Floodzilla to verify your phone number: " + Code;
         }
@@ -228,7 +250,12 @@ namespace FzCommon
             return String.Format("{0}user/unsubscribe?user={1}&email={2}", url, this.AspNetUser.AspNetUserId, HttpUtility.UrlEncode(this.AspNetUser.Email));
         }
 
-        public async Task SendEmailToUserList(SqlConnection sqlcn, string from, List<UserBase> users, bool sendSms, StringBuilder sbResult, StringBuilder sbDetails)
+        public async Task SendEmailToUserList(SqlConnection sqlcn,
+                                              string from,
+                                              List<UserBase> users,
+                                              bool sendSms,
+                                              StringBuilder sbResult,
+                                              StringBuilder sbDetails)
         {
             int invalidCount = 0;
             int unconfirmedEmailCount = 0;
@@ -266,6 +293,11 @@ namespace FzCommon
                     {
                         try
                         {
+                            // NOTE: This will fetch a new copy of the HTML email text every time, which is
+                            // currently required because the email body will contain customized pieces like an
+                            // unsubscribe link.  It might be nice to separate those parts out so we don't have
+                            // to fully fetch the email text each time, but that would require a more complicated
+                            // system.
                             await this.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], aspNetUser.Email);
                             if (sbDetails != null)
                             {
@@ -295,25 +327,41 @@ namespace FzCommon
                         }
                         else
                         {
-                            SmsSendResult smsResult = await smsClient.SendSms(aspNetUser.PhoneNumber, aspNetUser.Email, this);
-                            switch (smsResult)
+                            try
                             {
-                                case SmsSendResult.Success:
-                                    smsNotificationCount++;
-                                    if (sbDetails != null)
-                                    {
-                                        sbDetails.AppendFormat("SMS sent to {0}: {1}\n", aspNetUser.Email, smsResult);
-                                    }
-                                    break;
+                                SmsSendResult smsResult = await smsClient.SendSms(aspNetUser.PhoneNumber, aspNetUser.Email, this);
+                                switch (smsResult)
+                                {
+                                    case SmsSendResult.Success:
+                                        smsNotificationCount++;
+                                        if (sbDetails != null)
+                                        {
+                                            sbDetails.AppendFormat("SMS sent to {0}: {1}\n", aspNetUser.Email, smsResult);
+                                        }
+                                        break;
 
-                                case SmsSendResult.InvalidNumber:
-                                case SmsSendResult.Failure:
-                                    if (sbDetails != null)
-                                    {
-                                        sbDetails.AppendFormat("SMS ERROR to {0}: {1}\n", aspNetUser.Email, smsResult);
-                                    }
-                                    smsErrorCount++;
-                                    break;
+                                    case SmsSendResult.NotSending:
+                                        // No message to send; just ignore this.
+                                        break;
+
+                                    case SmsSendResult.InvalidNumber:
+                                    case SmsSendResult.Failure:
+                                        if (sbDetails != null)
+                                        {
+                                            sbDetails.AppendFormat("SMS ERROR to {0}: {1}\n", aspNetUser.Email, smsResult);
+                                        }
+                                        smsErrorCount++;
+                                        break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                ErrorManager.ReportException(ErrorSeverity.Major, "EmailClient.SendEmailToUserList", ex);
+                                if (sbDetails != null)
+                                {
+                                    sbDetails.AppendFormat("SMS ERROR to {0}: {1}\n", aspNetUser.Email, ex.Message);
+                                }
+                                smsErrorCount++;
                             }
                         }
                     }
@@ -412,7 +460,7 @@ namespace FzCommon
             return ret;
         }
 
-        public override string GetSmsText()
+        public override string? GetSmsText()
         {
             string locName = this.Location.ShortName;
             if (String.IsNullOrEmpty(locName))
@@ -480,7 +528,7 @@ namespace FzCommon
             return JsonConvert.DeserializeObject<GageOnlineStatusEventEmailModel>(body);
         }
 
-        public override string GetSmsText()
+        public override string? GetSmsText()
         {
             string locName = this.Location.ShortName;
             if (String.IsNullOrEmpty(locName))
@@ -542,6 +590,46 @@ namespace FzCommon
                 }
             }
             return false;
+        }
+
+        // https://trello.com/c/kKgRQNeQ/188-flood-forecast-sms gives the format we're looking for here.
+        public string? GetShortText(bool slackFormat)
+        {
+            if (!this.HasFlooding)
+            {
+                if (this.OldForecastHadFlooding)
+                {
+                    // If we had a flood last time around but don't any more, send an all-clear.
+                    return "Flooding no longer predicted.";
+                }
+                else
+                {
+                    // Otherwise, there's no flooding in this forecast, so don't send anything.
+                    return null;
+                }
+            }
+            
+            string message = "Flooding predicted:\n";
+            foreach (ForecastEmailModel.ModelGageData mgd in this.GageForecasts)
+            {
+                foreach (NoaaForecastItem peak in mgd.Forecast.Peaks)
+                {
+                    if (peak.Discharge >= mgd.WarningCfsLevel)
+                    {
+                        message += String.Format("{0}: {1} {2:0}\n",
+                                                 mgd.GageShortName,
+                                                 EmailModel.FormatSmartDate(this.Region, peak.Timestamp),
+                                                 peak.Discharge);
+                    }
+                }
+            }
+            message += String.Format("{0}/forecast", this.Region.SmsFormatBaseURL);
+            return message;
+        }
+        
+        public override string? GetSmsText()
+        {
+            return this.GetShortText(false);
         }
         
         public class ModelGageData

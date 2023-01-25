@@ -22,15 +22,23 @@
       <div class="card-body">
         <div><span style="color: red; text-weight: bold;">@ViewBag.ForecastSmsTestError</span></div>
         <div><span style="text-weight: bold;">@ViewBag.ForecastSmsTestResult</span></div>
-        <div>DANGER! Send a forecast SMS.  Forecast IDs must be found by database inspection...</div>
+        @if (!String.IsNullOrEmpty(ViewBag.ForecastSmsText))
+        {
+        <div>
+          <span>SMS Text:</span>
+          <div style="width: 500px; background-color: #e3e3e3; margin-left: 25px;"><pre>@ViewBag.ForecastSmsText</pre></div>
+        </div>
+        }
+        <div>Send a forecast SMS.  Forecast IDs must be found by database inspection...</div>
+        <br />
         <div style="width:500px;">
           <form asp-action="SendForecastSmsTest" method="post" class="form-horizontal" autocomplete="off">
             <div>
-              <label asp-for="SmsTestNumber">Mobile Number to send SMS to:</label>
+              <label asp-for="SmsTestNumber">Mobile Number to send SMS to (leave blank to just see SMS text):</label>
               <input type="text" asp-for="SmsTestNumber" placeholder="9999999999">
             </div>
             <div>
-              <label asp-for="SmsTestForecastId">Forecast Id:</label>
+              <label asp-for="SmsTestForecastId">Forecast Id (10949 has a flood, 10973 is an all-clear):</label>
               <input type="text" asp-for="SmsTestForecastId" placeholder="e.g 10949">
             </div>
             <button type="submit" class="btn btn-primary">Send Test SMS</button>
