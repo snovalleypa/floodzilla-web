@@ -68,7 +68,7 @@
                     <th>External Device ID</th>
                     <th>Result</th>
                     <th>Reading ID</th>
-                    <th>Receiver ID</th>
+                    <th>Receiver</th>
                 </tr>
             </thead>
             <tbody>
@@ -116,7 +116,7 @@
                 { "data": "externalDeviceId", orderable: true },
                 { "data": "result", orderable: true },
                 { "data": renderReadingId },
-                { "data": "receiverId", defaultContent: '', orderable: true },
+                { "data": "receiver", defaultContent: '', orderable: true },
                 ]
             });
             $('table').on('xhr.dt', function (e, settings, json, xhr) {

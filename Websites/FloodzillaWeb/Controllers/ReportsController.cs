@@ -584,6 +584,7 @@ namespace FloodzillaWeb.Controllers
             public DateTime Timestamp { get; set; }
             public string Device { get; set; }
             public string ExternalDeviceId { get; set; }
+            public string Receiver { get; set; }
             public string ReceiverId { get; set; }
             public string Result { get; set; }
             public string ClientIP { get; set; }
@@ -610,6 +611,7 @@ namespace FloodzillaWeb.Controllers
             int deviceId;
             List<SenixListenerLog> logs;
             Dictionary<int, string> deviceNames = new Dictionary<int, string>();
+            Dictionary<string, string> receiverNames = new Dictionary<string, string>();
 
             using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
             {
@@ -619,6 +621,7 @@ namespace FloodzillaWeb.Controllers
                 RegionBase region = RegionBase.GetRegion(sqlcn, FzCommon.Constants.SvpaRegionId);
                 List<DeviceBase> devices = await DeviceBase.GetDevicesAsync(sqlcn);
                 List<SensorLocationBase> locations = await SensorLocationBase.GetLocationsAsync(sqlcn);
+                List<ReceiverBase> receivers = await ReceiverBase.GetReceiversAsync(sqlcn);
 
                 DateTime targetDate = DateTime.Now;
                 if (!DateTime.TryParse(date, out targetDate))
@@ -681,6 +684,24 @@ namespace FloodzillaWeb.Controllers
                                 }
                             }
                             deviceNames[log.DeviceId.Value] = sle.Device;
+                        }
+
+                        if (receiverNames.ContainsKey(log.ReceiverId))
+                        {
+                            sle.Receiver = receiverNames[log.ReceiverId];
+                        }
+                        else
+                        {
+                            ReceiverBase logReceiver = receivers.FirstOrDefault(r => r.ExternalReceiverId == log.ReceiverId);
+                            if (logReceiver == null)
+                            {
+                                sle.Receiver = "unknown (" + log.ReceiverId + ")";
+                            }
+                            else
+                            {
+                                sle.Receiver = logReceiver.Name;
+                            }
+                            receiverNames[log.ReceiverId] = sle.Receiver;
                         }
                     }
                     
