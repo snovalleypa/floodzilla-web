@@ -68,6 +68,7 @@ namespace FzCommon
                 ErrorManager.ReportError(ErrorSeverity.Major,
                                          "EmailModel.GetEmailText",
                                          String.Format("url: {0}\nrequest body:\n{1}\nresponse:\n{2}", url, requestBody, body),
+                                         DateTime.UtcNow,
                                          true);
                 throw;
             }

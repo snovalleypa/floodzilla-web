@@ -267,3 +267,5 @@ Properties/ServiceDependencies.*
 Properties/ServiceDependencies/**
 
 developer.settings.json
+
+.vscode/

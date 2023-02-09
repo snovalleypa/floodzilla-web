@@ -34,6 +34,7 @@
     {
         public const string UploadsBlobContainer = "uploads";
         public const string MonitorBlobContainer = "monitor";
+        public const string JobStatusBlobContainer = "jobstatus";
 
         public const string AzureImageUploadBaseUrl = "https://svpastorage.blob.core.windows.net/uploads";
     }

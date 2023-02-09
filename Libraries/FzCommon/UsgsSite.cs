@@ -195,6 +195,12 @@ namespace FzCommon
                                 waterHeightSeries.Values[0].Value.RemoveAt(i);
                             }
                         }
+                        else
+                        {
+                            // We haven't gotten enough readings to worry about the mismatch yet.  Just return null, and
+                            // we'll deal with this if we get more mismatches later.
+                            return null;
+                        }
 #else
                             ErrorManager.ReportError(ErrorSeverity.Major, "UsgsSite.FetchUsgsReadings", String.Format("USGS response had mismatch between discharge count {0} and water height count {1}.\n URL: {2}", dischargeSeries.Values[0].Value.Count, waterHeightSeries.Values[0].Value.Count, url));
                         }

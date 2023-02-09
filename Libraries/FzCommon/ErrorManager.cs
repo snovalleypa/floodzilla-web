@@ -11,9 +11,18 @@ namespace FzCommon
 
     public class ErrorManager
     {
-        public static void ReportError(ErrorSeverity sev, string source, string error, bool saveOnly = false)
+        public static void ReportError(ErrorSeverity sev, string source, string error, DateTime? errorTime = null, bool saveOnly = false)
         {
             SqlConnection sqlcn = null;
+            DateTime reportTime;
+            if (errorTime.HasValue)
+            {
+                reportTime = errorTime.Value;
+            }
+            else
+            {
+                reportTime = DateTime.UtcNow;
+            }
 
             string errorText = String.Format("Site error: Severity {0}\r\nsource: {1}\r\nError: {2}", sev, source, error);
             
@@ -68,7 +77,7 @@ namespace FzCommon
                 {
                     try
                     {
-                        SiteError.SaveSiteError(sqlcn, DateTime.UtcNow, sev.ToString(), source, error);
+                        SiteError.SaveSiteError(sqlcn, reportTime, sev.ToString(), source, error);
                     }
                     catch
                     {
@@ -92,9 +101,9 @@ namespace FzCommon
             }
         }
 
-        public static void ReportException(ErrorSeverity sev, string source, Exception ex)
+        public static void ReportException(ErrorSeverity sev, string source, Exception ex, DateTime? exceptionTime = null)
         {
-            ReportError(sev, source, String.Format("Exception: {0}", ex.ToString()));
+            ReportError(sev, source, String.Format("Exception: {0}", ex.ToString()), exceptionTime);
         }
 
         // remember sqlcn can be null, and FzConfig could throw...

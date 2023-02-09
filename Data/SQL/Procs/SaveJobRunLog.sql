@@ -13,6 +13,7 @@ CREATE PROCEDURE [SaveJobRunLog]
 	@FullException text = null
 AS
 BEGIN
+  DECLARE @Id int
 
   IF NOT EXISTS (SELECT JobName FROM JobNames WHERE JobName=@JobName)
   BEGIN
@@ -22,4 +23,6 @@ BEGIN
 	INSERT INTO JobRunLogs (JobName, MachineName, StartTime, EndTime, Summary, Exception, FullException)
    	VALUES (@JobName, @MachineName, @StartTime, @EndTime, @Summary, @Exception, @FullException)
 	END
+
+  SELECT * FROM JobRunLogs WHERE Id=@@IDENTITY
 GO

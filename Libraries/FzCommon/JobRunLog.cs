@@ -29,46 +29,46 @@ namespace FzCommon
     
     public class JobRunLog
     {
-        public JobRunLog(string jobName)
+        internal JobRunLog(string jobName, DateTime startTime)
         {
             m_jobName = jobName;
-            m_startTime = DateTime.UtcNow;
+            m_startTime = startTime;
         }
 
-        public void ReportJobRunSuccess()
+        internal RecentJobRun ReportJobRunSuccess(SqlConnection sqlcn, DateTime endTime)
         {
-            this.SaveRunLog();
+            return this.SaveRunLog(sqlcn, endTime);
         }
 
-        public void ReportJobRunException(Exception ex)
+        internal RecentJobRun ReportJobRunException(SqlConnection sqlcn, Exception ex, DateTime exceptionTime)
         {
-            ErrorManager.ReportException(ErrorSeverity.Major, m_jobName, ex);
-            this.SaveRunLog(ex);
+            ErrorManager.ReportException(ErrorSeverity.Major, m_jobName, ex, exceptionTime);
+            return this.SaveRunLog(sqlcn, exceptionTime, ex);
         }
 
-        private void SaveRunLog(Exception ex = null)
+        private RecentJobRun SaveRunLog(SqlConnection sqlcn, DateTime endTime, Exception? ex = null)
         {
-            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            SqlCommand cmd = new SqlCommand("SaveJobRunLog", sqlcn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@JobName", m_jobName);
+            cmd.Parameters.AddWithValue("@MachineName", Environment.MachineName);
+            cmd.Parameters.AddWithValue("@StartTime", m_startTime);
+            cmd.Parameters.AddWithValue("@EndTime", endTime);
+            cmd.Parameters.AddWithValue("@Summary", m_summary);
+            if (ex != null)
             {
-                SqlCommand cmd = new SqlCommand("SaveJobRunLog", sqlcn);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@JobName", m_jobName);
-                cmd.Parameters.AddWithValue("@MachineName", Environment.MachineName);
-                cmd.Parameters.AddWithValue("@StartTime", m_startTime);
-                cmd.Parameters.AddWithValue("@EndTime", DateTime.UtcNow);
-                cmd.Parameters.AddWithValue("@Summary", m_summary);
-                if (ex != null)
+                cmd.Parameters.AddWithValue("@Exception", ex.Message);
+                cmd.Parameters.AddWithValue("@FullException", ex.ToString());
+            }
+            using (SqlDataReader dr = cmd.ExecuteReader())
+            {
+                if (!dr.Read())
                 {
-                    cmd.Parameters.AddWithValue("@Exception", ex.Message);
-                    cmd.Parameters.AddWithValue("@FullException", ex.ToString());
+                    throw new ApplicationException("Error saving LogBookEntry");
                 }
-                else
-                {
-                }
-
-                sqlcn.Open();
-                cmd.ExecuteNonQuery();
-                sqlcn.Close();
+                RecentJobRun rjr = new RecentJobRun();
+                rjr.InitializeFromReader(dr);
+                return rjr;
             }
         }
 
