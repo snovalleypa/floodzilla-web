@@ -5,13 +5,41 @@ namespace FzCommon
 {
     public enum JobRunStatus
     {
-        Success,
-        Disabled,
-        Error,
+        Success = 0,
+        Disabled = 1,
+        Error = 2,
     }
 
-    public class JobEntry
+    public class JobEntryWithStatus
     {
+        public JobEntry JobEntry;
+        public RecentJobRun? RecentJobRun;
+    }
+
+    public class JobEntry : ILogTaggable
+    {
+        internal class JobEntryTaggableFactory : ILogBookTaggableFactory
+        {
+            public async Task<List<ILogTaggable>> GetAvailableTaggables(SqlConnection sqlcn, string category)
+            {
+                List<JobEntry> jobs = await JobEntry.GetAllJobs(sqlcn);
+                List<ILogTaggable> ret = new List<ILogTaggable>();
+                foreach (JobEntry job in jobs)
+                {
+                    ret.Add(job);
+                }
+                return ret;
+            }
+        }
+
+        public const string TagCategory = "job";
+
+#region ILogTaggable
+        public string GetTagCategory() { return JobEntry.TagCategory; }
+        public string GetTagId() { return this.JobName; }
+        public string GetTagName() { return "Job: " + this.FriendlyName; }
+#endregion
+
         public int Id                           { get; set; }
         public string JobName                   { get; set; }
         public string FriendlyName              { get; set; }
@@ -28,6 +56,26 @@ namespace FzCommon
         public string? DisableReason            { get; set; }
         public DateTime? DisabledTime           { get; set; }
         public string? DisabledBy               { get; set; }
+
+        public static async Task<JobEntry> GetJob(SqlConnection sqlcn, int id)
+        {
+            SqlCommand cmd = new SqlCommand($"SELECT * FROM Jobs WHERE id = '{id}'", sqlcn);
+            try
+            {
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        return InstantiateFromReader(reader);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorManager.ReportException(ErrorSeverity.Major, "JobEntry.GetJob", ex);
+            }
+            return null;
+        }
 
         public static async Task<JobEntry> EnsureJobEntry(SqlConnection sqlcn, string jobName, string friendlyName)
         {
@@ -55,6 +103,29 @@ namespace FzCommon
                 while (await dr.ReadAsync())
                 {
                     ret.Add(InstantiateFromReader(dr));
+                }
+            }
+            return ret;
+        }
+
+        public static async Task<List<JobEntryWithStatus>> GetAllJobsWithStatus(SqlConnection sqlcn)
+        {
+            SqlCommand cmd = new SqlCommand("GetAllJobsWithCurrentStatus", sqlcn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            List<JobEntryWithStatus> ret = new List<JobEntryWithStatus>();
+            using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
+            {
+                while (await dr.ReadAsync())
+                {
+                    JobEntryWithStatus entry = new JobEntryWithStatus()
+                    {
+                        JobEntry = JobEntry.InstantiateFromReader(dr),
+                    };
+                    if (entry.JobEntry.LastRunLogId.HasValue && entry.JobEntry.LastRunLogId.Value > 0)
+                    {
+                        entry.RecentJobRun = RecentJobRun.InstantiateFromReader(dr, "JobRunLogs");
+                    }
+                    ret.Add(entry);
                 }
             }
             return ret;
@@ -116,6 +187,24 @@ namespace FzCommon
             this.Save(sqlcn);
         }
 
+        public async Task DisableJob(SqlConnection sqlcn, string userName, string disableReason)
+        {
+            this.IsEnabled = false;
+            this.DisabledTime = DateTime.UtcNow;
+            this.DisabledBy = userName;
+            this.DisableReason = disableReason;
+            this.Save(sqlcn);
+        }
+
+        public async Task EnableJob(SqlConnection sqlcn)
+        {
+            this.IsEnabled = true;
+            this.DisabledTime = null;
+            this.DisabledBy = null;
+            this.DisableReason = null;
+            this.Save(sqlcn);
+        }
+
         private JobEntry()
         {
             m_currentRun = null;
@@ -133,6 +222,7 @@ namespace FzCommon
             SqlHelper.AddParamIfNotEmpty<DateTime?>(cmd.Parameters, "@LastEndTime", this.LastEndTime);
             SqlHelper.AddParamIfNotEmpty<DateTime?>(cmd.Parameters, "@LastSuccessfulEndTime", this.LastSuccessfulEndTime);
             SqlHelper.AddParamIfNotEmpty<JobRunStatus?>(cmd.Parameters, "@LastRunStatus", this.LastRunStatus);
+            SqlHelper.AddParamIfNotEmpty<int?>(cmd.Parameters, "@LastRunLogId", this.LastRunLogId);
             SqlHelper.AddParamIfNotEmpty<string?>(cmd.Parameters, "@LastRunSummary", this.LastRunSummary);
             SqlHelper.AddParamIfNotEmpty<DateTime?>(cmd.Parameters, "@LastErrorTime", this.LastErrorTime);
             SqlHelper.AddParamIfNotEmpty<string?>(cmd.Parameters, "@LastError", this.LastError);
@@ -145,7 +235,7 @@ namespace FzCommon
         
         private static JobEntry InstantiateFromReader(SqlDataReader reader)
         {
-            return new JobEntry()
+            JobEntry jobEntry = new JobEntry()
             {
                 Id = SqlHelper.Read<int>(reader, "Id"),
                 JobName = SqlHelper.Read<string>(reader, "JobName"),
@@ -153,7 +243,7 @@ namespace FzCommon
                 LastStartTime = SqlHelper.Read<DateTime?>(reader, "LastStartTime"),
                 LastEndTime = SqlHelper.Read<DateTime?>(reader, "LastEndTime"),
                 LastSuccessfulEndTime = SqlHelper.Read<DateTime?>(reader, "LastSuccessfulEndTime"),
-                LastRunStatus = SqlHelper.Read<JobRunStatus?>(reader, "LastRunStatus"),
+                LastRunLogId = SqlHelper.Read<int?>(reader, "LastRunLogId"),
                 LastRunSummary = SqlHelper.Read<string?>(reader, "LastRunSummary"),
                 LastErrorTime = SqlHelper.Read<DateTime?>(reader, "LastErrorTime"),
                 LastError = SqlHelper.Read<string?>(reader, "LastError"),
@@ -163,6 +253,12 @@ namespace FzCommon
                 DisabledTime = SqlHelper.Read<DateTime?>(reader, "DisabledTime"),
                 DisabledBy = SqlHelper.Read<string?>(reader, "DisabledBy"),
             };
+            int? statusEnum = SqlHelper.Read<int?>(reader, "LastRunStatus");
+            if (statusEnum.HasValue)
+            {
+                jobEntry.LastRunStatus = (JobRunStatus)statusEnum.Value;
+            }
+            return jobEntry;
         }
 
         private JobRunLog? m_currentRun = null;

@@ -7,7 +7,7 @@ CREATE PROCEDURE [SaveJob]
     @LastStartTime DATETIME = NULL,
     @LastEndTime DATETIME = NULL,
     @LastSuccessfulEndTime DATETIME = NULL,
-    @LastRunStatus NVARCHAR(50) = NULL,
+    @LastRunStatus int = NULL,
     @LastRunLogId int = null,
     @LastRunSummary NVARCHAR(200) = NULL,
     @LastErrorTime DATETIME = NULL,

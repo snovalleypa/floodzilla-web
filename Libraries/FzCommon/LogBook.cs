@@ -130,6 +130,7 @@ namespace FzCommon
             m_factories[SensorLocationBase.TagCategory] = new SensorLocationBase.SensorLocationTaggableFactory();
             m_factories[DeviceBase.TagCategory] = new DeviceBase.DeviceTaggableFactory();
             m_factories[ReceiverBase.TagCategory] = new ReceiverBase.ReceiverTaggableFactory();
+            m_factories[JobEntry.TagCategory] = new JobEntry.JobEntryTaggableFactory();
         }
 
         public void AddMemoryCache(IMemoryCache cache)

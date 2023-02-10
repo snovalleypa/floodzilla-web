@@ -14,16 +14,23 @@ namespace FzCommon
         public string Exception;
         public string FullException;
 
-        public void InitializeFromReader(SqlDataReader dr)
+        public static RecentJobRun InstantiateFromReader(SqlDataReader dr, string? columnPrefix = null)
         {
-            Id = (int)dr["Id"];
-            JobName = (string)dr["JobName"];
-            MachineName = (string)dr["MachineName"];
-            StartTime = (DateTime)dr["StartTime"];
-            EndTime = (DateTime)dr["EndTime"];
-            Summary = SqlHelper.Read<string>(dr, "Summary");
-            Exception = SqlHelper.Read<string>(dr, "Exception");
-            FullException = SqlHelper.Read<string>(dr, "FullException");
+            if (columnPrefix == null)
+            {
+                columnPrefix = "";
+            }
+            return new RecentJobRun()
+            {
+                Id = (int)dr[columnPrefix + "Id"],
+                JobName = (string)dr[columnPrefix + "JobName"],
+                MachineName = (string)dr[columnPrefix + "MachineName"],
+                StartTime = (DateTime)dr[columnPrefix + "StartTime"],
+                EndTime = (DateTime)dr[columnPrefix + "EndTime"],
+                Summary = SqlHelper.Read<string>(dr, columnPrefix + "Summary"),
+                Exception = SqlHelper.Read<string>(dr, columnPrefix + "Exception"),
+                FullException = SqlHelper.Read<string>(dr, columnPrefix + "FullException"),
+            };
         }
     }
     
@@ -66,9 +73,7 @@ namespace FzCommon
                 {
                     throw new ApplicationException("Error saving LogBookEntry");
                 }
-                RecentJobRun rjr = new RecentJobRun();
-                rjr.InitializeFromReader(dr);
-                return rjr;
+                return RecentJobRun.InstantiateFromReader(dr);
             }
         }
 
@@ -82,9 +87,7 @@ namespace FzCommon
                 {
                     if (await dr.ReadAsync())
                     {
-                        RecentJobRun rjr = new RecentJobRun();
-                        rjr.InitializeFromReader(dr);
-                        return rjr;
+                        return RecentJobRun.InstantiateFromReader(dr);
                     }
                 }
             }
@@ -121,9 +124,7 @@ namespace FzCommon
                     {
                         while (await dr.ReadAsync())
                         {
-                            RecentJobRun rjr = new RecentJobRun();
-                            rjr.InitializeFromReader(dr);
-                            ret.Add(rjr);
+                            ret.Add(RecentJobRun.InstantiateFromReader(dr));
                         }
                     }
                 }
@@ -141,9 +142,7 @@ namespace FzCommon
                 {
                     while (await dr.ReadAsync())
                     {
-                        RecentJobRun rjr = new RecentJobRun();
-                        rjr.InitializeFromReader(dr);
-                        ret.Add(rjr);
+                        ret.Add(RecentJobRun.InstantiateFromReader(dr));
                     }
                 }
             }
@@ -161,9 +160,7 @@ namespace FzCommon
                 {
                     while (await dr.ReadAsync())
                     {
-                        RecentJobRun rjr = new RecentJobRun();
-                        rjr.InitializeFromReader(dr);
-                        ret.Add(rjr);
+                        ret.Add(RecentJobRun.InstantiateFromReader(dr));
                     }
                 }
             }

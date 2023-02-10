@@ -16,9 +16,43 @@ using FzCommon;
 
 namespace FloodzillaJob
 {
+    // This is a wrapper for all of the supported functions in this project.
+    public class ProjectFunctions
+    {
+        public static async Task CalculateUsgsLevels()
+        {
+            UsgsLevelCalculator job = new UsgsLevelCalculator();
+            await job.Execute();
+        }
+        public static async Task FetchUsgsReadings()
+        {
+            UsgsReadingFetcher job = new UsgsReadingFetcher();
+            await job.Execute();
+        }
+        public static async Task FetchNoaaForecasts()
+        {
+            NoaaForecastFetcher job = new NoaaForecastFetcher();
+            await job.Execute();
+        }
+        public static async Task CollectGageStatistics()
+        {
+            GageStatisticsCollector job = new GageStatisticsCollector();
+            await job.Execute();
+        }
+        public static async Task DetectGageEvents()
+        {
+            GageEventDetector job = new GageEventDetector();
+            await job.Execute();
+        }
+        public static async Task NotifyGageEvents()
+        {
+            GageEventNotifier job = new GageEventNotifier();
+            await job.Execute();
+        }
+    }
+
     public class JobFunctions : FunctionsStartup
     {
-
         public override void Configure(IFunctionsHostBuilder hostBuilder)
         {
             FzConfig.Initialize();

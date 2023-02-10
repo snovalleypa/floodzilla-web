@@ -139,7 +139,7 @@
 
 
         function UpdateTable(job) {
-            dataTable.ajax.url("/Reports/GetJobRunLogs?jobName=" + job + "&regionId=" + $("#RegionId").val());
+            dataTable.ajax.url("/Jobs/GetJobRunLogs?jobName=" + job + "&regionId=" + $("#RegionId").val());
             $('#loading').show();
             $('#results').hide();
             $('#noData').hide();
@@ -154,7 +154,7 @@
 
             var job = $("#JobSelect").val();
             $("#JobSelect").change(function() {
-                window.location.href = "/Reports/JobStatus/?jobName=" + $("#JobSelect").val();
+                window.location.href = "/Jobs/JobStatus/?jobName=" + $("#JobSelect").val();
             });
             UpdateTable(job);
         });
