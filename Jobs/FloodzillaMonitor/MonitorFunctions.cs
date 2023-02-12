@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 
 using FzCommon;
 
-[assembly: FunctionsStartup(typeof(FloodZillaMonitor.MonitorFunctions))]
-namespace FloodZillaMonitor
+[assembly: FunctionsStartup(typeof(FloodzillaMonitor.MonitorFunctions))]
+namespace FloodzillaMonitor
 {
     // This is a wrapper for all of the supported functions in this project.
     public class ProjectFunctions

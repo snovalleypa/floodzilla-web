@@ -10,6 +10,7 @@ using FloodzillaWeb.Cache;
 using FloodzillaWeb.Models;
 using FloodzillaWeb.Models.FzModels;
 using FzCommon;
+using FzCommon.Processors;
 
 namespace FloodzillaWeb.Controllers
 {
@@ -130,11 +131,34 @@ namespace FloodzillaWeb.Controllers
                 {
                     entry.RecentJobRun.StartTime = region.ToRegionTimeFromUtc(entry.RecentJobRun.StartTime);
                     entry.RecentJobRun.EndTime = region.ToRegionTimeFromUtc(entry.RecentJobRun.EndTime);
-                }
+                }   
             }
             dynamic resultObject = new ExpandoObject();
             resultObject.data = ret;
             return new ContentResult() { Content = JsonConvert.SerializeObject(resultObject), ContentType = "application/json" };
+        }
+
+        public async Task<IActionResult> GetLatestJobDetails(string jobName)
+        {
+            try
+            {
+                using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+                {
+                    await sqlcn.OpenAsync();
+                    string status = await AzureJobHelpers.GetLastJobDetailedStatus(jobName);
+                    if (status == null)
+                    {
+                        return BadRequest("An error occurred while processing this request.");
+                    }
+                    return SuccessResult(status);
+                }
+            }
+            catch
+            {
+                //$ TODO: where do these errors go
+            }
+
+            return BadRequest("An error occurred while processing this request.");
         }
 
         public async Task<IActionResult> GetJobRunLogs(string jobName, int regionId)

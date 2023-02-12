@@ -12,11 +12,11 @@ using Newtonsoft.Json;
 using FzCommon;
 using FzCommon.Processors;
 
-namespace FloodZillaMonitor
+namespace FloodzillaMonitor
 {
     public class LocationMonitor : FloodzillaJob
     {
-        public LocationMonitor() : base("FloodZillaMonitor.MonitorLocations",
+        public LocationMonitor() : base("FloodzillaMonitor.MonitorLocations",
                                         "Gage Status Monitor")
         {
         }

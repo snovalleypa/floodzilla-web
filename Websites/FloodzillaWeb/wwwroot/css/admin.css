@@ -4,6 +4,10 @@
   font-family: Consolas, source-code-pro, monospace .ace_editor;
 }
 
+.full-job-details-modal {
+  max-width: 1000px;
+}
+
 .table > tbody > tr.datagap,
 .table > tbody > tr.datagap > td {
   border-top: 3px solid #000;

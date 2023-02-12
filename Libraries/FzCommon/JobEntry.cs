@@ -157,6 +157,7 @@ namespace FzCommon
                 throw new ApplicationException("ReportJobSuccess requires StartJobRun to be called first");
             }
             this.LastEndTime = DateTime.UtcNow;
+            m_currentRun.Summary = summary;
             RecentJobRun jobRun = this.m_currentRun.ReportJobRunSuccess(sqlcn, this.LastEndTime.Value);
             this.LastRunLogId = jobRun.Id;
             this.m_currentRun = null;

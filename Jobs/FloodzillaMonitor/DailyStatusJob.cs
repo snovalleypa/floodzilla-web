@@ -13,11 +13,11 @@ using Newtonsoft.Json;
 using FzCommon;
 using FzCommon.Processors;
 
-namespace FloodZillaMonitor
+namespace FloodzillaMonitor
 {
     public class DailyStatusJob : FloodzillaJob
     {
-        public DailyStatusJob() : base("FloodZillaMonitor.SendDailyStatus",
+        public DailyStatusJob() : base("FloodzillaMonitor.SendDailyStatus",
                                        "Daily Gage Status Summary Email")
         {
         }

@@ -10,38 +10,25 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 using FzCommon;
+using FzCommon.Processors;
 
-namespace FloodzillaJob
+namespace FloodzillaJobs
 {
-    public class GageStatisticsCollector
+    public class GageStatisticsCollector : FloodzillaJob
     {
-
-        public static async Task CollectGageStatistics(ILogger log)
+        public GageStatisticsCollector() : base("FloodzillaJob.CollectGageStatistics",
+                                                "Gage Statistics Collector")
         {
-            JobRunLog runLog = new JobRunLog("FloodzillaJob.CollectGageStatistics");
-
-            try
-            {
-                using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
-                {
-                    await sqlcn.OpenAsync();
-                    await CollectSenixGageStatistics(sqlcn, runLog);
-                    
-                    //$ TODO: Collect stats for other gage types
-
-                    sqlcn.Close();
-                    runLog.ReportJobRunSuccess();
-                }
-            }
-            catch (Exception ex)
-            {
-                ErrorManager.ReportException(ErrorSeverity.Major, "GageStatisticsCollector.CollectGageStatistics", ex);
-                runLog.ReportJobRunException(ex);
-                throw;
-            }
         }
 
-        public static async Task CollectSenixGageStatistics(SqlConnection sqlcn, JobRunLog runLog)
+        protected override async Task RunJob(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
+        {
+            await this.CollectSenixGageStatistics(sqlcn, sbDetails, sbSummary);
+                    
+            //$ TODO: Collect stats for other gage types
+        }
+
+        public async Task CollectSenixGageStatistics(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
         {
             List<DeviceBase> devices = await DeviceBase.GetDevicesAsync(sqlcn);
             List<SensorLocationBase> locations = await SensorLocationBase.GetLocationsAsync(sqlcn);
@@ -72,6 +59,8 @@ namespace FloodzillaJob
                     firstDay = FzCommonUtility.ToUtcFromRegionTime(latestDateRegion);
                 }
 
+                sbDetails.AppendFormat("Checking location {0} [{1}]--", location.Id, location.LocationName);
+                int processedReadings = 0;
                 // If firstDay is null (because we don't yet have any stats), this will fetch all readings...
                 List<SensorReading> allReadings
                         = await SensorReading.GetAllReadingsForLocation(location.Id,
@@ -82,6 +71,7 @@ namespace FloodzillaJob
                                                                         0);
                 if (allReadings == null || allReadings.Count == 0)
                 {
+                    sbDetails.Append("no readings");
                     continue;
                 }
 
@@ -104,6 +94,8 @@ namespace FloodzillaJob
 
                 foreach (SensorReading sr in allReadings)
                 {
+                    processedReadings++;
+
                     // Some locations have had various kinds of devices attached.
                     DeviceBase thisDevice = devices.FirstOrDefault(d => d.DeviceId == sr.DeviceId);
                     if (thisDevice != null && thisDevice.DeviceTypeId != DeviceTypeIds.Senix)
@@ -169,11 +161,13 @@ namespace FloodzillaJob
                     expectedReadings += ((int)(elapsed.TotalMinutes + 2)) / currentInterval;
 
                     lastReadingUtc = sr.Timestamp;
+                    sbDetails.AppendFormat("Processed {0} readings", processedReadings);
                 }
 
                 // Don't worry about the last set of stats collected; we'll save it tomorrow.
+                sbDetails.Append("\r\n");
             }
-            runLog.Summary = String.Format("Saved {0} sets of statistics about {1} gages", statsCount, locationCount);
+            sbSummary.AppendFormat("Saved {0} sets of statistics about {1} gages", statsCount, locationCount);
         }
     }
 }

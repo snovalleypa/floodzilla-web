@@ -13,12 +13,12 @@ using Newtonsoft.Json;
 using FzCommon;
 using FzCommon.Processors;
 
-namespace FloodZillaMonitor
+namespace FloodzillaMonitor
 {
 
     public class DailyForecastJob : FloodzillaJob
     {
-        public DailyForecastJob() : base("FloodZillaMonitor.SendDailyForecast",
+        public DailyForecastJob() : base("FloodzillaMonitor.SendDailyForecast",
                                          "Daily NOAA Forecast Email")
         {
         }

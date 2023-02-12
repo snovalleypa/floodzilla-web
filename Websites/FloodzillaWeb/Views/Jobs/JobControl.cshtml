@@ -84,6 +84,23 @@
     </div>
 </div>
 
+<div class="modal fade" tabindex="-1" role="dialog" id="FullDetails">
+    <div class="modal-dialog full-job-details-modal" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Job Status</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body full-job-details">
+                <pre><code>
+                </code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 @section Scripts{
     <script>
         var dataTable;
@@ -100,9 +117,19 @@
             $(".admin-disable-reason").focus();
         });
 
-        function onClickStatus(statusId) {
-            alert(statusId);
-            //$
+        function onClickLastSuccess(jobName) {
+            $("#FullDetails code").empty().html('Loading...');
+            $("#FullDetails").modal("show");
+            $.ajax({
+                url: '@Url.Action("GetLatestJobDetails")',
+                data: { jobName },
+                success: function (result) {
+                    $("#FullDetails code").empty().html(result);
+                },
+                error: function () {
+                    $("#FullDetails code").empty().html("An error occurred.  Please try again later.");
+                },
+            });
         }
 
         function onClickEnable(jobName, jobId) {
@@ -120,12 +147,28 @@
             $("#DisableConfirmModal").modal("show");
         }
 
+        function renderJobName(data) {
+            return `<a href="/Jobs/JobStatus/?jobName=${data.jobEntry.jobName}">${data.jobEntry.friendlyName}</a>`
+        }
+
         function renderStatus(data) {
             if (data == undefined || data == 0 || data.jobEntry.lastRunLogId == undefined || data.jobEntry.lastRunLogId == 0) {
                 return '[no runs yet]';
             }
-            const status = data.jobEntry.lastRunStatus
-            return '<a href="#" onclick="onClickStatus(' + data.jobEntry.lastRunLogId + ');return false;" >' + status + '</a>';
+            if (data.jobEntry.lastRunStatus.toLowerCase() === 'error') {
+                if (data.jobEntry.lastError) {
+                    return `Error: ${data.jobEntry.lastError}`;
+                }
+            }
+            return data.jobEntry.lastRunStatus;
+        }
+
+        function renderLastSuccessTime(data) {
+            if (data.jobEntry.lastSuccessfulEndTime) {
+                const time = moment(data.jobEntry.lastSuccessfulEndTime).format(dateFmt);
+                return `<a href="#" onclick="onClickLastSuccess('${data.jobEntry.jobName}');return false;" >${time}</a>`;
+            }
+            return "";
         }
 
         function renderIsDisabled(data) {
@@ -160,8 +203,8 @@
                     }
                 },
                 columns: [
-                          { data: "jobEntry.friendlyName", orderable: true }, 
-                          { data: "jobEntry.lastSuccessfulEndTime", render: function(data, type, row) { return moment(data).format(dateFmt); }},
+                          { data: renderJobName },
+                          { data: renderLastSuccessTime },
                           { data: "jobEntry.lastEndTime", render: function(data, type, row) { return moment(data).format(dateFmt); }},
                           { data: renderStatus },
                           { data: renderIsDisabled },

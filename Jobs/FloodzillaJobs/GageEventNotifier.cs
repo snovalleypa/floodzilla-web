@@ -13,109 +13,94 @@ using Newtonsoft.Json;
 using FzCommon;
 using FzCommon.Processors;
 
-namespace FloodzillaJob
+namespace FloodzillaJobs
 {
-    public class GageEventNotifier : FloodzillaAzureJob
+    public class GageEventNotifier : FloodzillaJob
     {
-        public static async Task NotifyGageEvents(ILogger log)
+        public GageEventNotifier() : base("FloodzillaJob.NotifyGageEvents",
+                                          "Gage Event Notifier")
         {
-            JobRunLog runLog = new JobRunLog("FloodzillaJob.NotifyGageEvents");
+        }
 
-            try
+        protected override async Task RunJob(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
+        {
+            BlobContainerClient container = await AzureJobHelpers.EnsureBlobContainer(FzCommon.StorageConfiguration.MonitorBlobContainer);
+            GageEventNotifierStatus lastStatus = await GageEventNotifierStatus.Load(container);
+            if (lastStatus == null)
             {
-                BlobContainerClient container = await EnsureBlobContainer(FzCommon.StorageConfiguration.MonitorBlobContainer);
-                GageEventNotifierStatus lastStatus = await GageEventNotifierStatus.Load(container);
-                if (lastStatus == null)
+                lastStatus = new GageEventNotifierStatus();
+            }
+
+            GageEventNotifierStatus currentStatus = new GageEventNotifierStatus();
+
+            List<RegionBase> regions = await RegionBase.GetAllRegions(sqlcn);
+            List<SensorLocationBase> locations = await SensorLocationBase.GetLocationsAsync(sqlcn);
+
+            List<GageEvent> newEvents = await GageEvent.GetUnprocessedEvents(sqlcn);
+            SmsClient client = new SmsClient();
+            foreach (GageEvent evt in newEvents)
+            {
+                SensorLocationBase location = locations.FirstOrDefault(l => l.Id == evt.LocationId);
+                if (location == null)
                 {
-                    lastStatus = new GageEventNotifierStatus();
+                    //$ TODO: this is bad, what to do about it
+                    continue;
+                }
+                RegionBase region = regions.FirstOrDefault(r => r.RegionId == location.RegionId);
+                if (region == null)
+                {
+                    //$ TODO: this is bad, what to do about it
+                    continue;
                 }
 
-                GageEventNotifierStatus currentStatus = new GageEventNotifierStatus();
-
-                using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+                GageEventEmailModel model = null;
+                switch (evt.EventType)
                 {
-                    await sqlcn.OpenAsync();
+                    case GageEventTypes.RedRising:
+                    case GageEventTypes.RedFalling:
+                    case GageEventTypes.YellowRising:
+                    case GageEventTypes.YellowFalling:
+                    case GageEventTypes.RoadRising:
+                    case GageEventTypes.RoadFalling:
+                        model = BuildGageThresholdEventEmailModel(evt, region, location);
+                        await SlackClient.SendGageThresholdEventNotification((GageThresholdEventEmailModel)model);
+                        break;
 
-                    List<RegionBase> regions = await RegionBase.GetAllRegions(sqlcn);
-                    List<SensorLocationBase> locations = await SensorLocationBase.GetLocationsAsync(sqlcn);
+                    case GageEventTypes.MarkedOffline:
+                    case GageEventTypes.MarkedOnline:
+                        model = BuildGageOnlineStatusEventEmailModel(evt, region, location);
+                        break;
+                }
 
-                    List<GageEvent> newEvents = await GageEvent.GetUnprocessedEvents(sqlcn);
-                    SmsClient client = new SmsClient();
-                    foreach (GageEvent evt in newEvents)
+                List<GageSubscription> subs = await GageSubscription.GetSubscriptionsForGage(sqlcn, evt.LocationId);
+
+                StringBuilder sbEmailResult = new StringBuilder();
+                if (subs == null || subs.Count == 0)
+                {
+                    sbSummary.Append("No subscriptions...");
+                }
+                else
+                {
+                    List<UserBase> users = new List<UserBase>();
+                    foreach (GageSubscription sub in subs)
                     {
-                        SensorLocationBase location = locations.FirstOrDefault(l => l.Id == evt.LocationId);
-                        if (location == null)
-                        {
-                            //$ TODO: this is bad, what to do about it
-                            continue;
-                        }
-                        RegionBase region = regions.FirstOrDefault(r => r.RegionId == location.RegionId);
-                        if (region == null)
-                        {
-                            //$ TODO: this is bad, what to do about it
-                            continue;
-                        }
-
-                        GageEventEmailModel model = null;
-                        switch (evt.EventType)
-                        {
-                            case GageEventTypes.RedRising:
-                            case GageEventTypes.RedFalling:
-                            case GageEventTypes.YellowRising:
-                            case GageEventTypes.YellowFalling:
-                            case GageEventTypes.RoadRising:
-                            case GageEventTypes.RoadFalling:
-                                model = BuildGageThresholdEventEmailModel(evt, region, location);
-                                await SlackClient.SendGageThresholdEventNotification((GageThresholdEventEmailModel)model);
-                                break;
-
-                            case GageEventTypes.MarkedOffline:
-                            case GageEventTypes.MarkedOnline:
-                                model = BuildGageOnlineStatusEventEmailModel(evt, region, location);
-                                break;
-                        }
-                        
-                        List<GageSubscription> subs = await GageSubscription.GetSubscriptionsForGage(sqlcn, evt.LocationId);
-
-                        StringBuilder sbResult = new StringBuilder();
-                        StringBuilder sbDetails = new StringBuilder();
-                        if (subs == null || subs.Count == 0)
-                        {
-                            sbResult.Append("No subscriptions");
-                        }
-                        else
-                        {
-                            List<UserBase> users = new List<UserBase>();
-                            foreach (GageSubscription sub in subs)
-                            {
-                                UserBase user = UserBase.GetUser(sqlcn, sub.UserId);
-                                users.Add(user);
-                            }
-                            await model.SendEmailToUserList(sqlcn,
-                                                            FzConfig.Config[FzConfig.Keys.EmailFromAddress],
-                                                            users,
-                                                            true,
-                                                            sbResult,
-                                                            sbDetails);
-                        }
-                        evt.NotifierProcessedTime = DateTime.UtcNow;
-                        evt.NotificationResult = sbResult.ToString();
-                        await evt.Save(sqlcn);
+                        UserBase user = UserBase.GetUser(sqlcn, sub.UserId);
+                        users.Add(user);
                     }
-
-                    await currentStatus.Save(container);
-
-                    sqlcn.Close();
-                    runLog.Summary = String.Format("Events processed: {0}", newEvents.Count);
-                    runLog.ReportJobRunSuccess();
+                    await model.SendEmailToUserList(sqlcn,
+                                                    FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                    users,
+                                                    true,
+                                                    sbEmailResult,
+                                                    sbDetails);
                 }
+                evt.NotifierProcessedTime = DateTime.UtcNow;
+                evt.NotificationResult = sbEmailResult.ToString();
+                await evt.Save(sqlcn);
             }
-            catch (Exception ex)
-            {
-                ErrorManager.ReportException(ErrorSeverity.Major, "GageEventNotifier.NotifyGageEvents", ex);
-                runLog.ReportJobRunException(ex);
-                throw;
-            }
+            sbSummary.AppendFormat("Events Processed: {0}", newEvents.Count);
+
+            await currentStatus.Save(container);
         }
 
         private static GageEventEmailModel BuildGageThresholdEventEmailModel(GageEvent evt, RegionBase region, SensorLocationBase location)
@@ -153,12 +138,12 @@ namespace FloodzillaJob
 
         public static async Task<GageEventNotifierStatus> Load(BlobContainerClient container)
         {
-            return await FloodzillaAzureJob.LoadStatusBlob<GageEventNotifierStatus>(container, BlockName);
+            return await AzureJobHelpers.LoadStatusBlob<GageEventNotifierStatus>(container, BlockName);
         }
         
         public async Task Save(BlobContainerClient container)
         {
-            await FloodzillaAzureJob.SaveStatusBlob<GageEventNotifierStatus>(container, BlockName, this);
+            await AzureJobHelpers.SaveStatusBlob<GageEventNotifierStatus>(container, BlockName, this);
         }
     }
 }
