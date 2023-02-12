@@ -43,7 +43,7 @@ namespace FloodzillaWeb.Controllers
         public async Task<IActionResult> JobStatus(string jobName)
         {
             RegionBase region = null;
-            List<string> jobNames = null;
+            List<JobEntry> jobEntries = null;
 
             if (jobName == null)
             {
@@ -53,15 +53,15 @@ namespace FloodzillaWeb.Controllers
             {
                 await sqlcn.OpenAsync();
                 region = RegionBase.GetRegion(sqlcn, FzCommon.Constants.SvpaRegionId);
-                jobNames = await JobRunLog.GetJobRunLogJobNamesAsync(sqlcn);
+                jobEntries = await JobEntry.GetAllJobs(sqlcn);
                 sqlcn.Close();
             }
             ViewBag.Region = region;
             List<SelectListItem> jobs = new List<SelectListItem>();
             jobs.Add(new SelectListItem() { Text = "Latest Runs", Value = JobName_Latest, Selected = (jobName == JobName_Latest) });
-            foreach (string job in jobNames)
+            foreach (JobEntry entry in jobEntries)
             {
-                jobs.Add(new SelectListItem() { Text = job, Value = job, Selected = (jobName == job) });
+                jobs.Add(new SelectListItem() { Text = entry.FriendlyName, Value = entry.JobName, Selected = (jobName == entry.JobName) });
             }
             ViewBag.Jobs = jobs;
             return View();

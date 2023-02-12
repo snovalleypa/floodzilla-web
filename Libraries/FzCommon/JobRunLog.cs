@@ -7,6 +7,7 @@ namespace FzCommon
     {
         public int Id;
         public string JobName;
+        public string? FriendlyName;
         public string MachineName;
         public DateTime StartTime;
         public DateTime EndTime;
@@ -24,6 +25,7 @@ namespace FzCommon
             {
                 Id = (int)dr[columnPrefix + "Id"],
                 JobName = (string)dr[columnPrefix + "JobName"],
+                FriendlyName = SqlHelper.Read<string?>(dr, "FriendlyName"),
                 MachineName = (string)dr[columnPrefix + "MachineName"],
                 StartTime = (DateTime)dr[columnPrefix + "StartTime"],
                 EndTime = (DateTime)dr[columnPrefix + "EndTime"],
@@ -92,23 +94,6 @@ namespace FzCommon
                 }
             }
             return null;
-        }
-
-        public static async Task<List<string>> GetJobRunLogJobNamesAsync(SqlConnection sqlcn)
-        {
-            List<string> ret = new List<string>();
-            using (SqlCommand cmd = new SqlCommand("GetJobRunLogJobNames", sqlcn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
-                {
-                    while (await dr.ReadAsync())
-                    {
-                        ret.Add(SqlHelper.Read<string>(dr, "JobName"));
-                    }
-                }
-            }
-            return ret;
         }
 
         public static async Task<List<RecentJobRun>> GetRecentJobRuns(int runCount)

@@ -7,12 +7,10 @@ GO
 CREATE PROCEDURE [GetLatestJobRunLogs]
 AS
 BEGIN
-SELECT jrl.* FROM JobRunLogs jrl JOIN
-(
-    SELECT jrl.JobName, MAX(jrl.StartTime) AS StartTime FROM JobRunLogs jrl
-	    WHERE jrl.StartTime > DATEADD(DAY, -2, GETDATE())
-    GROUP BY jrl.JobName
-) latestRuns
-on jrl.JobName = latestRuns.JobName and jrl.StartTime = latestRuns.StartTime
+SELECT jrl.*,j.FriendlyName FROM 
+  JobRunLogs jrl JOIN
+  Jobs j
+ON
+  j.JobName = jrl.JobName AND j.LastStartTime = jrl.StartTime
 END
 GO
