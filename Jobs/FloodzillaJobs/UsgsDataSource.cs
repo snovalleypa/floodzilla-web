@@ -11,8 +11,9 @@ using Newtonsoft.Json;
 
 using FzCommon;
 
-namespace FloodzillaJob
+namespace FloodzillaJobs
 {
+#if THIS_IS_OBSOLETE
     public class UsgsGageReading
     {
         public long id { get; set; }
@@ -243,4 +244,5 @@ namespace FloodzillaJob
             return reading;
         }
     }
+#endif
 }

@@ -1,5 +1,3 @@
-//#define SAVE_DETAILED_STATUS
-
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,155 +13,152 @@ using Newtonsoft.Json;
 using FzCommon;
 using FzCommon.Processors;
 
-namespace FloodzillaJob
+namespace FloodzillaJobs
 {
-    public class GageEventDetector : FloodzillaAzureJob
+    public class GageEventDetector : FloodzillaJob
     {
+        public GageEventDetector() : base("FloodzillaJob.DetectGageEvents",
+                                          "Gage Event Detector")
+        {
+        }
+
         // If there's a gap bigger than this before the most recent gage reading, we
         // won't detect any threshold crossings...
         public const int RecentHours = 3;
         
-        public static async Task DetectGageEvents(ILogger log)
+        protected override async Task RunJob(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
         {
-            JobRunLog runLog = new JobRunLog("FloodzillaJob.DetectGageEvents");
-            StringBuilder sbDetails = new StringBuilder();
-
-            try
+            //$ TODO: Is there a better container to use for this kind of status info?
+            BlobContainerClient container = await AzureJobHelpers.EnsureBlobContainer(FzCommon.StorageConfiguration.MonitorBlobContainer);
+            GageEventDetectorStatus lastStatus = await GageEventDetectorStatus.Load(container);
+            if (lastStatus == null)
             {
-                BlobContainerClient container = await EnsureBlobContainer(FzCommon.StorageConfiguration.MonitorBlobContainer);
-                GageEventDetectorStatus lastStatus = await GageEventDetectorStatus.Load(container);
-                if (lastStatus == null)
-                {
-                    lastStatus = new GageEventDetectorStatus();
-                }
-                sbDetails.Append("===================================\r\nlastStatus:\r\n");
-                foreach (GageEventDetectorStatus.GageStatus s in lastStatus.Status)
-                {
-                    sbDetails.AppendFormat("{0}: {1}\r\n", s.Id, s.LastReadingId);
-                }
-
-                GageEventDetectorStatus currentStatus = new GageEventDetectorStatus();
-
-                using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
-                {
-                    await sqlcn.OpenAsync();
-
-                    Dictionary<int, List<SensorReading>> recentReadings = await SensorReading.GetAllRecentReadings(sqlcn, lastStatus.LastRunTime.AddHours(-RecentHours), false);
-
-                    List<SensorLocationBase> locations = SensorLocationBase.GetLocations(sqlcn);
-                    foreach (SensorLocationBase location in locations)
-                    {
-                        //$ TODO: Do we want to process 'deleted' gages anyway, and just mark events as "don't notify"?
-                        if (location.IsDeleted)
-                        {
-                            continue;
-                        }
-
-                        GageEventDetectorStatus.GageStatus curStatus = lastStatus.Status.FirstOrDefault(s => s.Id == location.Id);
-                        if (curStatus == null)
-                        {
-                            curStatus = new GageEventDetectorStatus.GageStatus(location.Id);
-                        }
-                        currentStatus.Status.Add(curStatus);
-
-                        // If a gage is marked offline we explicitly skip it, per spec.
-                        //$ TODO: Do we want to detect events anyway, and just mark them as "don't notify"?
-                        if (location.IsOffline)
-                        {
-                            continue;
-                        }
-
-                        //$ TODO: Do we want to entirely ignore !IsActive and/or !IsPublic gages?
-
-                        if (!recentReadings.ContainsKey(location.Id))
-                        {
-                            continue;
-                        }
-                        // Assume these come in most-recent-first
-                        List<SensorReading> readings = recentReadings[location.Id];
-                        if (readings.Count < 2)
-                        {
-                            continue;
-                        }
-
-                        if (readings[0].Id <= curStatus.LastReadingId)
-                        {
-                            continue;
-                        }
-                        Trends trends = TrendCalculator.CalculateWaterTrends(readings);
-                        curStatus.LastReadingId = readings[0].Id;
-
-                        location.ConvertValuesForDisplay();
-
-                        // Theoretically, there could be more than one new reading per gage, but
-                        // we intend to run this often enough that there won't be...
-                        double curFeet = readings[0].WaterHeightFeet ?? 0;
-                        double prevFeet = readings[1].WaterHeightFeet ?? 0;
-
-                        // These threshold levels have a precedence -- if any two threshold levels are equal,
-                        // we should detect events in this priority order.
-
-                        //$ TODO: Add explicit check for RoadSaddleHeight?
-                        if (location.Brown.HasValue)
-                        {
-                            if (await MaybeCreateEvent(sqlcn,
-                                                       location,
-                                                       readings[0],
-                                                       readings[0].Timestamp,
-                                                       curFeet,
-                                                       prevFeet,
-                                                       trends,
-                                                       location.Brown.Value,
-                                                       GageEventTypes.RedRising,
-                                                       GageEventTypes.RedFalling))
-                            {
-                                continue;
-                            }
-                        }
-                        if (location.Green.HasValue)
-                        {
-                            if (location.Brown.HasValue && location.Brown.Value == location.Green.Value)
-                            {
-                                continue;
-                            }
-                            if (await MaybeCreateEvent(sqlcn,
-                                                       location,
-                                                       readings[0],
-                                                       readings[0].Timestamp,
-                                                       curFeet,
-                                                       prevFeet,
-                                                       trends,
-                                                       location.Green.Value,
-                                                       GageEventTypes.YellowRising,
-                                                       GageEventTypes.YellowFalling))
-                            {
-                                continue;
-                            }
-                        }
-                    }
-
-                    sbDetails.Append("===================================\r\ncurrentStatus:\r\n");
-                    foreach (GageEventDetectorStatus.GageStatus s in currentStatus.Status)
-                    {
-                        sbDetails.AppendFormat("{0}: {1}\r\n", s.Id, s.LastReadingId);
-                    }
-
-#if SAVE_DETAILED_STATUS
-                    await UploadStatusBlob(bcc, GageEventDetectorStatus.BlockName + "-details", sbDetails.ToString()
+                lastStatus = new GageEventDetectorStatus();
+            }
+#if DUMP_LAST_STATUS_FOR_DEBUGGING
+            sbDetails.Append("===================================\r\nLast status:\r\n");
+            foreach (GageEventDetectorStatus.GageStatus s in lastStatus.Status)
+            {
+                sbDetails.AppendFormat("{0}: {1}\r\n", s.Id, s.LastReadingId);
+            }
 #endif
-                    
-                    await currentStatus.Save(container);
 
-                    sqlcn.Close();
-                    runLog.ReportJobRunSuccess();
-                }
-            }
-            catch (Exception ex)
+            GageEventDetectorStatus currentStatus = new GageEventDetectorStatus();
+
+            Dictionary<int, List<SensorReading>> recentReadings
+                    = await SensorReading.GetAllRecentReadings(sqlcn, lastStatus.LastRunTime.AddHours(-RecentHours), false);
+            List<SensorLocationBase> locations = SensorLocationBase.GetLocations(sqlcn);
+            int checkedCount = 0;
+            int nearCount = 0;
+            int floodingCount = 0;
+            foreach (SensorLocationBase location in locations)
             {
-                ErrorManager.ReportException(ErrorSeverity.Major, "GageEventDetector.DetectGageEvents", ex);
-                runLog.ReportJobRunException(ex);
-                throw;
+                checkedCount++;
+                sbDetails.AppendFormat("Checking location {0} [{1}]--", location.Id, location.LocationName);
+                //$ TODO: Do we want to process 'deleted' gages anyway, and just mark events as "don't notify"?
+                if (location.IsDeleted)
+                {
+                    sbDetails.Append("deleted\r\n");
+                    continue;
+                }
+
+                GageEventDetectorStatus.GageStatus curStatus = lastStatus.Status.FirstOrDefault(s => s.Id == location.Id);
+                if (curStatus == null)
+                {
+                    curStatus = new GageEventDetectorStatus.GageStatus(location.Id);
+                }
+                currentStatus.Status.Add(curStatus);
+
+                // If a gage is marked offline we explicitly skip it, per spec.
+                //$ TODO: Do we want to detect events anyway, and just mark them as "don't notify"?
+                if (location.IsOffline)
+                {
+                    sbDetails.Append("offline\r\n");
+                    continue;
+                }
+
+                //$ TODO: Do we want to entirely ignore !IsActive and/or !IsPublic gages?
+
+                if (!recentReadings.ContainsKey(location.Id))
+                {
+                    sbDetails.Append("no recent readings\r\n");
+                    continue;
+                }
+
+                // Assume these come in most-recent-first
+                List<SensorReading> readings = recentReadings[location.Id];
+                if (readings.Count < 2)
+                {
+                    sbDetails.Append("not enough recent readings\r\n");
+                    continue;
+                }
+
+                if (readings[0].Id <= curStatus.LastReadingId)
+                {
+                    sbDetails.Append("no new readings\r\n");
+                    continue;
+                }
+                checkedCount++;
+                Trends trends = TrendCalculator.CalculateWaterTrends(readings);
+                curStatus.LastReadingId = readings[0].Id;
+
+                location.ConvertValuesForDisplay();
+
+                // Theoretically, there could be more than one new reading per gage, but
+                // we intend to run this often enough that there won't be...
+                double curFeet = readings[0].WaterHeightFeet ?? 0;
+                double prevFeet = readings[1].WaterHeightFeet ?? 0;
+
+                // These threshold levels have a precedence -- if any two threshold levels are equal,
+                // we should detect events in this priority order.
+
+                //$ TODO: Add explicit check for RoadSaddleHeight?
+                if (location.Brown.HasValue)
+                {
+                    
+                    if (await MaybeCreateEvent(sqlcn,
+                                               location,
+                                               readings[0],
+                                               readings[0].Timestamp,
+                                               curFeet,
+                                               prevFeet,
+                                               trends,
+                                               location.Brown.Value,
+                                               GageEventTypes.RedRising,
+                                               GageEventTypes.RedFalling))
+                    {
+                        floodingCount++;
+                        sbDetails.Append("Flooding\r\n");
+                        continue;
+                    }
+                }
+                if (location.Green.HasValue)
+                {
+                    if (location.Brown.HasValue && location.Brown.Value == location.Green.Value)
+                    {
+                        continue;
+                    }
+                    if (await MaybeCreateEvent(sqlcn,
+                                               location,
+                                               readings[0],
+                                               readings[0].Timestamp,
+                                               curFeet,
+                                               prevFeet,
+                                               trends,
+                                               location.Green.Value,
+                                               GageEventTypes.YellowRising,
+                                               GageEventTypes.YellowFalling))
+                    {
+                        sbDetails.Append("Near Flooding\r\n");
+                        nearCount++;
+                        continue;
+                    }
+                }
+                sbDetails.Append("\r\n");
             }
+
+            sbSummary.AppendFormat("Checked {0} gages for events.  {1} near flooding, {2} flooding.", checkedCount, nearCount, floodingCount);
+            await currentStatus.Save(container);
         }
 
         private static async Task<bool> MaybeCreateEvent(SqlConnection sqlcn,
@@ -270,12 +265,12 @@ namespace FloodzillaJob
 
         public static async Task<GageEventDetectorStatus> Load(BlobContainerClient container)
         {
-            return await FloodzillaAzureJob.LoadStatusBlob<GageEventDetectorStatus>(container, BlockName);
+            return await AzureJobHelpers.LoadStatusBlob<GageEventDetectorStatus>(container, BlockName);
         }
         
         public async Task Save(BlobContainerClient container)
         {
-            await FloodzillaAzureJob.SaveStatusBlob<GageEventDetectorStatus>(container, BlockName, this);
+            await AzureJobHelpers.SaveStatusBlob<GageEventDetectorStatus>(container, BlockName, this);
         }
     }
 }

@@ -44,6 +44,14 @@ namespace FzCommon
             }
         }
 
+        public static void AddParamIfNotEmpty<T>(SqlParameterCollection parameters, string paramName, T? val)
+        {
+            if (val != null)
+            {
+                parameters.AddWithValue(paramName, val);
+            }
+        }
+
         public static async Task CallIdListProcedure(SqlConnection conn, string procName, IEnumerable<int> ids, int maxLength)
         {
             await CallIdListProcedureWithReason(conn, procName, ids, maxLength, null);

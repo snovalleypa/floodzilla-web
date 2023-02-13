@@ -12,130 +12,127 @@ using Newtonsoft.Json;
 using FzCommon;
 using FzCommon.Processors;
 
-namespace FloodZillaMonitor
+namespace FloodzillaMonitor
 {
-    public class LocationMonitor
+    public class LocationMonitor : FloodzillaJob
     {
-        public static async Task MonitorLocations(ILogger log)
+        public LocationMonitor() : base("FloodzillaMonitor.MonitorLocations",
+                                        "Gage Status Monitor")
         {
-            JobRunLog runLog = new JobRunLog("FloodZillaMonitor.MonitorLocations");
+        }
 
-            try
+        protected override async Task RunJob(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
+        {
+            BlobContainerClient container = await AzureJobHelpers.EnsureBlobContainer(FzCommon.StorageConfiguration.MonitorBlobContainer);
+            LocationMonitorStatus lastMonitorStatus = await LocationMonitorStatus.Load(container);
+            if (lastMonitorStatus == null)
             {
-                BlobContainerClient container = await FloodzillaAzureJob.EnsureBlobContainer(FzCommon.StorageConfiguration.MonitorBlobContainer);
-                LocationMonitorStatus lastMonitorStatus = await LocationMonitorStatus.Load(container);
-                if (lastMonitorStatus == null)
+                lastMonitorStatus = new LocationMonitorStatus();
+            }
+
+            LocationMonitorStatus currentMonitorStatus = new LocationMonitorStatus() { LastRunTime = DateTime.UtcNow };
+
+            StringBuilder sbOffline = new StringBuilder();
+
+            List<SensorLocationBase> locations;
+            int locCount = 0, checkedCount = 0, downCount = 0, notifyCount = 0, recoveredCount = 0;
+            using (SqlConnection conn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            {
+                conn.Open();
+
+                //$ TODO: Do this for all regions
+                RegionBase region = RegionBase.GetRegion(conn, FzCommon.Constants.SvpaRegionId);
+                if (region.SensorOfflineThreshold == null)
                 {
-                    lastMonitorStatus = new LocationMonitorStatus();
+                    throw new ApplicationException("Can't monitor locations -- Sensor Offline Threshold isn't set");
                 }
 
-                LocationMonitorStatus currentMonitorStatus = new LocationMonitorStatus() { LastRunTime = DateTime.UtcNow };
-
-                StringBuilder sbDetails = new StringBuilder();
-                StringBuilder sbOffline = new StringBuilder();
-
-                List<SensorLocationBase> locations;
-                int locCount = 0, checkedCount = 0, downCount = 0, notifyCount = 0, recoveredCount = 0;
-                using (SqlConnection conn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+                locations = SensorLocationBase.GetLocations(conn);
+                foreach (SensorLocationBase location in locations)
                 {
-                    conn.Open();
-
-                    //$ TODO: Do this for all regions
-                    RegionBase region = RegionBase.GetRegion(conn, FzCommon.Constants.SvpaRegionId);
-                    if (region.SensorOfflineThreshold == null)
+                    locCount++;
+                    sbDetails.AppendFormat("Checking location {0} [{1}]--", location.Id, location.LocationName);
+                    if (location.IsDeleted || !location.IsActive || !location.IsPublic)
                     {
-                        throw new ApplicationException("Can't monitor locations -- Sensor Offline Threshold isn't set");
+                        sbDetails.Append("skipping");
                     }
-
-                    locations = SensorLocationBase.GetLocations(conn);
-                    foreach (SensorLocationBase location in locations)
+                    else
                     {
-                        locCount++;
-                        sbDetails.AppendFormat("Checking location {0} [{1}]--", location.Id, location.LocationName);
-                        if (location.IsDeleted || !location.IsActive || !location.IsPublic)
+                        checkedCount++;
+                        List<SensorReading> lastReadings = await SensorReading.GetReadingsForLocation(location.Id, 1, null, null, 0);
+                        if (lastReadings.Count == 0)
                         {
-                            sbDetails.Append("skipping");
+                            //$ TODO: Should this send email? 
+                            sbDetails.Append("no readings");
                         }
                         else
                         {
-                            checkedCount++;
-                            List<SensorReading> lastReadings = await SensorReading.GetReadingsForLocation(location.Id, 1, null, null, 0);
-                            if (lastReadings.Count == 0)
+                            LocationMonitorStatus.LocationStatus currentStatus = new LocationMonitorStatus.LocationStatus() { Id = location.Id };
+                            LocationMonitorStatus.LocationStatus lastStatus = lastMonitorStatus.GetStatus(location.Id);
+                            if (lastReadings[0].Timestamp.AddMinutes(region.SensorOfflineThreshold.Value) > currentMonitorStatus.LastRunTime)
                             {
-                                //$ TODO: Should this send email? 
-                                sbDetails.Append("no readings");
-                            }
-                            else
-                            {
-                                LocationMonitorStatus.LocationStatus currentStatus = new LocationMonitorStatus.LocationStatus() { Id = location.Id };
-                                LocationMonitorStatus.LocationStatus lastStatus = lastMonitorStatus.GetStatus(location.Id);
-                                if (lastReadings[0].Timestamp.AddMinutes(region.SensorOfflineThreshold.Value) > currentMonitorStatus.LastRunTime)
-                                {
-                                    // Location is up.  If it was previously down, send all-clear notification.
-                                    currentStatus.IsUp = true;
+                                // Location is up.  If it was previously down, send all-clear notification.
+                                currentStatus.IsUp = true;
 
-                                    if (lastStatus != null && !lastStatus.IsUp)
-                                    {
-                                        sbDetails.Append("RECOVERED");
-                                        await NotifyRecovered(region, location, lastReadings[0], lastStatus.OfflineDetected);
-                                        recoveredCount++;
-                                    }
-                                    else
-                                    {
-                                        sbDetails.Append("up");
-                                    }
+                                if (lastStatus != null && !lastStatus.IsUp)
+                                {
+                                    sbDetails.Append("RECOVERED");
+                                    await NotifyRecovered(region, location, lastReadings[0], lastStatus.OfflineDetected);
+                                    recoveredCount++;
                                 }
                                 else
                                 {
-                                    // Location is down.  If we haven't previously sent error notification, send error notification.
-                                    downCount++;
-                                    currentStatus.IsUp = false;
-                                    if (lastStatus == null || lastStatus.IsUp)
-                                    {
-                                        currentStatus.OfflineDetected = DateTime.UtcNow;
-                                        sbDetails.Append("NOTIFYING DOWN");
-                                        await NotifyDown(region, location, lastReadings[0]);
-                                        notifyCount++;
-                                    }
-                                    else
-                                    {
-                                        if (lastStatus != null)
-                                        {
-                                            currentStatus.OfflineDetected = lastStatus.OfflineDetected;
-                                        }
-                                        sbDetails.AppendFormat("down (since {0})", currentStatus.OfflineDetected);
-                                    }
-
-                                    // Keep a list of currently-offline gags (for FzSlackBot, mainly)
-                                    sbOffline.AppendFormat("OFFLINE: {0} - {1} (since {2})\r\n", location.PublicLocationId, location.LocationName, FzCommonUtility.ToRegionTimeFromUtc(currentStatus.OfflineDetected));
+                                    sbDetails.Append("up");
                                 }
-                                currentMonitorStatus.Status.Add(currentStatus);
                             }
-                        }
+                            else
+                            {
+                                // Location is down.  If we haven't previously sent error notification, send error notification.
+                                downCount++;
+                                currentStatus.IsUp = false;
+                                if (lastStatus == null || lastStatus.IsUp)
+                                {
+                                    currentStatus.OfflineDetected = DateTime.UtcNow;
+                                    sbDetails.Append("NOTIFYING DOWN");
+                                    await NotifyDown(region, location, lastReadings[0]);
+                                    notifyCount++;
+                                }
+                                else
+                                {
+                                    if (lastStatus != null)
+                                    {
+                                        currentStatus.OfflineDetected = lastStatus.OfflineDetected;
+                                    }
+                                    sbDetails.AppendFormat("down (since {0})", currentStatus.OfflineDetected);
+                                }
 
-                        sbDetails.Append("\r\n");
+                                // Keep a list of currently-offline gags (for FzSlackBot, mainly)
+                                sbOffline.AppendFormat("OFFLINE: {0} - {1} (since {2})\r\n", location.PublicLocationId, location.LocationName, FzCommonUtility.ToRegionTimeFromUtc(currentStatus.OfflineDetected));
+                            }
+                            currentMonitorStatus.Status.Add(currentStatus);
+                        }
                     }
 
-                    conn.Close();
+                    sbDetails.Append("\r\n");
                 }
 
-                string summary = String.Format("LocationMonitor @ {0}: {1} locations, checked {2}, down {3}, notify {4}, recovered {5}",
-                                               FzCommonUtility.ToRegionTimeFromUtc(currentMonitorStatus.LastRunTime), locCount, checkedCount, downCount, notifyCount, recoveredCount);
-                string offline = sbOffline.ToString();
-                if (String.IsNullOrEmpty(offline))
-                {
-                    offline = "No sensors currently offline!";
-                }
-
-                await currentMonitorStatus.Save(container, offline, sbDetails.ToString(), summary);
-                runLog.Summary = summary;
-                runLog.ReportJobRunSuccess();
+                conn.Close();
             }
-            catch (Exception ex)
+
+            sbSummary.AppendFormat("LocationMonitor @ {0}: {1} locations, checked {2}, down {3}, notify {4}, recovered {5}",
+                                   FzCommonUtility.ToRegionTimeFromUtc(currentMonitorStatus.LastRunTime),
+                                   locCount,
+                                   checkedCount,
+                                   downCount,
+                                   notifyCount,
+                                   recoveredCount);
+            string offline = sbOffline.ToString();
+            if (String.IsNullOrEmpty(offline))
             {
-                runLog.ReportJobRunException(ex);
-                throw;
+                offline = "No sensors currently offline!";
             }
+
+            await currentMonitorStatus.Save(container, offline, sbDetails.ToString(), sbSummary.ToString());
         }
 
         private static async Task NotifyDown(RegionBase region, SensorLocationBase location, SensorReading lastReading)
@@ -200,24 +197,23 @@ namespace FloodZillaMonitor
 
         public static async Task<LocationMonitorStatus> Load(BlobContainerClient container)
         {
-            return await FloodzillaAzureJob.LoadStatusBlob<LocationMonitorStatus>(container, BlockName);
+            return await AzureJobHelpers.LoadStatusBlob<LocationMonitorStatus>(container, BlockName);
         }
         
-        // The "details" and "summary" parameters are for inspection/debugging/etca
         public async Task Save(BlobContainerClient container, string offline, string details, string summary)
         {
-            await FloodzillaAzureJob.SaveStatusBlob<LocationMonitorStatus>(container, BlockName, this);
+            await AzureJobHelpers.SaveStatusBlob<LocationMonitorStatus>(container, BlockName, this);
             if (!String.IsNullOrEmpty(offline))
             {
-                await FloodzillaAzureJob.SaveBlobText(container, BlockName + "-offline", offline);
+                await AzureJobHelpers.SaveBlobText(container, BlockName + "-offline", offline);
             }
             if (!String.IsNullOrEmpty(details))
             {
-                await FloodzillaAzureJob.SaveBlobText(container, BlockName + "-details", details);
+                await AzureJobHelpers.SaveBlobText(container, BlockName + "-details", details);
             }
             if (!String.IsNullOrEmpty(summary))
             {
-                await FloodzillaAzureJob.SaveBlobText(container, BlockName + "-summary", summary);
+                await AzureJobHelpers.SaveBlobText(container, BlockName + "-summary", summary);
             }
         }
     }

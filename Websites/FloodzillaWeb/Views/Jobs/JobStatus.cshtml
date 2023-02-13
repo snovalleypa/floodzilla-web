@@ -121,8 +121,11 @@
             if (data == undefined || data == 0) {
                 return '';
             }
+            if (data.friendlyName) {
+              return data.friendlyName;
+            }
             if (data.jobName == undefined) {
-                return '';
+                return '[job name unknown]';
             }
             return data.jobName.split('.').slice(-1)[0];
         }
@@ -139,7 +142,7 @@
 
 
         function UpdateTable(job) {
-            dataTable.ajax.url("/Reports/GetJobRunLogs?jobName=" + job + "&regionId=" + $("#RegionId").val());
+            dataTable.ajax.url("/Jobs/GetJobRunLogs?jobName=" + job + "&regionId=" + $("#RegionId").val());
             $('#loading').show();
             $('#results').hide();
             $('#noData').hide();
@@ -154,7 +157,7 @@
 
             var job = $("#JobSelect").val();
             $("#JobSelect").change(function() {
-                window.location.href = "/Reports/JobStatus/?jobName=" + $("#JobSelect").val();
+                window.location.href = "/Jobs/JobStatus/?jobName=" + $("#JobSelect").val();
             });
             UpdateTable(job);
         });

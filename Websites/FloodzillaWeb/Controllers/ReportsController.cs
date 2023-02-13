@@ -44,8 +44,6 @@ namespace FloodzillaWeb.Controllers
         public const string DeviceName_All = "all";
         public const string DeviceName_None = "none";
 
-        public const string JobName_Latest = "latest";
-        
         public ReportsController(FloodzillaContext context, IMemoryCache memoryCache, UserPermissions userPermissions)
                 : base(context, memoryCache, userPermissions)
         {
@@ -263,35 +261,6 @@ namespace FloodzillaWeb.Controllers
             return View();
         }
 
-        //$ TODO: region
-        //$ TODO: date?
-        public async Task<IActionResult> JobStatus(string jobName)
-        {
-            RegionBase region = null;
-            List<string> jobNames = null;
-
-            if (jobName == null)
-            {
-                jobName = JobName_Latest;
-            }
-            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
-            {
-                await sqlcn.OpenAsync();
-                region = RegionBase.GetRegion(sqlcn, FzCommon.Constants.SvpaRegionId);
-                jobNames = await JobRunLog.GetJobRunLogJobNamesAsync(sqlcn);
-                sqlcn.Close();
-            }
-            ViewBag.Region = region;
-            List<SelectListItem> jobs = new List<SelectListItem>();
-            jobs.Add(new SelectListItem() { Text = "Latest Runs", Value = JobName_Latest, Selected = (jobName == JobName_Latest) });
-            foreach (string job in jobNames)
-            {
-                jobs.Add(new SelectListItem() { Text = job, Value = job, Selected = (jobName == job) });
-            }
-            ViewBag.Jobs = jobs;
-            return View();
-        }
-        
         public IActionResult Stats(int? locationId)
         {
             ViewBag.Locations = GetLocations(locationId ?? 0, (l => l.Devices != null && l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Senix));
@@ -523,33 +492,6 @@ namespace FloodzillaWeb.Controllers
             return Ok(new { data = count });
         }
 
-        public async Task<IActionResult> GetJobRunLogs(string jobName, int regionId)
-        {
-            List<RecentJobRun> ret;
-            RegionBase region = null;
-            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
-            {
-                await sqlcn.OpenAsync();
-                region = RegionBase.GetRegion(sqlcn, regionId);
-                if (String.IsNullOrEmpty(jobName) || (jobName == JobName_Latest))
-                {
-                    ret = await JobRunLog.GetLatestJobRunLogsAsync(sqlcn);
-                }
-                else
-                {
-                    ret = await JobRunLog.GetJobRunLogsForNameAsync(sqlcn, jobName);
-                }
-                await sqlcn.CloseAsync();
-            }
-            
-            foreach (RecentJobRun rjr in ret)
-            {
-                rjr.StartTime = region.ToRegionTimeFromUtc(rjr.StartTime);
-                rjr.EndTime = region.ToRegionTimeFromUtc(rjr.EndTime);
-            }
-            return Ok(new { data = ret });
-        }
-
         public async Task<IActionResult> GetStatsForLocation(double tzOffset, int locationId)
         {
             List<GageStatistics> stats = await GageStatistics.GetStatisticsForLocation(locationId);
@@ -711,31 +653,6 @@ namespace FloodzillaWeb.Controllers
             }
 
             return SuccessResult(new { data = ret });
-        }
-
-        public async Task<IActionResult> GetFullJobRunException(int runId)
-        {
-            try
-            {
-                using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
-                {
-                    await sqlcn.OpenAsync();
-
-                    RecentJobRun rjr = await JobRunLog.GetJobRun(sqlcn, runId);
-                    if (rjr == null)
-                    {
-                        return BadRequest("An error occurred while processing this request.");
-                    }
-
-                    return SuccessResult(rjr.FullException ?? "");
-                }
-            }
-            catch
-            {
-                //$ TODO: where do these errors go
-            }
-
-            return BadRequest("An error occurred while processing this request.");
         }
 
         public async Task<IActionResult> GetRawSenixLogData(int logId)

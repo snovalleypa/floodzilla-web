@@ -113,7 +113,7 @@
                 columns: [
                           { data: renderCheckbox, width: '40px', orderable: false },
                           { data: "email", orderable: true },
-                          { data: renderTimestamp },
+                          { data: renderTimestamp, width: '150px' },
                           { data: renderTags },
                           { data: "text" },
                 ]
@@ -143,7 +143,7 @@
 
         function renderTimestamp(data) {
             var tz = dataTable.ajax.json().timezone;
-            var timestamp = moment.utc(data.timestamp).tz(tz).format("MM/DD/YYYY hh:mm:ss a");
+            var timestamp = moment.utc(data.timestamp).tz(tz).format("YYYY-MM-DD HH:mm:ss");
             return timestamp;
         }
 

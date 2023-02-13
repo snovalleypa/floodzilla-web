@@ -130,6 +130,7 @@ namespace FzCommon
             m_factories[SensorLocationBase.TagCategory] = new SensorLocationBase.SensorLocationTaggableFactory();
             m_factories[DeviceBase.TagCategory] = new DeviceBase.DeviceTaggableFactory();
             m_factories[ReceiverBase.TagCategory] = new ReceiverBase.ReceiverTaggableFactory();
+            m_factories[JobEntry.TagCategory] = new JobEntry.JobEntryTaggableFactory();
         }
 
         public void AddMemoryCache(IMemoryCache cache)
@@ -505,7 +506,7 @@ namespace FzCommon
         }
         private static LogBookEntry InstantiateFromReader(SqlDataReader reader)
         {
-            LogBookEntry device = new LogBookEntry()
+            LogBookEntry entry = new LogBookEntry()
             {
                 Id = SqlHelper.Read<int>(reader, "Id"),
                 UserId = SqlHelper.Read<int>(reader, "UserId"),
@@ -513,7 +514,7 @@ namespace FzCommon
                 Text = SqlHelper.Read<string>(reader, "Text"),
                 IsDeleted = SqlHelper.Read<bool>(reader, "IsDeleted"),
             };
-            return device;
+            return entry;
         }
         
         private static string GetColumnList()

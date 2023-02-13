@@ -7,6 +7,7 @@ namespace FzCommon
     {
         public int Id;
         public string JobName;
+        public string? FriendlyName;
         public string MachineName;
         public DateTime StartTime;
         public DateTime EndTime;
@@ -14,61 +15,67 @@ namespace FzCommon
         public string Exception;
         public string FullException;
 
-        public void InitializeFromReader(SqlDataReader dr)
+        public static RecentJobRun InstantiateFromReader(SqlDataReader dr, string? columnPrefix = null)
         {
-            Id = (int)dr["Id"];
-            JobName = (string)dr["JobName"];
-            MachineName = (string)dr["MachineName"];
-            StartTime = (DateTime)dr["StartTime"];
-            EndTime = (DateTime)dr["EndTime"];
-            Summary = SqlHelper.Read<string>(dr, "Summary");
-            Exception = SqlHelper.Read<string>(dr, "Exception");
-            FullException = SqlHelper.Read<string>(dr, "FullException");
+            if (columnPrefix == null)
+            {
+                columnPrefix = "";
+            }
+            return new RecentJobRun()
+            {
+                Id = (int)dr[columnPrefix + "Id"],
+                JobName = (string)dr[columnPrefix + "JobName"],
+                FriendlyName = SqlHelper.Read<string?>(dr, "FriendlyName"),
+                MachineName = (string)dr[columnPrefix + "MachineName"],
+                StartTime = (DateTime)dr[columnPrefix + "StartTime"],
+                EndTime = (DateTime)dr[columnPrefix + "EndTime"],
+                Summary = SqlHelper.Read<string>(dr, columnPrefix + "Summary"),
+                Exception = SqlHelper.Read<string>(dr, columnPrefix + "Exception"),
+                FullException = SqlHelper.Read<string>(dr, columnPrefix + "FullException"),
+            };
         }
     }
     
     public class JobRunLog
     {
-        public JobRunLog(string jobName)
+        internal JobRunLog(string jobName, DateTime startTime)
         {
             m_jobName = jobName;
-            m_startTime = DateTime.UtcNow;
+            m_startTime = startTime;
         }
 
-        public void ReportJobRunSuccess()
+        internal RecentJobRun ReportJobRunSuccess(SqlConnection sqlcn, DateTime endTime)
         {
-            this.SaveRunLog();
+            return this.SaveRunLog(sqlcn, endTime);
         }
 
-        public void ReportJobRunException(Exception ex)
+        internal RecentJobRun ReportJobRunException(SqlConnection sqlcn, Exception ex, DateTime exceptionTime)
         {
-            ErrorManager.ReportException(ErrorSeverity.Major, m_jobName, ex);
-            this.SaveRunLog(ex);
+            ErrorManager.ReportException(ErrorSeverity.Major, m_jobName, ex, exceptionTime);
+            return this.SaveRunLog(sqlcn, exceptionTime, ex);
         }
 
-        private void SaveRunLog(Exception ex = null)
+        private RecentJobRun SaveRunLog(SqlConnection sqlcn, DateTime endTime, Exception? ex = null)
         {
-            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            SqlCommand cmd = new SqlCommand("SaveJobRunLog", sqlcn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@JobName", m_jobName);
+            cmd.Parameters.AddWithValue("@MachineName", Environment.MachineName);
+            cmd.Parameters.AddWithValue("@StartTime", m_startTime);
+            cmd.Parameters.AddWithValue("@EndTime", endTime);
+            cmd.Parameters.AddWithValue("@Summary", m_summary);
+            if (ex != null)
             {
-                SqlCommand cmd = new SqlCommand("SaveJobRunLog", sqlcn);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@JobName", m_jobName);
-                cmd.Parameters.AddWithValue("@MachineName", Environment.MachineName);
-                cmd.Parameters.AddWithValue("@StartTime", m_startTime);
-                cmd.Parameters.AddWithValue("@EndTime", DateTime.UtcNow);
-                cmd.Parameters.AddWithValue("@Summary", m_summary);
-                if (ex != null)
+                cmd.Parameters.AddWithValue("@Exception", ex.Message);
+                cmd.Parameters.AddWithValue("@FullException", ex.ToString());
+            }
+            using (SqlDataReader dr = cmd.ExecuteReader())
+            {
+                if (!dr.Read())
                 {
-                    cmd.Parameters.AddWithValue("@Exception", ex.Message);
-                    cmd.Parameters.AddWithValue("@FullException", ex.ToString());
+                    throw new ApplicationException("Error saving LogBookEntry");
                 }
-                else
-                {
-                }
-
-                sqlcn.Open();
-                cmd.ExecuteNonQuery();
-                sqlcn.Close();
+                return RecentJobRun.InstantiateFromReader(dr);
             }
         }
 
@@ -82,30 +89,11 @@ namespace FzCommon
                 {
                     if (await dr.ReadAsync())
                     {
-                        RecentJobRun rjr = new RecentJobRun();
-                        rjr.InitializeFromReader(dr);
-                        return rjr;
+                        return RecentJobRun.InstantiateFromReader(dr);
                     }
                 }
             }
             return null;
-        }
-
-        public static async Task<List<string>> GetJobRunLogJobNamesAsync(SqlConnection sqlcn)
-        {
-            List<string> ret = new List<string>();
-            using (SqlCommand cmd = new SqlCommand("GetJobRunLogJobNames", sqlcn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
-                {
-                    while (await dr.ReadAsync())
-                    {
-                        ret.Add(SqlHelper.Read<string>(dr, "JobName"));
-                    }
-                }
-            }
-            return ret;
         }
 
         public static async Task<List<RecentJobRun>> GetRecentJobRuns(int runCount)
@@ -121,9 +109,7 @@ namespace FzCommon
                     {
                         while (await dr.ReadAsync())
                         {
-                            RecentJobRun rjr = new RecentJobRun();
-                            rjr.InitializeFromReader(dr);
-                            ret.Add(rjr);
+                            ret.Add(RecentJobRun.InstantiateFromReader(dr));
                         }
                     }
                 }
@@ -141,9 +127,7 @@ namespace FzCommon
                 {
                     while (await dr.ReadAsync())
                     {
-                        RecentJobRun rjr = new RecentJobRun();
-                        rjr.InitializeFromReader(dr);
-                        ret.Add(rjr);
+                        ret.Add(RecentJobRun.InstantiateFromReader(dr));
                     }
                 }
             }
@@ -161,9 +145,7 @@ namespace FzCommon
                 {
                     while (await dr.ReadAsync())
                     {
-                        RecentJobRun rjr = new RecentJobRun();
-                        rjr.InitializeFromReader(dr);
-                        ret.Add(rjr);
+                        ret.Add(RecentJobRun.InstantiateFromReader(dr));
                     }
                 }
             }
