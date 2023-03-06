@@ -12,7 +12,7 @@ CREATE PROCEDURE [GetMinimalSensorReadings]
 AS
 BEGIN
 
-	SELECT Id, Timestamp, LocationId, WaterHeightFeet, greatest(isnull(WaterDischarge,0),0) as WaterDischarge from SensorReadings
+	SELECT Id, Timestamp, LocationId, WaterHeightFeet, WaterDischarge from SensorReadings
 		WHERE LocationId = @locationId
 		AND IsDeleted = 0
 		AND (@fromTime IS NULL OR Timestamp > @fromTime)
