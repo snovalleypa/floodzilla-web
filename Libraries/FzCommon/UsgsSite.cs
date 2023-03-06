@@ -253,12 +253,19 @@ namespace FzCommon
                         WaterDischarge = dischargeValue == null ? (double?)null : dischargeValue.Value,
                     };
 
-                    //$ TODO: If necessary, reintroduce calculation of CalcWaterDischarge.  It
-                    //$ appears to be totally unused currently (and is based on calibration data
-                    //$ of unclear age and provenance anyway...)
-
                     reading.AdjustReadingForLocation(location);
                     reading.AdjustReadingForDevice(device);
+
+                    // USGS gages appear to return "-999999" for WaterDischarge when the gage readings
+                    // are suspect (in particular, when the gage is "Ice affected").  If that happens we
+                    // should save the reading as deleted.
+                    if (reading.WaterDischarge < 0)
+                    {
+                        reading.IsDeleted = true;
+                        reading.IsFiltered = true;
+                        reading.DeleteReason = "Filtered (invalid water discharge)";
+                    }
+
                     readingData.Readings.Add(reading);
                 }
 

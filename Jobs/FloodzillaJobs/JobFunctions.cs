@@ -61,24 +61,6 @@ namespace FloodzillaJobs
             //$ TODO: Any other configuration/initialization?
         }
 
-#if THIS_IS_OBSOLETE
-#if DEBUG
-        [FunctionName("CalculateUsgsLevels")]
-        public static async Task<IActionResult> CalculateUsgsLevels([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req, ILogger log)
-        {
-            await ProjectFunctions.CalculateUsgsLevels();
-            return new OkObjectResult("Triggered");
-        }
-#else
-        [FunctionName("CalculateUsgsLevels")]
-        // Current schedule is to run once per minute
-        public static async Task CalculateUsgsLevels([TimerTrigger("0 */1 * * * *", RunOnStartup = false)]TimerInfo myTimer, ILogger log)
-        {
-            await ProjectFunctions.CalculateUsgsLevels();
-        }
-#endif
-#endif
-
 #if DEBUG
         [FunctionName("FetchUsgsReadings")]
         public static async Task<IActionResult> FetchUsgsReadings([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req, ILogger log)

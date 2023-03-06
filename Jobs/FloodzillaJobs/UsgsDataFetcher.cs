@@ -118,11 +118,10 @@ namespace FloodzillaJobs
                     sbDetails.AppendFormat("Device {0}, Location ID {1}: Fetched {2} USGS readings\r\n", device.DeviceId, device.LocationId, readingData.Readings.Count);
 
                     // Readings are in forward chronological order.  If we had a previous reading, the
-                    // first reading we receive should be the same.
+                    // first reading we receive should be the same, so we should skip it.
                     int firstReading = 0;
                     if (lastReadings != null && lastReadings.Count > 0)
                     {
-                        // Depending on how the timespan worked out, we might have gotten the reading we already have.
                         if (readingData.Readings[0].Timestamp == lastReadings[0].Timestamp)
                         {
                             firstReading = 1;
