@@ -264,7 +264,7 @@ namespace FloodzillaWeb.Controllers.Api
             }
         }
 
-        public async Task<IActionResult> GetMetagages(int regionId)
+        public IActionResult GetMetagages(int regionId)
         {
             List<MetagageInfo> ret = new List<MetagageInfo>();
             for (int i = 0; i < Metagages.MetagageIds.Length; i++)

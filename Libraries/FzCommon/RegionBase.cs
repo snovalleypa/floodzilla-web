@@ -31,6 +31,8 @@ namespace FzCommon
         public int? SensorOfflineThreshold { get; set; }
         public string? SlackNotifyUrl { get; set; }
 
+        public string? DefaultForecastGageList { get; set; }
+
         public bool IsActive { get; set; }
         public bool IsDeleted { get; set; }
         public bool IsPublic { get; set; }
@@ -145,7 +147,7 @@ namespace FzCommon
         private static string GetColumnList()
         {
             return "RegionId, OrganizationsId, RegionName, Address, Latitude, Longitude, WindowsTimeZone, IanaTimeZone, BaseURL, SmsFormatBaseURL, "
-                  +"IsActive, IsDeleted, IsPublic, NotifyList, SensorOfflineThreshold, SlackNotifyUrl";
+                  +"IsActive, IsDeleted, IsPublic, NotifyList, SensorOfflineThreshold, SlackNotifyUrl, DefaultForecastGageList";
         }
 
         private static RegionBase InstantiateFromReader(SqlDataReader reader)
@@ -168,6 +170,7 @@ namespace FzCommon
                 NotifyList = SqlHelper.Read<string>(reader, "NotifyList"),
                 SensorOfflineThreshold = SqlHelper.Read<int?>(reader, "SensorOfflineThreshold"),
                 SlackNotifyUrl = SqlHelper.Read<string>(reader, "SlackNotifyUrl"),
+                DefaultForecastGageList = SqlHelper.Read<string>(reader, "DefaultForecastGageList"),
             };
             return region;
         }
