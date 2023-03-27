@@ -28,7 +28,10 @@ namespace FloodzillaWeb
                     NamingStrategy = new CamelCaseNamingStrategy()
                 },
                 NullValueHandling = NullValueHandling.Ignore,
-                Converters = new List<JsonConverter> { new StringEnumConverter() { AllowIntegerValues = false }},
+                Converters = new List<JsonConverter> 
+                { 
+                    new StringEnumConverter() { AllowIntegerValues = false }, 
+                },
             };
 
         }
@@ -50,7 +53,7 @@ namespace FloodzillaWeb
                            .AllowAnyMethod();
                 });
             });
-            
+
             services.AddControllersWithViews().AddNewtonsoftJson();
 
             services.AddScoped<IdentityUser, ApplicationUser>();
@@ -138,7 +141,7 @@ namespace FloodzillaWeb
 
             app.UseDefaultFiles();
             app.UseStaticFiles();
-            
+
             app.UseRouting();
 
             app.UseCookiePolicy();

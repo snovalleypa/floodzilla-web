@@ -14,6 +14,7 @@ namespace FzCommon
     {
         //$ TODO: Support different regions
         //$ TODO: Generalize this if there's ever more than one.
+        public static readonly int MetagageRegion = 1;
         public static readonly string[] MetagageIds = {"USGS-SF17/USGS-NF10/USGS-MF11"};
         public static readonly string[] MetagageSiteIds = {"GARW1-SNQW1-TANW1"};
         public static readonly string[] MetagageNames = {"Sum of the 3 forks"};

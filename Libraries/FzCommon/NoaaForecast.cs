@@ -219,7 +219,7 @@ namespace FzCommon
             return null;
         }
 
-        public static async Task<NoaaForecast> GetLatestSavedForecast(SqlConnection sqlcn, string noaaSiteId)
+        public static async Task<NoaaForecast?> GetLatestSavedForecast(SqlConnection sqlcn, string noaaSiteId)
         {
             NoaaForecast forecast = null;
             using (SqlCommand cmd = new SqlCommand("GetLatestNoaaForecastForSite", sqlcn))
