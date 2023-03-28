@@ -50,37 +50,52 @@ namespace FloodzillaWeb.Controllers.Api
         }
     }
 
-    public class ApiV2Forecast
+    // This class is for the parallel-arrays version of the response.  It produces a JSON
+    // blob about half the size of the array-of-objects version.
+    public class ApiV2ForecastReadingSet
+    {
+        public DateTime[] Timestamps { get; }
+        public double?[]? WaterHeights { get; }
+        public double?[] Discharges { get; }
+        public ApiV2ForecastReadingSet(List<NoaaForecastItem> data, bool isMetagauge)
+        {
+            this.Timestamps = new DateTime[data.Count];
+            if (!isMetagauge)
+            {
+                this.WaterHeights = new double?[data.Count];
+            }
+            this.Discharges = new double?[data.Count];
+            for (int i = 0; i < data.Count; i++)
+            {
+                this.Timestamps[i] = new DateTime(data[i].Timestamp.Ticks, DateTimeKind.Utc);
+                if (!isMetagauge)
+                {
+                    this.WaterHeights[i] = data[i].Stage;
+                }
+                this.Discharges[i] = data[i].Discharge;
+            }
+        }
+    }
+    public class ApiV2Forecast : ApiV2ForecastReadingSet
     {
         public string NoaaSiteId { get; }
         public DateTime ForecastCreated { get; }
         public int ForecastId { get; }
-        public DateTime[] Timestamps { get; }
-        public double?[]? WaterHeights { get; }
-        public double?[] Discharges { get; }
-        public ApiV2Forecast(NoaaForecast noaaForecast, bool isMetagauge)
+        public ApiV2ForecastReadingSet Peaks { get; }
+        public ApiV2Forecast(NoaaForecast noaaForecast, bool isMetagauge) : base(noaaForecast.Data, isMetagauge)
         {
             this.NoaaSiteId = noaaForecast.NoaaSiteId;
             this.ForecastId = noaaForecast.ForecastId;
             this.ForecastCreated = new DateTime(noaaForecast.Created.Ticks, DateTimeKind.Utc);
-            this.Timestamps = new DateTime[noaaForecast.Data.Count];
-            if (!isMetagauge)
-            {
-                this.WaterHeights = new double?[noaaForecast.Data.Count];
-            }
-            this.Discharges = new double?[noaaForecast.Data.Count];
-            for (int i = 0; i < noaaForecast.Data.Count; i++)
-            {
-                this.Timestamps[i] = new DateTime(noaaForecast.Data[i].Timestamp.Ticks, DateTimeKind.Utc);
-                if (!isMetagauge)
-                {
-                    this.WaterHeights[i] = noaaForecast.Data[i].Stage;
-                }
-                this.Discharges[i] = noaaForecast.Data[i].Discharge;
-            }
+            this.Peaks = new ApiV2ForecastReadingSet(noaaForecast.Peaks, isMetagauge);
         }
     }
+    public class ApiV2ForecastResponse : Dictionary<string, ApiV2Forecast?>
+    {
+    }
 
+    // These versions of the above classes are for the array-of-objects format.  If it proves
+    // easier to consume this on the client, we can switch back
     public class ApiV2Forecast_DataPoint
     {
         public DateTime Timestamp;
@@ -93,29 +108,32 @@ namespace FloodzillaWeb.Controllers.Api
         public DateTime ForecastCreated { get; }
         public int ForecastId { get; }
         public ApiV2Forecast_DataPoint[] Data;
+        public ApiV2Forecast_DataPoint[] Peaks;
         public ApiV2ForecastExp(NoaaForecast noaaForecast, bool isMetagauge)
         {
             this.NoaaSiteId = noaaForecast.NoaaSiteId;
             this.ForecastId = noaaForecast.ForecastId;
             this.ForecastCreated = new DateTime(noaaForecast.Created.Ticks, DateTimeKind.Utc);
-            this.Data = new ApiV2Forecast_DataPoint[noaaForecast.Data.Count];
-            for (int i = 0; i < noaaForecast.Data.Count; i++)
+            this.Data = this.ConvertData(noaaForecast.Data, isMetagauge);
+            this.Peaks = this.ConvertData(noaaForecast.Peaks, isMetagauge);
+        }
+        private ApiV2Forecast_DataPoint[] ConvertData(List<NoaaForecastItem> data, bool isMetagauge)
+        {
+            ApiV2Forecast_DataPoint[] ret = new ApiV2Forecast_DataPoint[data.Count];
+            for (int i = 0; i < data.Count; i++)
             {
-                this.Data[i] = new ApiV2Forecast_DataPoint()
+                ret[i] = new ApiV2Forecast_DataPoint()
                 {
-                    Timestamp = new DateTime(noaaForecast.Data[i].Timestamp.Ticks, DateTimeKind.Utc),
-                    Discharge = noaaForecast.Data[i].Discharge,
+                    Timestamp = new DateTime(data[i].Timestamp.Ticks, DateTimeKind.Utc),
+                    Discharge = data[i].Discharge,
                 };
                 if (!isMetagauge)
                 {
-                    this.Data[i].WaterHeight = noaaForecast.Data[i].Stage;
+                    ret[i].WaterHeight = data[i].Stage;
                 }
             }
+            return ret;
         }
-    }
-
-    public class ApiV2ForecastResponse : Dictionary<string, ApiV2Forecast?>
-    {
     }
 
     public class ApiV2ForecastResponseExp : Dictionary<string, ApiV2ForecastExp?>
