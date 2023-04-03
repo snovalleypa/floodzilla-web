@@ -534,6 +534,48 @@ namespace FzCommon
             return ret;
         }
 
+        public static async Task<Dictionary<int, List<SensorReading>>>
+            GetMinimalReadingsForLocations(SqlConnection sqlcn,
+                                           List<int> locationIds,
+                                           DateTime utcFromDate,
+                                           DateTime utcToDate)
+        {
+            Dictionary<int, List<SensorReading>> ret = new();
+            string idList = String.Join(',', locationIds);
+            using (SqlCommand cmd = new SqlCommand("GetMinimalSensorReadingsForLocations", sqlcn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@idList", SqlDbType.VarChar, 200).Value = idList;
+                cmd.Parameters.Add("@fromTime", SqlDbType.DateTime).Value = utcFromDate;
+                cmd.Parameters.Add("@toTime", SqlDbType.DateTime).Value = utcToDate;
+                List<SensorReading> curList = new();
+                int curLocationId = -1;
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        SensorReading sr = InstantiateMinimalReadingFromReader(dr);
+                        if (!sr.LocationId.HasValue)
+                        {
+                            continue;
+                        }
+                        if (sr.LocationId.Value != curLocationId)
+                        {
+                            if (curLocationId != -1)
+                            {
+                                ret.Add(curLocationId, curList);
+                                curList = new();
+                            }
+                            curLocationId = sr.LocationId.Value;
+                        }
+                        curList.Add(sr);
+                    }
+                }
+                ret.Add(curLocationId, curList);
+            }
+            return ret;
+        }
+
         public static async Task<List<SensorReading>>
             GetReadingsForLocationOldestFirst(int locationId,
                                               int? readingCount,
