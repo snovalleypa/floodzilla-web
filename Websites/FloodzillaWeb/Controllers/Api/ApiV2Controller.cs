@@ -68,7 +68,7 @@ namespace FloodzillaWeb.Controllers.Api
             for (int i = 0; i < data.Count; i++)
             {
                 this.Timestamps[i] = new DateTime(data[i].Timestamp.Ticks, DateTimeKind.Utc);
-                if (!isMetagauge)
+                if (!isMetagauge && (this.WaterHeights != null))
                 {
                     this.WaterHeights[i] = data[i].Stage;
                 }
@@ -138,6 +138,80 @@ namespace FloodzillaWeb.Controllers.Api
 
     public class ApiV2ForecastResponseExp : Dictionary<string, ApiV2ForecastExp?>
     {
+    }
+
+    public class ApiV2ReadingSet
+    {
+        public double? TrendCfsPerHour { get; }
+        public double? TrendFeetPerHour { get; }
+        public int[]? ReadingIds { get; }
+        public DateTime[] Timestamps { get; }
+        public double?[]? WaterHeights { get; }
+        public double?[] Discharges { get; }
+        public ApiV2ReadingSet(List<SensorReading> readings, int prevMaxId)
+        {
+            bool hasIds = (readings[0].Id != 0);
+            bool hasWaterHeight = (readings[0].WaterHeightFeet.HasValue);
+            if (readings.Count >= Trends.DesiredReadingCount)
+            {
+                Trends dischargeTrends = TrendCalculator.CalculateDischargeTrends(readings);
+                this.TrendCfsPerHour = dischargeTrends.TrendValue;
+                if (hasWaterHeight)
+                {
+                    Trends waterTrends = TrendCalculator.CalculateWaterTrends(readings);
+                    this.TrendFeetPerHour = waterTrends.TrendValue;
+                }
+            }
+            int readingCount;
+            if (prevMaxId > 0 && hasIds)
+            {
+                readingCount = 0;
+                foreach (SensorReading reading in readings)
+                {
+                    if (reading.Id > prevMaxId)
+                    {
+                        readingCount++;
+                    }
+                }
+            }
+            else
+            {
+                readingCount = readings.Count;
+            }
+            if (hasIds)
+            {
+                this.ReadingIds = new int[readingCount];
+            }
+            this.Timestamps = new DateTime[readingCount];
+            this.Discharges = new double?[readingCount];
+            if (hasWaterHeight)
+            {
+                this.WaterHeights = new double?[readingCount];
+            }
+            for (int i = 0; i < readingCount; i++)
+            {
+                SensorReading reading = readings[i];
+                if (hasIds && (this.ReadingIds != null))
+                {
+                    this.ReadingIds[i] = reading.Id;
+                }
+                this.Timestamps[i] = new DateTime(reading.Timestamp.Ticks, DateTimeKind.Utc);
+                this.Discharges[i] = reading.WaterDischarge;
+                if (hasWaterHeight && (this.WaterHeights != null))
+                {
+                    this.WaterHeights[i] = reading.WaterHeightFeet;
+                }
+            }
+        }
+    }
+    public class ApiV2ReadingResponse
+    {
+        public Dictionary<string, ApiV2ReadingSet> Readings { get; set; }
+        public int MaxReadingId                             { get; set; }
+        public ApiV2ReadingResponse()
+        {
+            this.Readings = new();
+        }
     }
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -300,6 +374,115 @@ namespace FloodzillaWeb.Controllers.Api
                     else
                     {
                         result[gauge] = new ApiV2Forecast(forecast, false);
+                    }
+                }
+            }
+
+            // NOTE: Don't use JsonResult() here -- it will ignore default serializer settings.
+            // Also note: ContentResult treats its parameter as a literal, so it doesn't do extra
+            // quoting the way OkObjectResult does.
+            return new ContentResult() { Content = JsonConvert.SerializeObject(result), ContentType = "application/json" };
+        }
+
+        public async Task<IActionResult> GetRecentReadings(int regionId, string gaugeIds, int minutes, int prevMaxReadingId)
+        {
+            ApiV2ReadingResponse result = new();
+            using SqlConnection sqlcn = new(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+            sqlcn.Open();
+
+            List<SensorLocationBase> locations = await SensorLocationBase.GetLocationsForRegionAsync(sqlcn, regionId);
+            List<int> locationIds = new();
+
+            DateTime toDate = DateTime.UtcNow;
+            DateTime fromDate = toDate.AddMinutes(-minutes);
+            
+            foreach (string gauge in gaugeIds.Split(','))
+            {
+                if (gauge.Contains('/'))
+                {
+                    foreach (string subGauge in gauge.Split('/'))
+                    {
+                        SensorLocationBase? location = locations.Find(l => l.PublicLocationId == subGauge);
+                        if (location == null)
+                        {
+                            return NotFound(String.Format("Gauge '{0}' not found", subGauge));
+                        }
+                        locationIds.Add(location.Id);
+                    }
+                }
+                else
+                {
+                    SensorLocationBase? location = locations.Find(l => l.PublicLocationId == gauge);
+                    if (location == null)
+                    {
+                        return NotFound(String.Format("Gauge '{0}' not found", gauge));
+                    }
+                    locationIds.Add(location.Id);
+                }
+            }
+            Dictionary<int, List<SensorReading>> allReadings
+                    = await SensorReading.GetMinimalReadingsForLocations(sqlcn,
+                                                                         locationIds,
+                                                                         fromDate,
+                                                                         toDate);
+            result.MaxReadingId = prevMaxReadingId;
+            foreach (string gauge in gaugeIds.Split(','))
+            {
+                if (gauge.Contains('/'))
+                {
+                    List<Queue<SensorReading>> subReadings = new();
+                    foreach (string subGauge in gauge.Split('/'))
+                    {
+                        SensorLocationBase? location = locations.Find(l => l.PublicLocationId == subGauge);
+                        if (location == null || !allReadings.ContainsKey(location.Id))
+                        {
+                            return NotFound(String.Format("Gauge '{0}' not found", subGauge));
+                        }
+                        Queue<SensorReading> queue;
+                        List<SensorReading> readings = allReadings[location.Id];
+                        if (readings[0].Id > result.MaxReadingId)
+                        {
+                            result.MaxReadingId = readings[0].Id;
+                        }
+                        if (prevMaxReadingId == 0)
+                        {
+                            queue = new Queue<SensorReading>(readings);
+                        }
+                        else
+                        {
+                            queue = new Queue<SensorReading>();
+                            foreach (SensorReading reading in readings)
+                            {
+                                if (reading.Id < prevMaxReadingId)
+                                {
+                                    break;
+                                }
+                                queue.Enqueue(reading);
+                            }
+                        }
+                        subReadings.Add(queue);
+                    }
+                    List<SensorReading> summed = MetagageHelpers.SumReadings(subReadings);
+                    if (summed.Count > 0)
+                    {
+                        result.Readings.Add(gauge, new ApiV2ReadingSet(summed, prevMaxReadingId));
+                    }
+                }
+                else
+                {
+                    SensorLocationBase? location = locations.Find(l => l.PublicLocationId == gauge);
+                    if (location == null || !allReadings.ContainsKey(location.Id))
+                    {
+                        return NotFound(String.Format("Gauge '{0}' not found", gauge));
+                    }
+                    List<SensorReading> readings = allReadings[location.Id];
+                    if (readings[0].Id > prevMaxReadingId)
+                    {
+                        if (readings[0].Id > result.MaxReadingId)
+                        {
+                            result.MaxReadingId = readings[0].Id;
+                        }
+                        result.Readings.Add(gauge, new ApiV2ReadingSet(readings, prevMaxReadingId));
                     }
                 }
             }
