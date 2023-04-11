@@ -7,6 +7,9 @@
 # Config file that bootstraps our usage of Azure App Config
 appconfig.settings.json
 
+# Developer overrides for the above config file
+developer.settings.json
+
 # User-specific files
 *.rsuser
 *.suo

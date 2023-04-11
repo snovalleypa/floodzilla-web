@@ -34,23 +34,45 @@ namespace FloodzillaSms
             ILogger log)
         {
             Plivo.XML.Response response = new Plivo.XML.Response();
+            SqlConnection? sqlcn = null;
+            SmsLog? smsLog = null;
 
             string fromNumber = req.Form["From"];
             string toNumber = req.Form["To"];
             string text = req.Form["Text"];
 
+            // If the SQL connection and/or logging attempt fails, we don't want to fail the whole request.
+            try
+            {
+                sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                await sqlcn.OpenAsync();
+                smsLog = await SmsLog.Create(sqlcn,
+                                             DateTime.UtcNow,
+                                             Environment.MachineName,
+                                             "ReceiveSms",
+                                             fromNumber,
+                                             toNumber,
+                                             text);
+            }
+            catch
+            {
+                if (sqlcn != null)
+                {
+                    sqlcn.Close();
+                }
+                sqlcn = null;
+            }
+
             if (String.Compare(text, "STOP", true) == 0)
             {
-
                 try
                 {
                     bool unsubscribed = false;
-                    using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+                    if (sqlcn == null)
                     {
-                        await sqlcn.OpenAsync();
-                        unsubscribed = await UserBase.UnsubscribeSms(sqlcn, fromNumber);
-                        sqlcn.Close();
+                        throw new ApplicationException("Can't unsubscribe user -- no SQL connection");
                     }
+                    unsubscribed = await UserBase.UnsubscribeSms(sqlcn, fromNumber);
 
                     // If we didn't find a matching number to unsubscribe, don't send any messages
                     if (unsubscribed)
@@ -65,10 +87,31 @@ namespace FloodzillaSms
                             {"callbackMethod", "POST"}
                         });
                     }
+                    if (smsLog != null)
+                    {
+                        try
+                        {
+                            await smsLog.UpdateStatus(sqlcn, "Unsubscribed", null);
+                        }
+                        catch
+                        {
+                            // Just eat this exception
+                        }
+                    }
                 }
-                catch
+                catch (Exception e)
                 {
-                    //$ TODO: Log this?
+                    if (smsLog != null)
+                    {
+                        try
+                        {
+                            await smsLog.UpdateStatus(sqlcn, "Exception", e.Message);
+                        }
+                        catch
+                        {
+                            // Just eat this exception
+                        }
+                    }
                     response.AddMessage("There was an error processing your request. Contact floodzilla.support@svpa.us",
                                         new Dictionary<string, string>()
                     {
@@ -80,7 +123,25 @@ namespace FloodzillaSms
                     });
                 }
             }
+            else
+            {
+                if (smsLog != null)
+                {
+                    try
+                    {
+                        await smsLog.UpdateStatus(sqlcn, "Ignored", null);
+                    }
+                    catch
+                    {
+                        // Just eat this exception
+                    }
+                }
+            }
 
+            if (sqlcn != null)
+            {
+                sqlcn.Close();
+            }
             return new ContentResult() { Content = response.ToString(), ContentType = "application/xml" };
         }
     }
