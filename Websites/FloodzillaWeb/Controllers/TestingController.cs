@@ -1,11 +1,12 @@
-#define INITIALIZE_DATABASE
-#define CREATE_A_NEW_ROLE
+// #define INITIALIZE_DATABASE
+// #define CREATE_A_NEW_ROLE
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using System.Text;
 
 using FloodzillaWeb.Models;
@@ -19,6 +20,25 @@ namespace FloodzillaWeb.Controllers
     {
         public string? SmsTestNumber { get; set; }
         public int SmsTestForecastId { get; set; }
+    }
+
+    public class PushTestModel
+    {
+        public string? Email { get; set; }
+        public string? Title { get; set; }
+        public string? Subtitle { get; set; }
+        public string? Body { get; set; }
+        public string? Data { get; set; }
+    }
+
+    public class PushFullParamTestModel : TestPushNotificationRequest
+    {
+        // Nothing here for now...
+    }
+
+    public class PushCheckReceiptModel
+    {
+        public string TicketId { get; set; }
     }
 
     public class TestReading
@@ -176,6 +196,117 @@ namespace FloodzillaWeb.Controllers
             return View();
         }
 
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> PushTesting()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> PushTesting(PushTestModel model)
+        {
+            ViewBag.PushTestResult = "";
+            ViewBag.PushTestError = "";
+
+            using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+            try
+            {
+                await sqlcn.OpenAsync();
+                AspNetUserBase aspUser = await AspNetUserBase.GetAspNetUserForEmailAsync(sqlcn, model.Email);
+                if (aspUser == null)
+                {
+                    throw new ApplicationException("No user with email '" + model.Email + "'");
+                }
+                UserBase user = await UserBase.GetUserForAspNetUserAsync(sqlcn, aspUser.AspNetUserId);
+                if (user == null)
+                {
+                    throw new ApplicationException("No user with email '" + model.Email + "'");
+                }
+                List<UserDevicePushToken> udpts = await UserDevicePushToken.GetTokensForUser(sqlcn, user.Id);
+                if (udpts.Count < 1)
+                {
+                    throw new ApplicationException("User '" + model.Email + "' has no device push tokens");
+                }
+
+                List<string> tokens = new();
+                foreach (UserDevicePushToken udpt in udpts)
+                {
+                    tokens.Add(udpt.Token);
+                }
+
+                await PushNotificationManager.SendNotification(sqlcn, tokens, model.Title, model.Subtitle, model.Body, model.Data);
+                ViewBag.PushTestResult = "Sent message to " + String.Join(',', tokens);
+            }
+            catch (Exception e)
+            {
+                ViewBag.PushTestError = e.Message;
+            }
+            finally
+            {
+                await sqlcn.CloseAsync();
+            }
+
+            return View();
+        }
+        
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> PushFullParamTesting()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> PushFullParamTesting(PushFullParamTestModel model)
+        {
+            ViewBag.PushTestResult = "";
+            ViewBag.PushTestError = "";
+
+            try
+            {
+                PushNotificationClient client = new();
+                string result = await client.TestPushNotification((TestPushNotificationRequest)model);
+                ViewBag.PushTestResult = "Result: " + result;
+            }
+            catch (Exception e)
+            {
+                ViewBag.PushTestError = e.Message;
+            }
+            return View();
+        }
+        
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> PushCheckReceipt()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> PushCheckReceipt(PushCheckReceiptModel model)
+        {
+            ViewBag.CheckResult = "";
+            ViewBag.CheckError = "";
+
+            try
+            {
+                PushNotificationClient client = new();
+                List<string> ticketIds = new();
+                ticketIds.Add(model.TicketId);
+                PushNotificationReceiptResponse result = await client.GetPushReceipts(ticketIds);
+                ViewBag.CheckResult = "Result: " + JsonConvert.SerializeObject(result);
+            }
+            catch (Exception e)
+            {
+                ViewBag.CheckError = e.Message;
+            }
+            return View();
+        }
+        
         private async Task<List<TestGage>> GetTestGages()
         {
             List<DeviceBase> devices;

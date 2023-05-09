@@ -32,6 +32,11 @@ namespace FzCommon
                 }
                 else
                 {
+                    Type typeInfo = typeof(T);
+                    if (typeInfo.IsEnum)
+                    {
+                        return (T)Enum.ToObject(typeInfo, readData);
+                    }
                     try
                     {
                         return (T)Convert.ChangeType(readData, typeof(T));

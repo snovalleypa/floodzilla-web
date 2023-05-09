@@ -62,6 +62,26 @@ namespace FzCommon
             return ret;
         }
 
+        public static async Task<UserBase> GetUserForAspNetUserAsync(SqlConnection conn, string aspNetUserId)
+        {
+            SqlCommand cmd = new SqlCommand($"SELECT {GetColumnList()} FROM Users WHERE AspNetUserId = '{aspNetUserId}'", conn);
+            try
+            {
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        return InstantiateFromReader(reader);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorManager.ReportException(ErrorSeverity.Major, "UserBase.GetUserForAspNetUserAsync", ex);
+            }
+            return null;
+        }
+
         public static async Task<List<UserBase>> GetUsersForNotifyDailyForecasts(SqlConnection conn)
         {
             SqlCommand cmd = new SqlCommand("GetUsersForNotifyDailyForecasts", conn);

@@ -21,22 +21,6 @@ namespace FzCommon
             LogEntryType = "N/A";
         }
 
-        public static SmsLog InstantiateFromReader(SqlDataReader dr)
-        {
-            return new SmsLog()
-            {
-                Id = SqlHelper.Read<int>(dr, "Id"),
-                Timestamp = SqlHelper.Read<DateTime>(dr, "Timestamp"),
-                MachineName = SqlHelper.Read<string>(dr, "MachineName"),
-                LogEntryType = SqlHelper.Read<string>(dr, "LogEntryType"),
-                FromNumber = SqlHelper.Read<string?>(dr, "FromNumber"),
-                ToNumber = SqlHelper.Read<string?>(dr, "ToNumber"),
-                Text = SqlHelper.Read<string?>(dr, "Text"),
-                Result = SqlHelper.Read<string?>(dr, "Result"),
-                Details = SqlHelper.Read<string?>(dr, "Details"),
-            };
-        }
-
         public static async Task<SmsLog> Create(SqlConnection sqlcn,
                                                 DateTime timestamp,
                                                 string machineName,
@@ -81,6 +65,22 @@ namespace FzCommon
                 cmd.Parameters.AddWithValue("@Details", details);
             }
             await cmd.ExecuteNonQueryAsync();
+        }
+
+        private static SmsLog InstantiateFromReader(SqlDataReader dr)
+        {
+            return new SmsLog()
+            {
+                Id = SqlHelper.Read<int>(dr, "Id"),
+                Timestamp = SqlHelper.Read<DateTime>(dr, "Timestamp"),
+                MachineName = SqlHelper.Read<string>(dr, "MachineName"),
+                LogEntryType = SqlHelper.Read<string>(dr, "LogEntryType"),
+                FromNumber = SqlHelper.Read<string?>(dr, "FromNumber"),
+                ToNumber = SqlHelper.Read<string?>(dr, "ToNumber"),
+                Text = SqlHelper.Read<string?>(dr, "Text"),
+                Result = SqlHelper.Read<string?>(dr, "Result"),
+                Details = SqlHelper.Read<string?>(dr, "Details"),
+            };
         }
     }
 }

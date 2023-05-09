@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -376,10 +377,14 @@ namespace FloodzillaWeb.Controllers
         {
             try
             {
-                GoogleReCaptcha grc = GoogleReCaptcha.GetResponse(FzConfig.Config[FzConfig.Keys.GoogleInvisibleCaptchaSecretKey], model.CaptchaToken);
-                if (grc == null || !grc.Success)
+                //$ hack to allow development of mobile version while we work on figuring out captcha
+                if (model.CaptchaToken != "mobile login")
                 {
-                    return Unauthorized("Captcha not verified. Please try again.");
+                    GoogleReCaptcha grc = GoogleReCaptcha.GetResponse(FzConfig.Config[FzConfig.Keys.GoogleInvisibleCaptchaSecretKey], model.CaptchaToken);
+                    if (grc == null || !grc.Success)
+                    {
+                        return Unauthorized("Captcha not verified. Please try again.");
+                    }
                 }
 
                 var result = await _signInManager.PasswordSignInAsync(model.Username, model.Password, true, lockoutOnFailure: false);
@@ -387,8 +392,6 @@ namespace FloodzillaWeb.Controllers
                 {
                     return Unauthorized("The username or password was incorrect.");
                 }
-
-                //$
 
                 ApplicationUser user = await _userManager.FindByNameAsync(model.Username);
 
@@ -419,10 +422,14 @@ namespace FloodzillaWeb.Controllers
         {
             try
             {
-                GoogleReCaptcha grc = GoogleReCaptcha.GetResponse(FzConfig.Config[FzConfig.Keys.GoogleInvisibleCaptchaSecretKey], model.CaptchaToken);
-                if (grc == null || !grc.Success)
+                //$ hack to allow development of mobile version while we work on figuring out captcha
+                if (model.CaptchaToken != "mobile login")
                 {
-                    return Unauthorized("Captcha not verified. Please try again.");
+                    GoogleReCaptcha grc = GoogleReCaptcha.GetResponse(FzConfig.Config[FzConfig.Keys.GoogleInvisibleCaptchaSecretKey], model.CaptchaToken);
+                    if (grc == null || !grc.Success)
+                    {
+                        return Unauthorized("Captcha not verified. Please try again.");
+                    }
                 }
 
                 CreateUserResult cur = await this.CreateUserAsync(model.Username, model.Password, model.FirstName, model.LastName, model.Phone, false);
@@ -457,10 +464,14 @@ namespace FloodzillaWeb.Controllers
         {
             try
             {
-                GoogleReCaptcha grc = GoogleReCaptcha.GetResponse(FzConfig.Config[FzConfig.Keys.GoogleInvisibleCaptchaSecretKey], model.CaptchaToken);
-                if (grc == null || !grc.Success)
+                //$ hack to allow development of mobile version while we work on figuring out captcha
+                if (model.CaptchaToken != "mobile login")
                 {
-                    return Unauthorized("Captcha not verified. Please try again.");
+                    GoogleReCaptcha grc = GoogleReCaptcha.GetResponse(FzConfig.Config[FzConfig.Keys.GoogleInvisibleCaptchaSecretKey], model.CaptchaToken);
+                    if (grc == null || !grc.Success)
+                    {
+                        return Unauthorized("Captcha not verified. Please try again.");
+                    }
                 }
 
                 var user = await _userManager.FindByNameAsync(model.Email);
@@ -592,6 +603,61 @@ namespace FloodzillaWeb.Controllers
             }
         }
 
+        public class SetDevicePushTokenModel
+        {
+            public string? DeviceId { get; set; }
+            public string? Language { get; set; }
+            public string Token { get; set; }
+            public string Platform { get; set; }
+        }
+
+        [HttpPost]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> SetDevicePushToken([FromBody]SetDevicePushTokenModel model)
+        {
+            if (model == null)
+            {
+                return BadRequest("One or more parameters is invalid.");
+            }
+            try
+            {
+                ApplicationUser aspUser = await SecurityHelper.GetApplicationUser(User, _userManager);
+                if (aspUser != null)
+                {
+                    using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                    await sqlcn.OpenAsync();
+                    UserBase user = await UserBase.GetUserForAspNetUserAsync(sqlcn, aspUser.Id);
+                    try
+                    {
+                        await PushDeviceLog.Create(sqlcn,
+                                                   DateTime.Now,
+                                                   Environment.MachineName,
+                                                   PushDeviceLog.EntryType_Registered,
+                                                   model.Token,
+                                                   user.Id,
+                                                   model.Platform,
+                                                   model.Language,
+                                                   "Registered via API");
+                    }
+                    catch
+                    {
+                        // We can just eat this -- if we don't log it, we'll survive...
+                    }
+                    await UserDevicePushToken.EnsureToken(sqlcn, user.Id, model.Token, model.Platform, DateTime.UtcNow, model.Language, model.DeviceId);
+                    return Ok();
+                }
+                else
+                {
+                    return BadRequest("An error occurred while processing this request.");
+                }
+            }
+            catch
+            {
+                //$ TODO: Log this exception somewhere?
+                return BadRequest("An error occurred while processing this request.");
+            }
+        }
+        
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> SendVerificationEmail()
