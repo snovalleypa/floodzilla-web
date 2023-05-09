@@ -30,6 +30,26 @@ namespace FzCommon
             return null;
         }
 
+        public static async Task<AspNetUserBase> GetAspNetUserForEmailAsync(SqlConnection conn, string email)
+        {
+            SqlCommand cmd = new SqlCommand($"SELECT {GetColumnList()} FROM AspNetUsers WHERE Email = '{email}'", conn);
+            try
+            {
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        return InstantiateFromReader(reader);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorManager.ReportException(ErrorSeverity.Major, "AspNetUserBase.GetAspNetUserForEmailAsync", ex);
+            }
+            return null;
+        }
+
         private static string GetColumnList()
         {
             return "Id, Email, EmailConfirmed, PhoneNumber, PhoneNumberConfirmed";

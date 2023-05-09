@@ -28,6 +28,8 @@ namespace FzCommon
             public const string NwrfcForecastUrlFormat = "NwrfcForecastUrlFormat";
             public const string PlivoAuthId = "PlivoAuthId";
             public const string PlivoAuthToken = "PlivoAuthToken";
+            public const string PushNotificationServiceUrl = "PushNotificationServiceUrl";
+            public const string PushReceiptsServiceUrl = "PushReceiptsServiceUrl";
             public const string SendGridApiKey = "SendGridApiKey";
             public const string SiteUrl = "SiteUrl";
             public const string SlackUrlOverride = "SlackUrlOverride";
@@ -39,6 +41,7 @@ namespace FzCommon
             public const string SmsSendServiceUrl = "SmsSendServiceUrl";
             public const string SmsStopResponse = "SmsStopResponse";
             public const string SqlConnectionString = "SqlConnectionString";
+            public const string TestPushNotificationServiceUrl = "TestPushNotificationServiceUrl";
             public const string UploadsBlobContainer = "UploadsBlobContainer";
             public const string UseSendGridSandboxMode = "UseSendGridSandboxMode";
             public const string UsgsWaterServiceUrlFormat = "UsgsWaterServiceUrlFormat";

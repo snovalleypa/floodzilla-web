@@ -1,0 +1,12 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [RemoveUserDevicePushToken]
+    @Token varchar(4096)
+AS
+BEGIN
+  DELETE FROM UserDevicePushTokens
+    WHERE Token=@Token
+END
+GO
