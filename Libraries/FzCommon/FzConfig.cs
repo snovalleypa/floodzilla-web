@@ -12,6 +12,8 @@ namespace FzCommon
             public const string EmailSiteRoot = "EmailSiteRoot";
             public const string EmailFromAddress = "EmailFromAddress";
             public const string EmailToAddressOverride = "EmailToAddressOverride";
+            public const string ExpoPushRequestUrl = "ExpoPushRequestUrl";
+            public const string ExpoReceiptRequestUrl = "ExpoReceiptRequestUrl";
             public const string FacebookUserQueryEndpointFormat = "FacebookUserQueryEndpointFormat";
             public const string GoogleAuthClientID = "GoogleAuthClientID";
             public const string GoogleAuthTokenEndpoint = "GoogleAuthTokenEndpoint";

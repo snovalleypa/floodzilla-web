@@ -14,10 +14,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
-
 using FzCommon;
-using Expo.Server.Client;
-using Expo.Server.Models;
 
 [assembly: FunctionsStartup(typeof(FloodzillaSms.GetPushReceipts))]
 
@@ -55,11 +52,11 @@ namespace FloodzillaSms
                 body = sr.ReadToEnd();
             }
             List<string> ticketIds = JsonConvert.DeserializeObject<List<string>>(body);
-            PushApiClient pushClient = new();
+            ExpoPushClient pushClient = new();
 
-            PushReceiptRequest receiptReq = new()
+            ExpoReceiptRequest receiptReq = new()
             {
-                PushTicketIds = ticketIds,
+                TicketIds = ticketIds,
             };
 
             // If any of the logging-related stuff fails, we don't want to fail the overall send attempt.
@@ -86,9 +83,7 @@ namespace FloodzillaSms
 
             try
             {
-                // Note typo in response type name -- the library we're using hasn't published a new version with
-                // this fix yet...
-                PushResceiptResponse receiptResp = await pushClient.PushGetReceiptsAsync(receiptReq);
+                ExpoReceiptResponse receiptResp = await pushClient.SendGetReceiptsRequestAsync(receiptReq);
                 try
                 {
                     if (sqlcn != null)
@@ -105,7 +100,7 @@ namespace FloodzillaSms
                     // Just eat this exception.
                 }
 
-                if (receiptResp == null || (receiptResp.PushTicketReceipts == null && receiptResp.ErrorInformations == null))
+                if (receiptResp == null || (receiptResp.Receipts == null && receiptResp.Errors == null))
                 {
                     return new ObjectResult("An error occurred processing the response from the server.")
                     {
@@ -113,7 +108,7 @@ namespace FloodzillaSms
                     };
                 }
 
-                if (receiptResp.ErrorInformations != null || receiptResp.PushTicketReceipts == null)
+                if (receiptResp.Errors != null || receiptResp.Receipts == null)
                 {
                     // There are no examples of what this looks like, and I can't find a way to force
                     // a response here.  For now I'm just going to assume there's an error that affects
@@ -131,18 +126,18 @@ namespace FloodzillaSms
                     {
                         TicketId = ticketId,
                     };
-                    if (receiptResp.PushTicketReceipts.ContainsKey(ticketId))
+                    if (receiptResp.Receipts.ContainsKey(ticketId))
                     {
-                        PushTicketDeliveryStatus status = receiptResp.PushTicketReceipts[ticketId];
-                        if (status.DeliveryStatus.Equals("ok", StringComparison.InvariantCultureIgnoreCase))
+                        ExpoReceiptDetail status = receiptResp.Receipts[ticketId];
+                        if (status.Status.Equals("ok", StringComparison.InvariantCultureIgnoreCase))
                         {
                             receipt.Result = PushNotificationReceiptResult.Success;
                         }
-                        else if (status.DeliveryStatus.Equals("error", StringComparison.InvariantCultureIgnoreCase))
+                        else if (status.Status.Equals("error", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            receipt.Message = status.DeliveryMessage;
+                            receipt.Message = status.ErrorMessage;
                             // This isn't very nice.
-                            JObject jobj = (JObject)status.DeliveryDetails;
+                            JObject jobj = (JObject)status.ErrorDetails;
                             if (jobj == null || !jobj.HasValues)
                             {
                                 // Not sure what to do here....
@@ -212,7 +207,10 @@ namespace FloodzillaSms
                     // Just eat this exception.
                 }
 
-                //$ log this somewhere?
+                return new ObjectResult(e.Message)
+                {
+                    StatusCode = 500,
+                };
             }
 
             return new ObjectResult("An error occurred.")

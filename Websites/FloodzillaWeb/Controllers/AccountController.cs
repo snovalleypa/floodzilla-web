@@ -619,6 +619,10 @@ namespace FloodzillaWeb.Controllers
             {
                 return BadRequest("One or more parameters is invalid.");
             }
+            if (String.IsNullOrWhiteSpace(model.Token))
+            {
+                return BadRequest("Token is required.");
+            }
             try
             {
                 ApplicationUser aspUser = await SecurityHelper.GetApplicationUser(User, _userManager);

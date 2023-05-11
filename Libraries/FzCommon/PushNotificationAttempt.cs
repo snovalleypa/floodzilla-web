@@ -61,6 +61,7 @@ namespace FzCommon
         public async Task AttemptWasSent(SqlConnection sqlcn)
         {
             this.Status = PushNotificationAttemptStatus.Sent;
+            this.LastRetrySeconds = 0;
             this.SetNextActiveTime();
             await this.SaveAsync(sqlcn);
         }

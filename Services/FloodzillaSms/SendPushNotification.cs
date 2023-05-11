@@ -14,10 +14,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
-
 using FzCommon;
-using Expo.Server.Client;
-using Expo.Server.Models;
 
 [assembly: FunctionsStartup(typeof(FloodzillaSms.SendPushNotification))]
 
@@ -25,6 +22,8 @@ namespace FloodzillaSms
 {
     public class SendPushNotification : FunctionsStartup
     {
+        public const string SEND_PRIORITY = "high";
+
         public override void Configure(IFunctionsHostBuilder hostBuilder)
         {
             FzConfig.Initialize();
@@ -55,17 +54,17 @@ namespace FloodzillaSms
                 body = sr.ReadToEnd();
             }
             PushNotificationSendRequest sendRequest = PushNotificationSendRequest.Deserialize(body);
-            PushApiClient pushClient = new();
+            ExpoPushClient pushClient = new();
 
             //$ TODO: params
-            PushTicketRequest pushReq = new()
+            ExpoPushRequest pushReq = new()
             {
-                PushTo = sendRequest.Tokens,
-                PushTitle = sendRequest.Title,
-                PushSubTitle = sendRequest.Subtitle,
-                PushBody = sendRequest.Body,
-                PushData = sendRequest.Data,
-                PushBadgeCount = 33,
+                To = sendRequest.Tokens,
+                Title = sendRequest.Title,
+                Subtitle = sendRequest.Subtitle,
+                Body = sendRequest.Body,
+                Data = sendRequest.Data,
+                Priority = SEND_PRIORITY,
             };
 
             // If any of the logging-related stuff fails, we don't want to fail the overall send attempt.
@@ -96,7 +95,7 @@ namespace FloodzillaSms
 
             try
             {
-                PushTicketResponse pushResp = await pushClient.PushSendAsync(pushReq);
+                ExpoPushResponse pushResp = await pushClient.SendPushRequestAsync(pushReq);
                 try
                 {
                     if (sqlcn != null)
@@ -113,14 +112,14 @@ namespace FloodzillaSms
                     // Just eat this exception.
                 }
 
-                if (pushResp == null || pushResp.PushTicketStatuses == null)
+                if (pushResp == null || (pushResp.Statuses == null && pushResp.Errors == null))
                 {
                     return new ObjectResult("An error occurred processing the response from the server.")
                     {
                         StatusCode = 500,
                     };
                 }
-                if (pushResp.PushTicketErrors != null)
+                if (pushResp.Errors != null)
                 {
                     // There are no examples of what this looks like, and I can't find a way to force
                     // a response here.  For now I'm just going to assume there's an error that affects
@@ -133,7 +132,7 @@ namespace FloodzillaSms
 
                 // The PushTicketStatuses responses don't have the ticket, so I guess I just
                 // have to assume they're in the same order?
-                if (pushResp.PushTicketStatuses.Count != sendRequest.Tokens.Count)
+                if (pushResp.Statuses.Count != sendRequest.Tokens.Count)
                 {
                     // I'm leaving these vaguely-worded because it seems like bad practice to be too
                     // specific in error messages that might end up accidentally being user-visible
@@ -149,16 +148,16 @@ namespace FloodzillaSms
                     {
                         Token = sendRequest.Tokens[i],
                     };
-                    PushTicketStatus status = pushResp.PushTicketStatuses[i];
-                    if (status.TicketStatus.Equals("ok", StringComparison.InvariantCultureIgnoreCase))
+                    ExpoPushTicketResponse status = pushResp.Statuses[i];
+                    if (status.Status.Equals("ok", StringComparison.InvariantCultureIgnoreCase))
                     {
                         sr.Result = PushNotificationSendResult.Success;
                         sr.TicketId = status.TicketId;
                     }
-                    else if (status.TicketStatus.Equals("error", StringComparison.InvariantCultureIgnoreCase))
+                    else if (status.Status.Equals("error", StringComparison.InvariantCultureIgnoreCase))
                     {
                         // This isn't very nice.
-                        JObject jobj = (JObject)status.TicketDetails;
+                        JObject jobj = (JObject)status.ErrorDetails;
                         if (jobj == null || !jobj.HasValues)
                         {
                             // Not sure what to do here....
@@ -221,7 +220,10 @@ namespace FloodzillaSms
                     // Just eat this exception.
                 }
 
-                //$ log this somewhere?
+                return new ObjectResult(e.Message)
+                {
+                    StatusCode = 500,
+                };
             }
 
             return new ObjectResult("An error occurred.")
