@@ -5,7 +5,6 @@ namespace FzCommon
 {
     //$ TODO: consider a multiple-recipient model
 
-    // for now we re-use EmailModel as the content payload for these...
     public class PushNotificationSendRequest
     {
         public List<string> Tokens;

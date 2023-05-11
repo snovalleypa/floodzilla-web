@@ -7,16 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 using FzCommon;
-using Expo.Server.Client;
-using Expo.Server.Models;
 
 [assembly: FunctionsStartup(typeof(FloodzillaSms.TestPushNotification))]
 
@@ -54,37 +50,37 @@ namespace FloodzillaSms
                 body = sr.ReadToEnd();
             }
             TestPushNotificationRequest testRequest = TestPushNotificationRequest.Deserialize(body);
-            PushApiClient pushClient = new();
+            ExpoPushClient pushClient = new();
 
             //$ TODO: params
             List<string> tokens = new List<string>();
             tokens.Add(testRequest.Token);
-            PushTicketRequest pushReq = new()
+            ExpoPushRequest pushReq = new()
             {
-                PushTo = tokens,
-                PushData = testRequest.JsonData,
-                PushTitle = testRequest.Title,
-                PushBody = testRequest.TextBody,
-                PushTTL = testRequest.Ttl,
-                PushExpiration = testRequest.Expiration,
-                PushPriority = testRequest.Priority,
-                PushSubTitle = testRequest.SubTitle,
-                PushSound = testRequest.Sound,
-                PushBadgeCount = testRequest.BadgeCount,
-                PushChannelId = testRequest.ChannelId,
+                To = tokens,
+                Data = testRequest.JsonData,
+                Title = testRequest.Title,
+                Body = testRequest.TextBody,
+                Ttl = testRequest.Ttl,
+                Expiration = testRequest.Expiration,
+                Priority = testRequest.Priority,
+                Subtitle = testRequest.SubTitle,
+                Sound = testRequest.Sound,
+                BadgeCount = testRequest.BadgeCount,
+                ChannelId = testRequest.ChannelId,
             };
 
             try
             {
-                PushTicketResponse pushResp = await pushClient.PushSendAsync(pushReq);
-                if (pushResp == null || pushResp.PushTicketStatuses == null)
+                ExpoPushResponse pushResp = await pushClient.SendPushRequestAsync(pushReq);
+                if (pushResp == null || pushResp.Statuses == null)
                 {
                     return new ObjectResult("An error occurred processing the response from the server.")
                     {
                         StatusCode = 500,
                     };
                 }
-                if (pushResp.PushTicketErrors != null)
+                if (pushResp.Errors != null)
                 {
                     // There are no examples of what this looks like, and I can't find a way to force
                     // a response here.  For now I'm just going to assume there's an error that affects
@@ -97,7 +93,7 @@ namespace FloodzillaSms
 
                 // The PushTicketStatuses responses don't have the ticket, so I guess I just
                 // have to assume they're in the same order?
-                if (pushResp.PushTicketStatuses.Count != 1)
+                if (pushResp.Statuses.Count != 1)
                 {
                     // I'm leaving these vaguely-worded because it seems like bad practice to be too
                     // specific in error messages that might end up accidentally being user-visible
@@ -108,14 +104,14 @@ namespace FloodzillaSms
                 }
 
                 string response = "OK";
-                PushTicketStatus status = pushResp.PushTicketStatuses[0];
-                if (status.TicketStatus.Equals("ok", StringComparison.InvariantCultureIgnoreCase))
+                ExpoPushTicketResponse status = pushResp.Statuses[0];
+                if (status.Status.Equals("ok", StringComparison.InvariantCultureIgnoreCase))
                 {
                     response = String.Format("Sent successfully. Ticket = {0}", status.TicketId);
                 }
-                else if (status.TicketStatus.Equals("error", StringComparison.InvariantCultureIgnoreCase))
+                else if (status.Status.Equals("error", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    response = String.Format("Push ticket error: Error = {0}", JsonConvert.SerializeObject(status.TicketDetails));
+                    response = String.Format("Push ticket error: Error = {0}", JsonConvert.SerializeObject(status.ErrorDetails));
                 }
                 
                 return new ContentResult() { Content = JsonConvert.SerializeObject(response), ContentType = "application/json" };
