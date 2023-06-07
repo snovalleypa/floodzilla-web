@@ -49,7 +49,7 @@ namespace FzCommon
                         try
                         {
                             //$ TODO: Figure out if we care about the "from" address
-                            new EmailClient().SendEmail("SiteErrors@svpa.org", email, "Site Error", errorText, false);
+                            new EmailClient().SendEmail(sqlcn, "SiteErrors@svpa.org", email, "Site Error", errorText, false);
                         }
                         catch
                         {

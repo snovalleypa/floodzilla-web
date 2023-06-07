@@ -32,12 +32,15 @@ namespace FloodzillaMonitor
 
             //$ TODO: Do this for all regions
             List<UserBase> users = await UserBase.GetUsersForNotifyDailyForecasts(sqlcn);
-            await model.SendEmailToUserList(sqlcn,
-                                            FzConfig.Config[FzConfig.Keys.EmailFromAddress],
-                                            users,
-                                            false,
-                                            sbSummary,
-                                            sbDetails);
+            await m_notificationManager.NotifyUserList(sqlcn,
+                                                       model,
+                                                       FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                       users,
+                                                       true,
+                                                       false,
+                                                       false,
+                                                       sbSummary,
+                                                       sbDetails);
         }
     }
 }

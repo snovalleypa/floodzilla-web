@@ -191,8 +191,13 @@ namespace FloodzillaWeb.Controllers
                     LastName = userinfo.LastName,
                     CallbackUrl = callbackUrl,
                 };
-                await rpm.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], model.Email);
-
+                using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                await sqlcn.OpenAsync();
+                NotificationManager nm = new();
+                await nm.SendEmailModelToRecipientList(sqlcn,
+                                                       rpm,
+                                                       FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                       model.Email);
                 return View("ForgotPasswordConfirmation");
             }
 
@@ -496,7 +501,13 @@ namespace FloodzillaWeb.Controllers
                     LastName = userinfo.LastName,
                     CallbackUrl = callbackUrl,
                 };
-                await rpm.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], model.Email);
+                using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                await sqlcn.OpenAsync();
+                NotificationManager nm = new();
+                await nm.SendEmailModelToRecipientList(sqlcn,
+                                                       rpm,
+                                                       FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                       model.Email);
                 return Ok(new { success = true });
             }
             catch
@@ -685,7 +696,14 @@ namespace FloodzillaWeb.Controllers
                         LastName = userinfo.LastName,
                         CallbackUrl = callbackUrl,
                     };
-                    await vem.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], user.UserName);
+
+                    using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                    await sqlcn.OpenAsync();
+                    NotificationManager nm = new();
+                    await nm.SendEmailModelToRecipientList(sqlcn,
+                                                           vem,
+                                                           FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                           user.UserName);
                     return Ok(new { success = true });
                 }
                 return BadRequest("An error occurred while processing this request.");

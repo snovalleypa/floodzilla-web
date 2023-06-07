@@ -3,9 +3,19 @@ using System.Text;
 using System.Web;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 
 namespace FzCommon
 {
+    public class PushNotificationContents
+    {
+        public string? Title;
+        public string? Subtitle;
+        public string? Body;
+        public string? Path;
+    }
+
     public abstract class EmailModel
     {
         // Logic taken from Old Floodzilla.
@@ -33,12 +43,22 @@ namespace FzCommon
         public const string SubjectHeader = "x-email-subject";
 
         public abstract string GetSourcePath();
-        public abstract string Serialize();
+
+        public virtual string Serialize()
+        {
+            return JsonConvert.SerializeObject(this, modelSerializerSettings);
+        }
 
         // If the model supports a SMS version, it should return the text here.
         public virtual string? GetSmsText()
         {
             throw new ApplicationException("GetSmsText not supported");
+        }
+
+        // If the model supports a push notification version, it should return the details here.
+        public virtual PushNotificationContents? GetPushNotificationContents()
+        {
+            throw new ApplicationException("GetPushNotificationContents not supported");
         }
 
         public class EmailText
@@ -74,18 +94,13 @@ namespace FzCommon
             }
         }
 
-        public async Task SendEmail(string from, string recipientList)
+        protected static JsonSerializerSettings modelSerializerSettings = new()
         {
-            EmailText text = await this.GetEmailText();
-            using (EmailClient client = new EmailClient())
+            ContractResolver = new DefaultContractResolver
             {
-                foreach (string recipient in recipientList.Split(','))
-                {
-                    await client.SendEmailAsync(from, recipient, text.Subject, text.Body, true);
-                }
-            }
-        }
-
+                NamingStrategy = new DefaultNamingStrategy()
+            },
+        };
     }
 
     public class ResetPasswordEmailModel : EmailModel
@@ -93,10 +108,6 @@ namespace FzCommon
         public override string GetSourcePath()
         {
             return "/Email/ResetPassword";
-        }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
         }
         public static ResetPasswordEmailModel Deserialize(string body)
         {
@@ -114,10 +125,6 @@ namespace FzCommon
         {
             return "/Email/VerifyEmail";
         }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
-        }
         public static VerifyEmailEmailModel Deserialize(string body)
         {
             return JsonConvert.DeserializeObject<VerifyEmailEmailModel>(body);
@@ -133,10 +140,6 @@ namespace FzCommon
         public override string GetSourcePath()
         {
             throw new ApplicationException("Email delivery not supported for VerifyPhoneEmailModel");
-        }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
         }
         public static VerifyPhoneSmsEmailModel Deserialize(string body)
         {
@@ -157,10 +160,6 @@ namespace FzCommon
         {
             return "/Email/LocationDown";
         }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
-        }
         public static LocationDownEmailModel Deserialize(string body)
         {
             return JsonConvert.DeserializeObject<LocationDownEmailModel>(body);
@@ -176,10 +175,6 @@ namespace FzCommon
         public override string GetSourcePath()
         {
             return "/Email/LocationRecovered";
-        }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
         }
         public static LocationRecoveredEmailModel Deserialize(string body)
         {
@@ -197,10 +192,6 @@ namespace FzCommon
         public override string GetSourcePath()
         {
             return "/Email/DailyStatus";
-        }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
         }
         public static DailyStatusEmailModel Deserialize(string body)
         {
@@ -251,139 +242,6 @@ namespace FzCommon
             return String.Format("{0}user/unsubscribe?user={1}&email={2}", url, this.AspNetUser.AspNetUserId, HttpUtility.UrlEncode(this.AspNetUser.Email));
         }
 
-        public async Task SendEmailToUserList(SqlConnection sqlcn,
-                                              string from,
-                                              List<UserBase> users,
-                                              bool sendSms,
-                                              StringBuilder sbResult,
-                                              StringBuilder sbDetails)
-        {
-            int invalidCount = 0;
-            int unconfirmedEmailCount = 0;
-            int emailNotificationCount = 0;
-            int emailErrorCount = 0;
-            int unconfirmedPhoneCount = 0;
-            int smsNotificationCount = 0;
-            int smsErrorCount = 0;
-            SmsClient smsClient = new SmsClient();
-
-            foreach (UserBase user in users)
-            {
-                AspNetUserBase aspNetUser = AspNetUserBase.GetAspNetUser(sqlcn, user.AspNetUserId);
-                if (aspNetUser == null)
-                {
-                    invalidCount++;
-                    continue;
-                }
-                if (user.IsDeleted)
-                {
-                    // do we want to count this?
-                    continue;
-                }
-
-                this.User = user;
-                this.AspNetUser = aspNetUser;
-
-                if (user.NotifyViaEmail)
-                {
-                    if (!aspNetUser.EmailConfirmed)
-                    {
-                        unconfirmedEmailCount++;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            // NOTE: This will fetch a new copy of the HTML email text every time, which is
-                            // currently required because the email body will contain customized pieces like an
-                            // unsubscribe link.  It might be nice to separate those parts out so we don't have
-                            // to fully fetch the email text each time, but that would require a more complicated
-                            // system.
-                            await this.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], aspNetUser.Email);
-                            if (sbDetails != null)
-                            {
-                                sbDetails.AppendFormat("Email sent to {0}\n", aspNetUser.Email);
-                            }
-                            emailNotificationCount++;
-                        }
-                        catch (Exception ex)
-                        {
-                            ErrorManager.ReportException(ErrorSeverity.Major, "EmailClient.SendEmailToUserList", ex);
-                            if (sbDetails != null)
-                            {
-                                sbDetails.AppendFormat("Email ERROR to {0}: {1}\n", aspNetUser.Email, ex.Message);
-                            }
-                            emailErrorCount++;
-                        }
-                    }
-                }
-                
-                if (sendSms)
-                {
-                    if (user.NotifyViaSms)
-                    {
-                        if (!aspNetUser.PhoneNumberConfirmed)
-                        {
-                            unconfirmedPhoneCount++;
-                        }
-                        else
-                        {
-                            try
-                            {
-                                SmsSendResult smsResult = await smsClient.SendSms(aspNetUser.PhoneNumber, aspNetUser.Email, this);
-                                switch (smsResult)
-                                {
-                                    case SmsSendResult.Success:
-                                        smsNotificationCount++;
-                                        if (sbDetails != null)
-                                        {
-                                            sbDetails.AppendFormat("SMS sent to {0}: {1}\n", aspNetUser.Email, smsResult);
-                                        }
-                                        break;
-
-                                    case SmsSendResult.NotSending:
-                                        // No message to send; just ignore this.
-                                        break;
-
-                                    case SmsSendResult.InvalidNumber:
-                                    case SmsSendResult.Failure:
-                                        if (sbDetails != null)
-                                        {
-                                            sbDetails.AppendFormat("SMS ERROR to {0}: {1}\n", aspNetUser.Email, smsResult);
-                                        }
-                                        smsErrorCount++;
-                                        break;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                ErrorManager.ReportException(ErrorSeverity.Major, "EmailClient.SendEmailToUserList", ex);
-                                if (sbDetails != null)
-                                {
-                                    sbDetails.AppendFormat("SMS ERROR to {0}: {1}\n", aspNetUser.Email, ex.Message);
-                                }
-                                smsErrorCount++;
-                            }
-                        }
-                    }
-                }
-            }
-                
-
-            if (sbResult != null)
-            {
-                sbResult.AppendFormat("Processed: {0} subscriptions: {1} notified by email, {2} notified by SMS, {3} email errors, {4} SMS errors, {5} invalid users, {6} email unconfirmed, {7} phone unconfirmed",
-                                      users.Count,
-                                      emailNotificationCount,
-                                      smsNotificationCount,
-                                      emailErrorCount,
-                                      smsErrorCount,
-                                      invalidCount,
-                                      unconfirmedEmailCount,
-                                      unconfirmedPhoneCount);
-            }
-        }
-
         public RegionBase Region { get; set; }
         public UserBase User { get; set; }
         public AspNetUserBase AspNetUser { get; set; }
@@ -397,11 +255,6 @@ namespace FzCommon
         public override string GetSourcePath()
         {
             throw new ApplicationException("GageEventEmailModels must implement GetSourcePath()");
-        }
-
-        public override string Serialize()
-        {
-            throw new ApplicationException("GageEventEmailModels must implement Serialize()");
         }
 
         protected string RenderFeet(double val)
@@ -427,10 +280,6 @@ namespace FzCommon
         public override string GetSourcePath()
         {
             return "/Email/GageThresholdEvent";
-        }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
         }
         public static GageThresholdEventEmailModel Deserialize(string body)
         {
@@ -461,8 +310,17 @@ namespace FzCommon
             return ret;
         }
 
-        public override string? GetSmsText()
+        internal class EventNotificationInfo
         {
+            internal string GageStatusText;
+            internal string RoadStatusText;
+            internal string GageRateText;
+            internal string GageLink;
+        }
+
+        private EventNotificationInfo GetNotificationInfo()
+        {
+            EventNotificationInfo eni = new();
             string locName = this.Location.ShortName;
             if (String.IsNullOrEmpty(locName))
             {
@@ -493,25 +351,48 @@ namespace FzCommon
                     status = "Online";
                     break;
             }
-            string line1 = status + ": " + this.Location.PublicLocationId + " " + locName + " - Gage Status Changed\n";
-            string line2 = GetLevelAndRoadDelta() + " @ " + RenderTimeDate(this.GageEvent.EventTime) + ".\n";
-            string line3 = "";
+            eni.GageStatusText = status + ": " + locName;
+            eni.RoadStatusText = GetLevelAndRoadDelta() + " @ " + RenderTimeDate(this.GageEvent.EventTime) + ".";
+            eni.GageRateText = "";
             if (detail.Trends != null && detail.Trends.TrendValue.HasValue)
             {
                 double trend = detail.Trends.TrendValue.Value;
-                line3 = (trend > 0) ? "+" : "-";
-                line3 += String.Format("{0:0.0} ft/hr.", Math.Abs(trend));
+                eni.GageRateText = (trend > 0) ? "+" : "-";
+                eni.GageRateText += String.Format("{0:0.0} ft/hr.", Math.Abs(trend));
                 if (detail.RoadCrossing.HasValue)
                 {
-                    line3 += " Road level @ " + RenderTime(detail.RoadCrossing.Value) + ".";
+                    eni.GageRateText += " Road level @ " + RenderTime(detail.RoadCrossing.Value) + ".";
                 }
-                line3 += "\n";
             }
-            string line4 = "floodzilla.com/gage/" + this.Location.PublicLocationId + "\n";
-            string line5 = "STOP to opt out.\n";
-            return line1 + line2 + line3 + line4 + line5;
+            eni.GageLink = "/gage/" + this.Location.PublicLocationId;
+            return eni;
         }
 
+        public override string? GetSmsText()
+        {
+            EventNotificationInfo eni = this.GetNotificationInfo();
+            string ret = eni.GageStatusText + "\n" + eni.RoadStatusText + "\n";
+            if (!String.IsNullOrWhiteSpace(eni.GageRateText))
+            {
+                ret += eni.GageRateText + "\n";
+            }
+            ret += String.Format("{0}{1}\n", this.Region.SmsFormatBaseURL, eni.GageLink);
+            return ret;
+        }
+
+        public override PushNotificationContents? GetPushNotificationContents()
+        {
+            EventNotificationInfo eni = this.GetNotificationInfo();
+            PushNotificationContents pnc = new();
+            pnc.Title = eni.GageStatusText;
+            pnc.Body = eni.RoadStatusText;
+            if (!String.IsNullOrWhiteSpace(eni.GageRateText))
+            {
+                pnc.Body += "\n" + eni.GageRateText;
+            }
+            pnc.Path = eni.GageLink;
+            return pnc;
+        }
     }
 
     public class GageOnlineStatusEventEmailModel : GageEventEmailModel
@@ -520,34 +401,54 @@ namespace FzCommon
         {
             return "/Email/GageOnlineStatusEvent";
         }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
-        }
         public static GageOnlineStatusEventEmailModel Deserialize(string body)
         {
             return JsonConvert.DeserializeObject<GageOnlineStatusEventEmailModel>(body);
         }
 
-        public override string? GetSmsText()
+        internal class EventNotificationInfo
         {
+            internal string Text;
+            internal string Link;
+        }
+
+        private EventNotificationInfo GetNotificationInfo()
+        {
+            EventNotificationInfo eni = new();
             string locName = this.Location.ShortName;
             if (String.IsNullOrEmpty(locName))
             {
                 locName = this.Location.LocationName;
             }
-            string line1 = this.Location.PublicLocationId + " " + locName + " - ";
-            if (this.GageEvent.EventType == GageEventTypes.MarkedOffline)
+            eni.Text = locName + " - ";
+            switch (this.GageEvent.EventType)
             {
-                line1 += "Offline for Maintenance\n";
+                case GageEventTypes.MarkedOffline:
+                    eni.Text += "Offline for Maintenance";
+                    break;
+                case GageEventTypes.MarkedOnline:
+                    eni.Text += "Online";
+                    break;
             }
-            else if (this.GageEvent.EventType == GageEventTypes.MarkedOnline)
-            {
-                line1 += "Online\n";
-            }
-            string line2 = "floodzilla.com/gage/" + this.Location.PublicLocationId + "\n";
-            string line3 = "STOP to opt out.\n";
-            return line1 + line2 + line3;
+            eni.Link = "/gage/" + this.Location.PublicLocationId;
+            return eni;
+        }
+
+        public override string? GetSmsText()
+        {
+            EventNotificationInfo eni = this.GetNotificationInfo();
+            string line1 = eni.Text + "\n";
+            string line2 = String.Format("{0}{1}\n", this.Region.SmsFormatBaseURL, eni.Link);
+            return line1 + line2;
+        }
+
+        public override PushNotificationContents? GetPushNotificationContents()
+        {
+            EventNotificationInfo eni = this.GetNotificationInfo();
+            PushNotificationContents pnc = new();
+            pnc.Title = eni.Text;
+            pnc.Path = eni.Link;
+            return pnc;
         }
     }
 
@@ -560,10 +461,6 @@ namespace FzCommon
         public override string GetSourcePath()
         {
             return "/Email/Forecast";
-        }
-        public override string Serialize()
-        {
-            return JsonConvert.SerializeObject(this);
         }
         public static ForecastEmailModel Deserialize(string body)
         {
@@ -593,44 +490,89 @@ namespace FzCommon
             return false;
         }
 
-        // https://trello.com/c/kKgRQNeQ/188-flood-forecast-sms gives the format we're looking for here.
-        public string? GetShortText(bool slackFormat)
+        internal class EventNotificationInfo
         {
+            internal string? Headline;
+            internal List<string>? Details;
+        }
+
+        private EventNotificationInfo GetNotificationInfo()
+        {
+            EventNotificationInfo eni = new();
             if (!this.HasFlooding)
             {
                 if (this.OldForecastHadFlooding)
                 {
                     // If we had a flood last time around but don't any more, send an all-clear.
-                    return "Flooding no longer predicted.";
+                    eni.Headline = "Flooding no longer predicted.";
                 }
                 else
                 {
                     // Otherwise, there's no flooding in this forecast, so don't send anything.
-                    return null;
+                    eni.Headline = null;
                 }
+                return eni;
             }
-            
-            string message = "Flooding predicted:\n";
+
+            eni.Headline = "Flooding predicted";
+            eni.Details = new();
             foreach (ForecastEmailModel.ModelGageData mgd in this.GageForecasts)
             {
                 foreach (NoaaForecastItem peak in mgd.Forecast.Peaks)
                 {
                     if (peak.Discharge >= mgd.WarningCfsLevel)
                     {
-                        message += String.Format("{0}: {1} {2:0}\n",
-                                                 mgd.GageShortName,
-                                                 EmailModel.FormatSmartDate(this.Region, peak.Timestamp),
-                                                 peak.Discharge);
+                        eni.Details.Add(String.Format("{0}: {1} {2:0}",
+                                                      mgd.GageShortName,
+                                                      EmailModel.FormatSmartDate(this.Region, peak.Timestamp),
+                                                      peak.Discharge));
                     }
                 }
             }
-            message += String.Format("{0}/forecast", this.Region.SmsFormatBaseURL);
+            return eni;
+        }
+
+        // https://trello.com/c/kKgRQNeQ/188-flood-forecast-sms gives the format we're looking for here.
+        // NOTE: slackFormat is currently unused, but it might come in handy...
+        public string? GetShortText(bool slackFormat)
+        {
+            EventNotificationInfo eni = this.GetNotificationInfo();
+            if (String.IsNullOrEmpty(eni.Headline))
+            {
+                return null;
+            }
+            string message = eni.Headline + "\n";
+            if (eni.Details != null && eni.Details.Count > 0)
+            {
+                foreach (string d in eni.Details)
+                {
+                    message += d + "\n";
+                }
+            }
+            message += String.Format("{0}/forecast\n", this.Region.SmsFormatBaseURL);
             return message;
         }
         
         public override string? GetSmsText()
         {
             return this.GetShortText(false);
+        }
+
+        public override PushNotificationContents? GetPushNotificationContents()
+        {
+            EventNotificationInfo eni = this.GetNotificationInfo();
+            if (String.IsNullOrEmpty(eni.Headline))
+            {
+                return null;
+            }
+            PushNotificationContents pnc = new();
+            pnc.Title = eni.Headline;
+            if (eni.Details != null && eni.Details.Count > 0)
+            {
+                pnc.Body = String.Join("\n", eni.Details);
+            }
+            pnc.Path = "/forecast";
+            return pnc;
         }
         
         public class ModelGageData

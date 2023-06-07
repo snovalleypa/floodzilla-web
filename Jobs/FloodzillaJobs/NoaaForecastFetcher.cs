@@ -122,7 +122,12 @@ namespace FloodzillaJobs
 
         protected override async Task RunJob(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
         {
-            await NoaaForecastProcessor.ProcessNewForecasts(sqlcn, this.m_newForecasts, this.m_previousForecasts, sbDetails, sbSummary);
+            await NoaaForecastProcessor.ProcessNewForecasts(sqlcn,
+                                                            this.m_notificationManager,
+                                                            this.m_newForecasts,
+                                                            this.m_previousForecasts,
+                                                            sbDetails,
+                                                            sbSummary);
         }
 
         private NoaaForecastSet m_previousForecasts;

@@ -1,9 +1,15 @@
+using Microsoft.Extensions.DependencyInjection;
+
 var builder = WebApplication.CreateBuilder(args);
 var startup = new FloodzillaWeb.Startup(builder.Configuration);
 startup.ConfigureServices(builder.Services);
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+IMvcBuilder mvcBuilder = builder.Services.AddRazorPages();
+if (builder.Environment.IsDevelopment())
+{
+    mvcBuilder.AddRazorRuntimeCompilation();
+}
 
 var app = builder.Build();
 

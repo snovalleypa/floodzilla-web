@@ -42,6 +42,16 @@ namespace FzCommon
             {
                 return SmsSendResult.NotSending;
             }
+            return await SendRawSmsText(phone, email, smsText);
+        }
+
+        // email is only used for testing...
+        public async Task<SmsSendResult> SendRawSmsText(string phone, string email, string smsText)
+        {
+            if (String.IsNullOrEmpty(smsText))
+            {
+                return SmsSendResult.NotSending;
+            }
             SmsSendRequest req = new SmsSendRequest()
             {
                 Phone = phone,
