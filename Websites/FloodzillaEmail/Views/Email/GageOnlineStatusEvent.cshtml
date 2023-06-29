@@ -24,19 +24,19 @@
     }
 </style>
 
-<div class="title">Gage: <a href="https://floodzilla.com/gage/@Model.Location.PublicLocationId">@Model.Location.PublicLocationId @Model.Location.LocationName</a></div>
+<div class="title">Gauge: <a href="https://floodzilla.com/gage/@Model.Location.PublicLocationId">@Model.Location.PublicLocationId @Model.Location.LocationName</a></div>
 
 @if (Model.GageEvent.EventType == GageEventTypes.MarkedOffline) {
-  <div class="section-head">Gage Offline for Maintenance</div>
-  <div class="section-line">This gage has been taken offline for maintenance.  You will be notified when the gage is brought back online.</div>
+  <div class="section-head">Gauge Offline for Maintenance</div>
+  <div class="section-line">This gauge has been taken offline for maintenance.  You will be notified when the gauge is brought back online.</div>
 } else {
-  <div class="section-head">Gage Online</div>
-  <div class="section-line">This gage has been brought back online.  You will be alerted about water status changes.</div>
+  <div class="section-head">Gauge Online</div>
+  <div class="section-line">This gauge has been brought back online.  You will be alerted about water status changes.</div>
 }
 
 <div class="sig">
 <div class="sig-line">-- </div>
-<div class="sig-line">Floodzilla Gage Network - <a href="https://floodzilla.com">https://floodzilla.com</a></div>
+<div class="sig-line">Floodzilla Gauge Network - <a href="https://floodzilla.com">https://floodzilla.com</a></div>
 <div class="sig-line">We sent this email to @Model.AspNetUser.Email: <a href="@Model.GetUnsubscribeLink()">unsubscribe</a></div>
 <div class="sig-line">Snoqualmie Valley Preservation Alliance (SVPA)</div>
 <div class="sig-line">4621 Tolt Avenue, Carnation, WA 98014</div>

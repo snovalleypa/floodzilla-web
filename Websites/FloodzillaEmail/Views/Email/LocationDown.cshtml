@@ -10,8 +10,8 @@
     }
 </style>
 
-  <h2>GAGE OFFLINE: @Model.Location.PublicLocationId - @Model.Location.LocationName </h2>
+  <h2>GAUGE OFFLINE: @Model.Location.PublicLocationId - @Model.Location.LocationName </h2>
 
-  <br /><a href="@EmailHelpers.GetGageLink(Model.Region, Model.Location)">View Gage</a> | <a href="@EmailHelpers.GetGageAdminLink(Model.Region, Model.Location)">View Gage Admin</a>
+  <br /><a href="@EmailHelpers.GetGageLink(Model.Region, Model.Location)">View Gauge</a> | <a href="@EmailHelpers.GetGageAdminLink(Model.Region, Model.Location)">View Gauge Admin</a>
   <br />
   Last Reading: @EmailHelpers.RenderTimestamp(Model.Region, Model.LastReading.Timestamp)<br />
