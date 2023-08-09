@@ -101,7 +101,10 @@ namespace FloodzillaMonitor
                 model.LatestStatistics.Add(lstat);
             }
 
-            await model.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], region.NotifyList);
+            await m_notificationManager.SendEmailModelToRecipientList(sqlcn, 
+                                                                      model,
+                                                                      FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                                      region.NotifyList);
             sbSummary.AppendFormat("Sent daily status email about {0} locations to {1}", model.Statuses.Count, region.NotifyList);
         }
     }

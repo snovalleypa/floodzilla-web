@@ -1,6 +1,7 @@
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace FzCommon
 {
@@ -39,13 +40,23 @@ namespace FzCommon
         public DateTime? NotifierProcessedTime  { get; set; }
         public string NotificationResult        { get; set; }
 
+        // Use a more liberal parser for these -- depending on how/where they got serialized,
+        // the enum values may be ints instead of strings...
+        private static JsonSerializerSettings DeserializeSettings = new JsonSerializerSettings()
+        {
+            Converters = new List<JsonConverter>
+            {
+                new StringEnumConverter() { AllowIntegerValues = true },
+            },
+        };
+
         public GageThresholdEventDetails GageThresholdEventDetails
         {
             get
             {
                 try
                 {
-                    return JsonConvert.DeserializeObject<GageThresholdEventDetails>(this.EventDetails);
+                    return JsonConvert.DeserializeObject<GageThresholdEventDetails>(this.EventDetails, DeserializeSettings);
                 }
                 catch
                 {
@@ -94,6 +105,23 @@ namespace FzCommon
                 }
             }
             return ret;
+        }
+
+        public static async Task<GageEvent> LoadAsync(SqlConnection sqlcn, int id)
+        {
+            using (SqlCommand cmd = new SqlCommand("GetGageEvent", sqlcn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@EventId", SqlDbType.Int).Value = id;
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    if (await dr.ReadAsync())
+                    {
+                        return InstantiateFromReader(dr);
+                    }
+                }
+            }
+            return null;
         }
 
         public async Task Save(SqlConnection sqlcn)

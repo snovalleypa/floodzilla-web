@@ -37,6 +37,7 @@ namespace FloodzillaJobs
             List<SensorLocationBase> locations = await SensorLocationBase.GetLocationsAsync(sqlcn);
 
             List<GageEvent> newEvents = await GageEvent.GetUnprocessedEvents(sqlcn);
+  
             SmsClient client = new SmsClient();
             foreach (GageEvent evt in newEvents)
             {
@@ -87,12 +88,15 @@ namespace FloodzillaJobs
                         UserBase user = UserBase.GetUser(sqlcn, sub.UserId);
                         users.Add(user);
                     }
-                    await model.SendEmailToUserList(sqlcn,
-                                                    FzConfig.Config[FzConfig.Keys.EmailFromAddress],
-                                                    users,
-                                                    true,
-                                                    sbEmailResult,
-                                                    sbDetails);
+                    await m_notificationManager.NotifyUserList(sqlcn,
+                                                               model,
+                                                               FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                               users,
+                                                               true,
+                                                               true,
+                                                               true,
+                                                               sbEmailResult,
+                                                               sbDetails);
                 }
                 evt.NotifierProcessedTime = DateTime.UtcNow;
                 evt.NotificationResult = sbEmailResult.ToString();

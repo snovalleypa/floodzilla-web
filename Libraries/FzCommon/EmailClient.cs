@@ -1,10 +1,14 @@
 using System.Net;
 using System.Net.Mail;
+using Microsoft.Data.SqlClient;
+
 using SendGrid;
 using SendGrid.Helpers.Mail;
 
 namespace FzCommon
 {
+    //$ TODO: Consider offloading the SendGrid stuff into a separate service the way
+    //$ we do for the SMS and Push notification clients.
     public class EmailClient : IDisposable
     {
         public EmailClient()
@@ -15,45 +19,14 @@ namespace FzCommon
             m_smtpClient = this.CreateSmtpClient();
 #endif
         }
-        
-        public void SendEmail(string from, string recipient, string subject, string body, bool bodyIsHtml)
+
+        public void SendEmail(SqlConnection sqlcn, string from, string recipient, string subject, string body, bool bodyIsHtml)
         {
-            SendGridMessage msg = new SendGridMessage()
-            {
-                From = new EmailAddress(from),
-                Subject = subject
-            };
-#if DEBUG
-            msg.SetSandBoxMode(FzConfig.Config[FzConfig.Keys.UseSendGridSandboxMode].Equals("true", StringComparison.InvariantCultureIgnoreCase));
-            string toOverride = FzConfig.Config[FzConfig.Keys.EmailToAddressOverride];
-            if (!String.IsNullOrEmpty(toOverride))
-            {
-                if (toOverride == "none")
-                {
-                    return;
-                }
-                recipient = toOverride;
-            }
-#endif
-            msg.AddTo(recipient);
-            if (bodyIsHtml)
-            {
-                msg.HtmlContent = body;
-            }
-            else
-            {
-                msg.PlainTextContent = body;
-            }
-            Task task = m_sgClient.SendEmailAsync(msg);
+            Task task = this.SendEmailAsync(sqlcn, from, recipient, subject, body, bodyIsHtml);
             task.Wait();
-
-#if DEBUG
-            // Note that 'recipient' is already overidden from above...
-            this.SendSmtpEmail(from, recipient, subject, body, bodyIsHtml);
-#endif
         }
-
-        public async Task SendEmailAsync(string from, string recipient, string subject, string body, bool bodyIsHtml)
+        
+        public async Task SendEmailAsync(SqlConnection sqlcn, string from, string recipient, string subject, string body, bool bodyIsHtml)
         {
             SendGridMessage msg = new SendGridMessage()
             {
@@ -72,6 +45,25 @@ namespace FzCommon
                 recipient = toOverride;
             }
 #endif
+            // If any of the logging-related stuff fails, we don't want to fail the overall send attempt.
+            EmailLog? emailLog = null;
+            try
+            {
+                emailLog = await EmailLog.Create(sqlcn,
+                                                 DateTime.UtcNow,
+                                                 Environment.MachineName,
+                                                 from,
+                                                 recipient,
+                                                 subject,
+                                                 body,
+                                                 bodyIsHtml);
+
+            }
+            catch
+            {
+                // Nothing here.
+            }
+
             msg.AddTo(recipient);
             if (bodyIsHtml)
             {
@@ -81,7 +73,43 @@ namespace FzCommon
             {
                 msg.PlainTextContent = body;
             }
-            await m_sgClient.SendEmailAsync(msg);
+            try
+            {
+                Response rsp = await m_sgClient.SendEmailAsync(msg);
+                if (!rsp.IsSuccessStatusCode)
+                {
+                    throw new ApplicationException(String.Format("Unexpected response {0} sending mail: {1}", rsp.StatusCode, await rsp.Body.ReadAsStringAsync()));
+                }
+
+                try
+                {
+                    if (emailLog != null)
+                    {
+                        await emailLog.UpdateStatus(sqlcn, "Success", null);
+                    }
+                }
+                catch
+                {
+                    // Nothing here.
+                }
+            }
+            catch (Exception e)
+            {
+                try
+                {
+                    if (emailLog != null)
+                    {
+                        await emailLog.UpdateStatus(sqlcn, "Exception", e.Message);
+                    }
+                }
+                catch
+                {
+                    // Nothing here.
+                }
+
+                // Rethrow the original exception
+                throw;
+            }
 
 #if DEBUG
             // Note that 'recipient' is already overidden from above...

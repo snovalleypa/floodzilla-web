@@ -55,7 +55,9 @@ namespace FloodzillaSms
                     return new BadRequestResult();
                 }
 
-                await SendTestEmail(smsSendRequest);
+                using SqlConnection testSqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                await testSqlcn.OpenAsync();
+                await SendTestEmail(testSqlcn, smsSendRequest);
                 return new OkObjectResult("Message Sent");
             }
 
@@ -152,8 +154,12 @@ namespace FloodzillaSms
             return new InternalServerErrorResult();
         }
 
-        private static async Task SendTestEmail(SmsSendRequest smsSendRequest)
+        private static async Task SendTestEmail(SqlConnection? sqlcn, SmsSendRequest smsSendRequest)
         {
+            if (sqlcn == null)
+            {
+                return;
+            }
             using (EmailClient client = new EmailClient())
             {
                 string from = FzConfig.Config[FzConfig.Keys.EmailFromAddress];
@@ -166,7 +172,7 @@ namespace FloodzillaSms
                     return;
                 }
                 string recipient = smsSendRequest.Email.Substring(0, at) + "+" + smsSendRequest.Phone + smsSendRequest.Email.Substring(at);
-                await client.SendEmailAsync(from, recipient, subject, body, false);
+                await client.SendEmailAsync(sqlcn, from, recipient, subject, body, false);
             }
         }
     }

@@ -13,6 +13,10 @@
     <ProjectReference Include="..\..\Libraries\FzCommon\FzCommon.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="developer.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
     <None Update="host.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -10,6 +10,7 @@ namespace FzCommon.Processors
         {
             this.m_jobName = jobName;
             this.m_friendlyName = friendlyName;
+            this.m_notificationManager = new();
         }
 
         public async Task Execute()
@@ -69,6 +70,8 @@ namespace FzCommon.Processors
 
         private string m_jobName;
         private string m_friendlyName;
+
+        protected NotificationManager m_notificationManager;
     }
 }
 

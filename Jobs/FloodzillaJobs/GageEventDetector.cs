@@ -48,12 +48,13 @@ namespace FloodzillaJobs
             Dictionary<int, List<SensorReading>> recentReadings
                     = await SensorReading.GetAllRecentReadings(sqlcn, lastStatus.LastRunTime.AddHours(-RecentHours), false);
             List<SensorLocationBase> locations = SensorLocationBase.GetLocations(sqlcn);
-            int checkedCount = 0;
+            int locationCount = 0;
+            int newReadingsCount = 0;
             int nearCount = 0;
             int floodingCount = 0;
             foreach (SensorLocationBase location in locations)
             {
-                checkedCount++;
+                locationCount++;
                 sbDetails.AppendFormat("Checking location {0} [{1}]--", location.Id, location.LocationName);
                 //$ TODO: Do we want to process 'deleted' gages anyway, and just mark events as "don't notify"?
                 if (location.IsDeleted)
@@ -98,7 +99,8 @@ namespace FloodzillaJobs
                     sbDetails.Append("no new readings\r\n");
                     continue;
                 }
-                checkedCount++;
+                newReadingsCount++;
+
                 Trends trends = TrendCalculator.CalculateWaterTrends(readings);
                 curStatus.LastReadingId = readings[0].Id;
 
@@ -157,7 +159,11 @@ namespace FloodzillaJobs
                 sbDetails.Append("\r\n");
             }
 
-            sbSummary.AppendFormat("Checked {0} gages for events.  {1} near flooding, {2} flooding.", checkedCount, nearCount, floodingCount);
+            sbSummary.AppendFormat("Checked {0} gages for events, {1} had new readings.  {2} near flooding, {3} flooding.",
+                                   locationCount,
+                                   newReadingsCount,
+                                   nearCount,
+                                   floodingCount);
             await currentStatus.Save(container);
         }
 

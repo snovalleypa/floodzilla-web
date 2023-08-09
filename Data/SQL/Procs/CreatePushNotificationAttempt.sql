@@ -5,8 +5,8 @@ GO
 CREATE PROCEDURE [CreatePushNotificationAttempt]
     @Token varchar(4096),
     @Title NVARCHAR(128),
-    @Subtitle NVARCHAR(128),
-    @Body NVARCHAR(1024),
+    @Subtitle NVARCHAR(128) = null,
+    @Body NVARCHAR(1024) = null,
     @Data NVARCHAR(2048),
     @Status int,
     @SendTime datetime,

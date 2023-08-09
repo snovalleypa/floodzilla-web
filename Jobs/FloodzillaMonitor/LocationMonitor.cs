@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 
 using FzCommon;
 using FzCommon.Processors;
+using System.Runtime.CompilerServices;
 
 namespace FloodzillaMonitor
 {
@@ -77,7 +78,7 @@ namespace FloodzillaMonitor
                                 if (lastStatus != null && !lastStatus.IsUp)
                                 {
                                     sbDetails.Append("RECOVERED");
-                                    await NotifyRecovered(region, location, lastReadings[0], lastStatus.OfflineDetected);
+                                    await this.NotifyRecovered(sqlcn, region, location, lastReadings[0], lastStatus.OfflineDetected);
                                     recoveredCount++;
                                 }
                                 else
@@ -94,7 +95,7 @@ namespace FloodzillaMonitor
                                 {
                                     currentStatus.OfflineDetected = DateTime.UtcNow;
                                     sbDetails.Append("NOTIFYING DOWN");
-                                    await NotifyDown(region, location, lastReadings[0]);
+                                    await this.NotifyDown(sqlcn, region, location, lastReadings[0]);
                                     notifyCount++;
                                 }
                                 else
@@ -135,7 +136,7 @@ namespace FloodzillaMonitor
             await currentMonitorStatus.Save(container, offline, sbDetails.ToString(), sbSummary.ToString());
         }
 
-        private static async Task NotifyDown(RegionBase region, SensorLocationBase location, SensorReading lastReading)
+        private async Task NotifyDown(SqlConnection sqlcn, RegionBase region, SensorLocationBase location, SensorReading lastReading)
         {
             if (!String.IsNullOrEmpty(region.NotifyList))
             {
@@ -145,14 +146,17 @@ namespace FloodzillaMonitor
                     Location = location,
                     LastReading = lastReading,
                 };
-                await ldm.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], region.NotifyList);
+                await m_notificationManager.SendEmailModelToRecipientList(sqlcn,
+                                                                          ldm,
+                                                                          FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                                          region.NotifyList);
             }
 
             string message = String.Format("GAGE OFFLINE: {0} - {1}; last reading {2}", location.PublicLocationId, location.LocationName, FzCommonUtility.ToRegionTimeFromUtc(lastReading.Timestamp));
             await SlackClient.NotifySlack(region.SlackNotifyUrl, message);
         }
 
-        private static async Task NotifyRecovered(RegionBase region, SensorLocationBase location, SensorReading lastReading, DateTime offlineDetected)
+        private async Task NotifyRecovered(SqlConnection sqlcn, RegionBase region, SensorLocationBase location, SensorReading lastReading, DateTime offlineDetected)
         {
             if (!String.IsNullOrEmpty(region.NotifyList))
             {
@@ -163,7 +167,10 @@ namespace FloodzillaMonitor
                     LastReading = lastReading,
                     OfflineDetected = offlineDetected,
                 };
-                await lrm.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], region.NotifyList);
+                await m_notificationManager.SendEmailModelToRecipientList(sqlcn,
+                                                                          lrm,
+                                                                          FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                                          region.NotifyList);
             }
 
             string message = String.Format("GAGE RECOVERED: {0} - {1}; last reading {2} (was marked offline {3})", location.PublicLocationId, location.LocationName, FzCommonUtility.ToRegionTimeFromUtc(lastReading.Timestamp), FzCommonUtility.ToRegionTimeFromUtc(offlineDetected));
@@ -184,7 +191,7 @@ namespace FloodzillaMonitor
 
         public DateTime LastRunTime;
         public List<LocationStatus> Status;
-        
+
         public LocationMonitorStatus()
         {
             Status = new List<LocationStatus>();
@@ -199,7 +206,7 @@ namespace FloodzillaMonitor
         {
             return await AzureJobHelpers.LoadStatusBlob<LocationMonitorStatus>(container, BlockName);
         }
-        
+
         public async Task Save(BlobContainerClient container, string offline, string details, string summary)
         {
             await AzureJobHelpers.SaveStatusBlob<LocationMonitorStatus>(container, BlockName, this);

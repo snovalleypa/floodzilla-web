@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using System.Text;
 
 using FloodzillaWeb.Models;
@@ -29,6 +31,24 @@ namespace FloodzillaWeb.Controllers
         public string? Subtitle { get; set; }
         public string? Body { get; set; }
         public string? Data { get; set; }
+    }
+
+    public enum NotificationsTestType
+    {
+        GageThreshold,
+        GageUpDown,
+        ForecastFlood,
+        ForecastAllClear,
+    }
+
+    public class NotificationsTestModel
+    {
+        public string? TestEmail { get; set; }
+        public bool SendEmail { get; set; }
+        public bool SendSms { get; set; }
+        public bool SendPush { get; set; }
+        public NotificationsTestType TestType { get; set; }
+        public string? JsonEmailModel { get; set; }
     }
 
     public class PushFullParamTestModel : TestPushNotificationRequest
@@ -68,6 +88,17 @@ namespace FloodzillaWeb.Controllers
                                  IUserValidator<ApplicationUser> userValidator)
             : base(context, memoryCache, userPermissions, userManager, roleManager, userValidator)
         {
+            this.testSerializerSettings = new()
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new DefaultNamingStrategy()
+                },
+                Converters = new List<JsonConverter> 
+                { 
+                    new StringEnumConverter() { AllowIntegerValues = false }, 
+                },
+            };
         }
 
         [HttpGet]
@@ -196,6 +227,140 @@ namespace FloodzillaWeb.Controllers
             return View();
         }
 
+        private string SerializeAndEncodeJson(object o)
+        {
+            string json = JsonConvert.SerializeObject(o, this.testSerializerSettings);
+            return json.Replace("\\", "\\\\");
+        }
+
+        private async Task InitializeTestJson(SqlConnection sqlcn)
+        {
+            ViewBag.SampleThresholdJson = SerializeAndEncodeJson(await SampleEmailModels.BuildGageThresholdEventEmailModel(sqlcn));
+            ViewBag.SampleOnlineJson = SerializeAndEncodeJson(await SampleEmailModels.BuildGageOnlineStatusEventEmailModel(sqlcn));
+            ViewBag.SampleFloodingJson = SerializeAndEncodeJson(await SampleEmailModels.BuildFloodingForecastEmailModel(sqlcn));
+            ViewBag.SampleAllClearJson = SerializeAndEncodeJson(await SampleEmailModels.BuildAllClearForecastEmailModel(sqlcn));
+        }
+
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> Notifications()
+        {
+            ViewBag.NotificationsTestResult = "";
+            ViewBag.NotificationsTestError = "";
+
+            using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+            try
+            {
+                await sqlcn.OpenAsync();
+                await InitializeTestJson(sqlcn);
+            }
+            catch (Exception e)
+            {
+                ViewBag.NotificationsTestError = e.Message;
+            }
+            
+            return View();
+        }
+
+        // Only these users will be allowed to use the notification test page...
+        //$ TODO: Manage this via security roles?
+        private string[] NotificationWhiteList =
+        {
+            "user@email.address",
+        };
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> Notifications(NotificationsTestModel model)
+        {
+            ViewBag.NotificationsTestResult = "";
+            ViewBag.NotificationsTestError = "";
+
+            using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+            try
+            {
+                await sqlcn.OpenAsync();
+                await InitializeTestJson(sqlcn);
+                if (String.IsNullOrWhiteSpace(model.TestEmail))
+                {
+                    ViewBag.NotificationsTestError = "Must provide an email address.";
+                    return View();
+                }
+                if (!Array.Exists(NotificationWhiteList, (s) => (s.ToLower() == model.TestEmail.ToLower())))
+                {
+                    ViewBag.NotificationsTestError = "Email not in whitelist.";
+                    return View();
+                }
+
+                NotificationEmailModel? emailModel = null;
+                try
+                {
+                    switch (model.TestType)
+                    {
+                        case NotificationsTestType.GageThreshold:
+                            emailModel = SampleEmailModels.DeserializeGageThresholdEvent(model.JsonEmailModel);
+                            break;
+                        case NotificationsTestType.GageUpDown:
+                            emailModel = SampleEmailModels.DeserializeGageOnlineStatusEventEmailModel(model.JsonEmailModel);
+                            break;
+                        case NotificationsTestType.ForecastFlood:
+                        case NotificationsTestType.ForecastAllClear:
+                            emailModel = SampleEmailModels.DeserializeForecastEmailModel(model.JsonEmailModel);
+                            break;
+                    }
+                    if (emailModel == null)
+                    {
+                        throw new ApplicationException("Invalid JSON");
+                    }
+                }
+                catch (Exception e)
+                {
+                    ViewBag.NotificationsTestError = "Error deserializing JSON: " + e.Message;
+                    return View();
+                }
+
+                AspNetUserBase aspUser = await AspNetUserBase.GetAspNetUserForEmailAsync(sqlcn, model.TestEmail);
+                if (aspUser == null)
+                {
+                    throw new ApplicationException("No user with email '" + model.TestEmail + "'");
+                }
+                UserBase user = await UserBase.GetUserForAspNetUserAsync(sqlcn, aspUser.AspNetUserId);
+                if (user == null)
+                {
+                    throw new ApplicationException("No user with email '" + model.TestEmail + "'");
+                }
+
+                emailModel.User = user;
+                emailModel.AspNetUser = aspUser;
+                
+                List<UserBase> users = new();
+                users.Add(user);
+                NotificationManager nm = new();
+                StringBuilder sbResult = new();
+                StringBuilder sbDetails = new();
+                await nm.NotifyUserList(sqlcn,
+                                        emailModel,
+                                        FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                        users,
+                                        model.SendEmail,
+                                        model.SendSms,
+                                        model.SendPush,
+                                        sbResult,
+                                        sbDetails);
+                ViewBag.NotificationsTestResult = sbDetails.ToString();
+            }
+            catch (Exception e)
+            {
+                ViewBag.NotificationsTestError = e.Message;
+            }
+            finally
+            {
+                await sqlcn.CloseAsync();
+            }
+
+            return View();
+        }
+        
         [Authorize(Roles = "Admin,Organization Admin")]
         public async Task<IActionResult> PushTesting()
         {
@@ -417,7 +582,11 @@ namespace FloodzillaWeb.Controllers
                     model.User = UserBase.GetUser(sqlcn, GetFloodzillaUserId());
                     model.AspNetUser = AspNetUserBase.GetAspNetUser(sqlcn, model.User.AspNetUserId);
 
-                    await model.SendEmail(FzConfig.Config[FzConfig.Keys.EmailFromAddress], model.AspNetUser.Email);
+                    NotificationManager nm = new();
+                    await nm.SendEmailModelToRecipientList(sqlcn,
+                                                           model,
+                                                           FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                           model.AspNetUser.Email);
                     ViewBag.EmailResult = "Sent email to " + model.AspNetUser.Email;
 
                     await sqlcn.CloseAsync();
@@ -444,6 +613,7 @@ namespace FloodzillaWeb.Controllers
                     StringBuilder sbDetails = new StringBuilder();
                     StringBuilder sbResult = new StringBuilder();
                     await NoaaForecastProcessor.ProcessNewForecasts(sqlcn,
+                                                                    new NotificationManager(),
                                                                     f.New,
                                                                     f.Previous,
                                                                     sbDetails,
@@ -662,5 +832,7 @@ namespace FloodzillaWeb.Controllers
             sbResult.Append("Success!");
             return sbResult.ToString();
         }
+
+        private JsonSerializerSettings testSerializerSettings;
     }
 }

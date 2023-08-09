@@ -87,6 +87,9 @@ namespace FzCommon.Processors
                 model.GageForecasts.Add(mgd);
             }
 
+            // Per Geary, we don't want to do flood forecast notifications for the metagage
+            // currently.  If this changes, we'll want to reactivate this.
+#if NOTIFY_ABOUT_METAGAGE_FORECASTS
             for (int iMeta = 0; iMeta < Metagages.MetagageIds.Length; iMeta++)
             {
                 // If all of the metagage's components are available, add it to the list.
@@ -185,6 +188,7 @@ namespace FzCommon.Processors
                     model.GageForecasts.Add(mgd);
                 }
             }
+#endif
 
             model.GageForecasts.Sort((a, b) => (int)(a.GageRank - b.GageRank));
 
@@ -195,6 +199,7 @@ namespace FzCommon.Processors
 
         //$ TODO: what details and status do we want from here? figure this out once we know what all it has to do
         public static async Task ProcessNewForecasts(SqlConnection sqlcn,
+                                                     NotificationManager notificationManager,
                                                      NoaaForecastSet newForecasts,
                                                      NoaaForecastSet previous,
                                                      StringBuilder sbDetails = null,
@@ -211,12 +216,15 @@ namespace FzCommon.Processors
 
                 model.Context = ForecastEmailModel.ForecastContext.Alert;
                 List<UserBase> users = await UserBase.GetUsersForNotifyForecastAlerts(sqlcn);
-                await model.SendEmailToUserList(sqlcn,
-                                                FzConfig.Config[FzConfig.Keys.EmailFromAddress],
-                                                users,
-                                                true,
-                                                sbResult,
-                                                sbDetails);
+                await notificationManager.NotifyUserList(sqlcn,
+                                                         model,
+                                                         FzConfig.Config[FzConfig.Keys.EmailFromAddress],
+                                                         users,
+                                                         true,
+                                                         true,
+                                                         true,
+                                                         sbResult,
+                                                         sbDetails);
             }
         }
     }

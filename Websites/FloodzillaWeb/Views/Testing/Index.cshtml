@@ -16,6 +16,19 @@
 <div class="row">
   <div class="col-sm">
     <div class="card">
+      <div class="card-header">Notifications</div>
+      <div class="card-body">
+        <ul>
+          <li class="dropdown-item"><a asp-controller="Testing" asp-action="Notifications" class="">Test Notifications</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-sm">
+    <div class="card">
       <div class="card-header">Push Notifications</div>
       <div class="card-body">
         <ul>
@@ -58,7 +71,7 @@
             </a>
           </li>
           <li class="dropdown-item">
-            <a asp-controller="Testing" asp-action="ProcessForecast" asp-route-forecastType="latest" class="">
+            <a asp-controller="Testing" asp-action="DISABLED_ProcessForecast" asp-route-forecastType="latest" class="">
               DANGER! Process the latest forecast
             </a>
           </li>
@@ -73,7 +86,7 @@
             </a>
           </li>
           <li class="dropdown-item">
-            <a asp-controller="Testing" asp-action="ProcessForecast" asp-route-forecastType="flooding" class="">
+            <a asp-controller="Testing" asp-action="DISABLED_ProcessForecast" asp-route-forecastType="flooding" class="">
               DANGER! Send flooding forecast to subscribed users
             </a>
           </li>
