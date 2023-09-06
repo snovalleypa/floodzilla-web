@@ -137,6 +137,21 @@ namespace FzCommon
             }
         }
 
+        public static async Task SendFullUserDeletionRequest(string email, int userId, string aspNetUserId)
+        {
+            try
+            {
+                string message = String.Format("Received request to fully delete user: {0}, id {1}, ASP.NET id {2}", 
+                                               email, userId, aspNetUserId);
+                string url = FzConfig.Config[FzConfig.Keys.SlackLogBookNotificationUrl];
+                await NotifySlack(url, message, TextType);
+            }
+            catch
+            {
+                // just eat this, it's not business-critical
+            }
+        }
+
         //$ TODO: Region?
         //$ TODO: link to log
         public static async Task SendCreateLogBookEntryNotification(int userId, string email, List<string> tags, string text)
