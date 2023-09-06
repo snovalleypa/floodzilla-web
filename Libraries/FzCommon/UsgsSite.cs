@@ -259,11 +259,16 @@ namespace FzCommon
                     // USGS gages appear to return "-999999" for WaterDischarge when the gage readings
                     // are suspect (in particular, when the gage is "Ice affected").  If that happens we
                     // should save the reading as deleted.
-                    if (reading.WaterDischarge < 0)
+
+                    // UPDATE: Apparently they can also sometimes return a height of "-999999".  So we'll
+                    // filter if either number is <0.
+                    if (reading.WaterDischarge < 0 || reading.WaterHeight < 0)
                     {
                         reading.IsDeleted = true;
                         reading.IsFiltered = true;
-                        reading.DeleteReason = "Filtered (invalid water discharge)";
+                        reading.DeleteReason = (reading.WaterDischarge < 0)
+                                               ? "Filtered (invalid water discharge)"
+                                               : "Filtered (invalid water height)";
                     }
 
                     readingData.Readings.Add(reading);
