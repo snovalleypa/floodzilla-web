@@ -131,6 +131,15 @@ namespace FzCommon
             await SqlHelper.CallIdListProcedure(conn, "MarkUsersAsUndeleted", regionIds, 180);
         }
 
+        public static async Task FullyDeleteUser(SqlConnection sqlcn, int userId, string aspNetUserId)
+        {
+            using SqlCommand cmd = new SqlCommand("FullyDeleteUser", sqlcn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+            cmd.Parameters.Add("@AspNetUserId", SqlDbType.VarChar, 100).Value = aspNetUserId;
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         private static string GetColumnList()
         {
             return "Id, AspNetUserId, FirstName, LastName, Address, OrganizationsId, IsDeleted, NotifyViaEmail, NotifyViaSms, NotifyDailyForecasts, NotifyForecastAlerts, CreatedOn";

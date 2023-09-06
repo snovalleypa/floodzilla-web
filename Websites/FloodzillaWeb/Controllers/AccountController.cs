@@ -614,6 +614,35 @@ namespace FloodzillaWeb.Controllers
             }
         }
 
+        [HttpPost]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> FullyDeleteUser()
+        {
+            try
+            {
+                ApplicationUser aspUser = await SecurityHelper.GetApplicationUser(User, _userManager);
+                if (aspUser != null)
+                {
+
+                    await _signInManager.SignOutAsync();
+
+                    using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                    await sqlcn.OpenAsync();
+                    UserBase user = await UserBase.GetUserForAspNetUserAsync(sqlcn, aspUser.Id);
+                    await SlackClient.SendFullUserDeletionRequest(aspUser.Email, user.Id, aspUser.Id);
+                    await UserBase.FullyDeleteUser(sqlcn, user.Id, aspUser.Id);
+                    
+                    return Ok(new { success = true });
+                }
+                return BadRequest("An error occurred while processing this request.");
+            }
+            catch
+            { 
+                //$ TODO: Log this exception somewhere?
+                return BadRequest("An error occurred while processing this request.");
+            }
+        }
+
         public class SetDevicePushTokenModel
         {
             public string? DeviceId { get; set; }
@@ -934,6 +963,70 @@ namespace FloodzillaWeb.Controllers
             }
             catch
             {
+                //$ TODO: Log this exception somewhere?
+                return BadRequest("An error occurred while processing this request.");
+            }
+        }
+
+        public class AuthenticateWithAppleModel
+        {
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
+            public string IdToken{ get; set; }
+        }
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> AuthenticateWithApple([FromBody]AuthenticateWithAppleModel model)
+        {
+            try
+            {
+                // We're not getting name information from Apple login.  For now this is a fallback,
+                // and we'll continue to investigate.
+                string firstName = model.FirstName;
+                if (String.IsNullOrWhiteSpace(firstName))
+                {
+                    firstName = "Apple";
+                }
+                string lastName = model.LastName;
+                if (String.IsNullOrWhiteSpace(lastName))
+                {
+                    lastName = "User";
+                }
+
+                JwtSecurityToken jwt = new JwtSecurityToken(model.IdToken);
+
+                string email = GetJwtClaim(jwt, JwtRegisteredClaimNames.Email);
+                string appleUserId = GetJwtClaim(jwt, JwtRegisteredClaimNames.Sub);
+
+                if (!String.IsNullOrEmpty(email))
+                {
+                    ApplicationUser user = await _userManager.FindByNameAsync(email);
+                    if (user == null)
+                    {
+                        CreateUserResult cur = await this.CreateUserAsync(email, null, firstName, lastName, null, true);
+                        if (cur.Succeeded)
+                        {
+                            user = cur.NewUser;
+
+                            // Associate the new user with the Apple userid.
+                            UserLoginInfo uli = new UserLoginInfo(Constants.AppleLoginProviderName,
+                                                                  appleUserId,
+                                                                  email);
+                            await _userManager.AddLoginAsync(user, uli);
+                        }
+                    }
+                    if (user != null)
+                    {
+                        SessionAuthInfo sai = await JwtManager.CreateSessionAuthInfo(_userManager, _context, user, true, Constants.AppleLoginProviderName);
+                        return Ok(sai);
+                    }
+                }
+                return BadRequest("An error occurred while processing this request.");
+            }
+            catch (Exception e)
+            {
+                ErrorManager.ReportException(ErrorSeverity.Major, "AuthenticateWithApple", e);
+
                 //$ TODO: Log this exception somewhere?
                 return BadRequest("An error occurred while processing this request.");
             }

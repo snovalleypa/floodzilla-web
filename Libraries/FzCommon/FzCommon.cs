@@ -25,6 +25,7 @@
 
         public const string FacebookLoginProviderName = "Facebook";
         public const string GoogleLoginProviderName = "Google";
+        public const string AppleLoginProviderName = "Apple";
     }
 
     //$ TODO: This will eventually be moved to Azure App Configuration / Key Vaults.  For
