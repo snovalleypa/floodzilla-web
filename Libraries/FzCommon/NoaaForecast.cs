@@ -130,18 +130,13 @@ namespace FzCommon
         public double? CurrentDischarge     { get; set; }
         public List<NoaaForecastItem> Data  { get; set; }
 
-        public List<NoaaForecastItem> Peaks
+        public NoaaForecastItem[] Peaks
         {
             get
             {
-                return this.GetPeaks();
-            }
-            set
-            {
-                this.m_peaks = value;
+                return this.GetPeaks().ToArray();
             }
         }
-        private List<NoaaForecastItem> m_peaks = null;
 
         public static async Task<NoaaForecast> FetchNewForecast(string noaaSiteId)
         {
@@ -271,6 +266,7 @@ namespace FzCommon
             return false;
         }
 
+        private List<NoaaForecastItem> m_peaks = null;
         public List<NoaaForecastItem> GetPeaks()
         {
             if (this.m_peaks != null)

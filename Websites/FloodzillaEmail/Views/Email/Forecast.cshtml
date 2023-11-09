@@ -23,7 +23,7 @@
         if (delta.HasValue && delta.Value != 0)
         {
             deltaText = String.Format("{0}{1} cfs/hr",
-                                      delta.Value > 0 ? "+" : "-",
+                                      delta.Value > 0 ? "+" : "",
                                       FzCommonUtility.GetRoundValue(delta.Value));
         }
         <tr>

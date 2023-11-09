@@ -5,6 +5,10 @@ namespace FzCommon.Processors
 {
     public class NoaaForecastProcessor
     {
+        // Per Geary, we don't want to do flood forecast notifications for the metagage
+        // currently.  If this changes, we'll want to reactivate this.
+        private const bool notifyAboutMetagauges = false;
+        
         public static async Task<ForecastEmailModel> BuildEmailModel(SqlConnection sqlcn,
                                                                      NoaaForecastSet newForecasts,
                                                                      NoaaForecastSet previous)
@@ -87,9 +91,6 @@ namespace FzCommon.Processors
                 model.GageForecasts.Add(mgd);
             }
 
-            // Per Geary, we don't want to do flood forecast notifications for the metagage
-            // currently.  If this changes, we'll want to reactivate this.
-#if NOTIFY_ABOUT_METAGAGE_FORECASTS
             for (int iMeta = 0; iMeta < Metagages.MetagageIds.Length; iMeta++)
             {
                 // If all of the metagage's components are available, add it to the list.
@@ -163,7 +164,10 @@ namespace FzCommon.Processors
                     {
                         if (oldSumForecast.ExceedsDischargeThreshold(Metagages.MetagageStageOnes[iMeta]))
                         {
-                            oldForecastHadFlooding = true;
+                            if (notifyAboutMetagauges)
+                            {
+                                oldForecastHadFlooding = true;
+                            }
                         }
                     }
                 }
@@ -173,7 +177,10 @@ namespace FzCommon.Processors
                 {
                     if (sumForecast.ExceedsDischargeThreshold(Metagages.MetagageStageOnes[iMeta]))
                     {
-                        hasFlooding = true;
+                        if (notifyAboutMetagauges)
+                        {
+                            hasFlooding = true;
+                        }
                     }
                     ForecastEmailModel.ModelGageData mgd = new ForecastEmailModel.ModelGageData()
                     {
@@ -188,7 +195,6 @@ namespace FzCommon.Processors
                     model.GageForecasts.Add(mgd);
                 }
             }
-#endif
 
             model.GageForecasts.Sort((a, b) => (int)(a.GageRank - b.GageRank));
 
