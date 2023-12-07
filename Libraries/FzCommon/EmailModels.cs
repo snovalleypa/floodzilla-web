@@ -518,6 +518,7 @@ namespace FzCommon
             eni.Details = new();
             foreach (ForecastEmailModel.ModelGageData mgd in this.GageForecasts)
             {
+                bool addedEntryForGauge = false;
                 foreach (NoaaForecastItem peak in mgd.Forecast.Peaks)
                 {
                     if (peak.Discharge >= mgd.WarningCfsLevel)
@@ -526,6 +527,22 @@ namespace FzCommon
                                                       mgd.GageShortName,
                                                       EmailModel.FormatSmartDate(this.Region, peak.Timestamp),
                                                       peak.Discharge));
+                        addedEntryForGauge = true;
+                    }
+                }
+                // Special case (read: hack): if we haven't added any entries for this gauge, but the
+                // first predicted value is above our warning level, that means we're likely in a situation
+                // where the water is going down (we didn't add a peak for the first prediction because the
+                // previous real data was above the predicted value).  We still want to make sure that we're
+                // indicating that this gauge is still predicted to be above flood stage.
+                if (!addedEntryForGauge)
+                {
+                    if (mgd.Forecast.Data.Count > 0 && mgd.Forecast.Data[0].Discharge >= mgd.WarningCfsLevel)
+                    {
+                        eni.Details.Add(String.Format("{0}: {1} {2:0}",
+                                                      mgd.GageShortName,
+                                                      EmailModel.FormatSmartDate(this.Region, mgd.Forecast.Data[0].Timestamp),
+                                                      mgd.Forecast.Data[0].Discharge));
                     }
                 }
             }
@@ -552,7 +569,7 @@ namespace FzCommon
             message += String.Format("{0}/forecast\n", this.Region.SmsFormatBaseURL);
             return message;
         }
-        
+
         public override string? GetSmsText()
         {
             return this.GetShortText(false);
@@ -574,7 +591,7 @@ namespace FzCommon
             pnc.Path = "/forecast";
             return pnc;
         }
-        
+
         public class ModelGageData
         {
             public string GageName { get; set; }

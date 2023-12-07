@@ -57,14 +57,14 @@ namespace FzCommon.Processors
                     continue;
                 }
 
-                if (location.DischargeStageOne.HasValue && newForecast.ExceedsDischargeThreshold(location.DischargeStageOne??0))
+                if (location.DischargeStageOne.HasValue && newForecast.ExceedsDischargeThreshold(location.DischargeStageOne ?? 0))
                 {
                     hasFlooding = true;
                 }
 
                 // If the old forecast for this site had high water, remember that for below...
                 NoaaForecast previousForecast = previous.GetForecast(newForecast.NoaaSiteId);
-                if (previousForecast != null && location.DischargeStageOne.HasValue && previousForecast.ExceedsDischargeThreshold(location.DischargeStageOne??0))
+                if (previousForecast != null && location.DischargeStageOne.HasValue && previousForecast.ExceedsDischargeThreshold(location.DischargeStageOne ?? 0))
                 {
                     oldForecastHadFlooding = true;
                 }
