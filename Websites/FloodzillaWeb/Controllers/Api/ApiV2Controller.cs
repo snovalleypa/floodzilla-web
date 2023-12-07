@@ -57,15 +57,15 @@ namespace FloodzillaWeb.Controllers.Api
         public DateTime[] Timestamps { get; }
         public double?[]? WaterHeights { get; }
         public double?[] Discharges { get; }
-        public ApiV2ForecastReadingSet(List<NoaaForecastItem> data, bool isMetagauge)
+        public ApiV2ForecastReadingSet(NoaaForecastItem[] data, bool isMetagauge)
         {
-            this.Timestamps = new DateTime[data.Count];
+            this.Timestamps = new DateTime[data.Length];
             if (!isMetagauge)
             {
-                this.WaterHeights = new double?[data.Count];
+                this.WaterHeights = new double?[data.Length];
             }
-            this.Discharges = new double?[data.Count];
-            for (int i = 0; i < data.Count; i++)
+            this.Discharges = new double?[data.Length];
+            for (int i = 0; i < data.Length; i++)
             {
                 this.Timestamps[i] = new DateTime(data[i].Timestamp.Ticks, DateTimeKind.Utc);
                 if (!isMetagauge && (this.WaterHeights != null))
@@ -82,7 +82,7 @@ namespace FloodzillaWeb.Controllers.Api
         public DateTime ForecastCreated { get; }
         public int ForecastId { get; }
         public ApiV2ForecastReadingSet Peaks { get; }
-        public ApiV2Forecast(NoaaForecast noaaForecast, bool isMetagauge) : base(noaaForecast.Data, isMetagauge)
+        public ApiV2Forecast(NoaaForecast noaaForecast, bool isMetagauge) : base(noaaForecast.Data.ToArray(), isMetagauge)
         {
             this.NoaaSiteId = noaaForecast.NoaaSiteId;
             this.ForecastId = noaaForecast.ForecastId;
@@ -114,13 +114,13 @@ namespace FloodzillaWeb.Controllers.Api
             this.NoaaSiteId = noaaForecast.NoaaSiteId;
             this.ForecastId = noaaForecast.ForecastId;
             this.ForecastCreated = new DateTime(noaaForecast.Created.Ticks, DateTimeKind.Utc);
-            this.Data = this.ConvertData(noaaForecast.Data, isMetagauge);
+            this.Data = this.ConvertData(noaaForecast.Data.ToArray(), isMetagauge);
             this.Peaks = this.ConvertData(noaaForecast.Peaks, isMetagauge);
         }
-        private ApiV2Forecast_DataPoint[] ConvertData(List<NoaaForecastItem> data, bool isMetagauge)
+        private ApiV2Forecast_DataPoint[] ConvertData(NoaaForecastItem[] data, bool isMetagauge)
         {
-            ApiV2Forecast_DataPoint[] ret = new ApiV2Forecast_DataPoint[data.Count];
-            for (int i = 0; i < data.Count; i++)
+            ApiV2Forecast_DataPoint[] ret = new ApiV2Forecast_DataPoint[data.Length];
+            for (int i = 0; i < data.Length; i++)
             {
                 ret[i] = new ApiV2Forecast_DataPoint()
                 {
