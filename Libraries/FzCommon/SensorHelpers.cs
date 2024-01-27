@@ -56,7 +56,36 @@ namespace FzCommon
             double distanceReading = (double)senixData["Distance"];
             double waterHeight = (double)senixData["LOffset"] - distanceReading;
             double groundHeight = location == null ? 0 : (location.GroundHeight ?? 0);
-            DateTime timeStamp = DateTime.Parse((string)senixData["time"]);
+
+            // The "time" field can come in either as a nicely formatted string like "2024-01-27T03:44:51.82158Z"
+            // or as a number like 1706327019745 which should be interpreted as a UTC Milliseconds time.
+            string timeAsString = (string)senixData["time"];
+            long utcMsec;
+            bool parsedAsLong = false;
+            DateTime timeStamp = DateTime.UtcNow;
+            if (long.TryParse(timeAsString, out utcMsec))
+            {
+                DateTime parsedTime = DateTimeOffset.FromUnixTimeMilliseconds(utcMsec).UtcDateTime;
+                // Sanity check.  This is a little silly, but we might as well verify that we're in
+                // the ballpark.
+                if (parsedTime.Year > 2020 && parsedTime.Year < 3000)
+                {
+                    timeStamp = parsedTime;
+                    parsedAsLong = true;
+                }
+            }
+            if (!parsedAsLong)
+            {
+                try
+                {
+                    timeStamp = DateTime.Parse(timeAsString);
+                }
+                catch
+                {
+                    ErrorManager.ReportError(ErrorSeverity.Major, "SenixListener", "Error: could not parse timestamp string '" + timeAsString + "'");
+                    timeStamp = DateTime.UtcNow;
+                }
+            }
 
             // These are currently in feet; convert to inches for storage.  Also distanceReading is negative...
             distanceReading *= -12.0;
