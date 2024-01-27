@@ -360,3 +360,5 @@ MigrationBackup/
 .ionide/
 .vscode/settings.json
 launchSettings.json
+Services/SenixListener/Properties/ServiceDependencies/SenixListener - Web Deploy/appInsights1.arm.json
+Services/SenixListener/Properties/ServiceDependencies/SenixListener - Web Deploy/storage1.arm.json
