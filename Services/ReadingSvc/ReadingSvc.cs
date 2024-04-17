@@ -136,6 +136,10 @@ namespace ReadingSvc
                 };
                 foreach (SensorLocationBase location in locations)
                 {
+                    if (!location.IsPublic)
+                    {
+                        continue;
+                    }
                     if (!allReadings.ContainsKey(location.Id))
                     {
                         continue;
