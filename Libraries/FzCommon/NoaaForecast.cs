@@ -68,7 +68,7 @@ namespace FzCommon
 
                 int i = 0;
                 NoaaForecast cur = forecastSet.Forecasts[i];
-                
+
                 using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
                 {
                     while (await dr.ReadAsync())
@@ -234,7 +234,7 @@ namespace FzCommon
                         while (await dr.ReadAsync())
                         {
                             forecast.Data.Add(NoaaForecastItem.InstantiateFromReader(dr));
-                        } 
+                        }
                     }
                 }
             }
@@ -275,19 +275,54 @@ namespace FzCommon
             }
             this.m_peaks = new List<NoaaForecastItem>();
 
+            // Our definition of a peak is: any value which is higher than the previous value, and which
+            // has no higher values before the next lower value.  If a peak consists of more than one
+            // entry at the same value, return the first one.  If the last value in the forecast is higher
+            // than the previous value, we currently don't consider it a peak.
+
             // Check for a first-reading peak
             if (this.CurrentDischarge.HasValue && this.Data.Count > 1)
             {
-                if (this.Data[0].Discharge > this.CurrentDischarge && this.Data[0].Discharge > this.Data[1].Discharge)
+                if (this.Data[0].Discharge > this.CurrentDischarge)
                 {
-                    this.m_peaks.Add(this.Data[0]);
+                    bool isPeak = true;
+                    for (int i = 1; i < this.Data.Count; i++)
+                    {
+                        if (this.Data[i].Discharge == this.Data[0].Discharge)
+                        {
+                            continue;
+                        }
+                        if (this.Data[i].Discharge > this.Data[0].Discharge)
+                        {
+                            isPeak = false;
+                        }
+                        break;
+                    }
+                    if (isPeak)
+                    {
+                        this.m_peaks.Add(this.Data[0]);
+                    }
                 }
             }
             for (int i = 1; i < this.Data.Count - 1; i++)
             {
-                if (this.Data[i].Discharge > this.Data[i - 1].Discharge && this.Data[i].Discharge > this.Data[i + 1].Discharge)
+                if (this.Data[i].Discharge > this.Data[i - 1].Discharge)
                 {
-                    this.m_peaks.Add(this.Data[i]);
+                    bool isPeak = true;
+                    for (int j = i + 1; j < this.Data.Count; j++) 
+                    {
+                        if (this.Data[j].Discharge == this.Data[i].Discharge) {
+                            continue;
+                        }
+                        if (this.Data[j].Discharge > this.Data[i].Discharge) {
+                            isPeak = false;
+                        }
+                        break;
+                    }
+                    if (isPeak)
+                    {
+                        this.m_peaks.Add(this.Data[i]);
+                    }
                 }
             }
 
