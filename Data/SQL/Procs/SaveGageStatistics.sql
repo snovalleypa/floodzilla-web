@@ -7,6 +7,7 @@ CREATE PROCEDURE [SaveGageStatistics]
     @LocationId int,
     @Date datetime,
     @AverageBatteryMillivolts int = null,
+    @AverageBatteryPercent float = null,
     @PercentReadingsReceived float = null,
     @AverageRssi float = null,
     @SensorUpdateInterval int = null,
@@ -18,6 +19,7 @@ BEGIN
     BEGIN
         UPDATE GageStatistics SET
             AverageBatteryMillivolts = @AverageBatteryMillivolts,
+            AverageBatteryPercent = @AverageBatteryPercent,
             PercentReadingsReceived = @PercentReadingsReceived,
             AverageRssi = @AverageRssi,
             SensorUpdateInterval = @SensorUpdateInterval,
@@ -31,6 +33,7 @@ BEGIN
             LocationId,
             Date,
             AverageBatteryMillivolts,
+            AverageBatteryPercent,
             PercentReadingsReceived,
             AverageRssi,
             SensorUpdateInterval,
@@ -41,6 +44,7 @@ BEGIN
             @LocationId,
             @Date,
             @AverageBatteryMillivolts,
+            @AverageBatteryPercent,
             @PercentReadingsReceived,
             @AverageRssi,
             @SensorUpdateInterval,

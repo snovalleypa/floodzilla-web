@@ -211,6 +211,7 @@ namespace FzCommon
             public string LocationName { get; set; }
             public DateTime LastUpdate { get; set; }
             public int BatteryMillivolt { get; set; }
+            public double BatteryPercent { get; set; }
             public double WaterLevel { get; set; }
             public double? GroundHeight { get; set; }
             public double? Green { get; set; }

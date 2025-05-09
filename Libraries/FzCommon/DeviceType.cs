@@ -10,8 +10,9 @@ namespace FzCommon
         public const int Virtual = 3;
         public const int Senix = 4;
         public const int UsgsTestingDevice = 5;
+        public const int Milesight = 6;
     }
-
+    
     public class DeviceType
     {
         [Required]

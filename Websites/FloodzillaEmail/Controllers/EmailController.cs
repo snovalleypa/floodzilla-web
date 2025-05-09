@@ -57,7 +57,7 @@ namespace FloodzillaEmail.Controllers
         {
             string subject = "Floodzilla daily status for " + wrapper.Model.Region.RegionName;
             wrapper.LateSensors = wrapper.Model.Statuses.Where(s => s.LastUpdate < DateTime.UtcNow.AddHours(-wrapper.LateSensorThreshold)).ToList();
-            wrapper.LowBattery = wrapper.Model.Statuses.Where(s => (FzCommonUtility.CalculateBatteryVoltPercentage(s.BatteryMillivolt) ?? 100) < wrapper.BatteryThresholdPercent).ToList();
+            wrapper.LowBattery = wrapper.Model.Statuses.Where(s => (s.GetEffectiveBatteryPercent()) < wrapper.BatteryThresholdPercent).ToList();
             return EmailView("DailyStatus", subject, wrapper);
         }
 

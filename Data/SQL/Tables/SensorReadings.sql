@@ -17,7 +17,8 @@ CREATE TABLE [SensorReadings](
 
     [Timestamp] [datetime] NULL,            -- Time the reading was received
     [DeviceTimestamp] [datetime] NULL,      -- Time the device made the reading, if available
-    [BatteryVolt] [int] NULL,               -- Battery level in millivolts (blame DaveS for the bad name)
+    [BatteryVolt] [int] NULL,               -- [deprecated] Battery level in millivolts (blame DaveS for the bad name)
+    [BatteryPercent] [float] NULL,          -- Battery percentage level; supercedes BatteryVolt
 
     -- Currently, these distances/heights are in inches.
     -- //$ TODO: Convert everything to feet
