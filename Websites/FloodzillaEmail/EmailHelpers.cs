@@ -37,9 +37,8 @@ public class EmailHelpers
         return String.Format("{0}/forecast", region.BaseURL);
     }
 
-    public static string GetBatteryColor(int? millivolt)
+    public static string GetBatteryColor(double percent)
     {
-        double percent = FzCommonUtility.CalculateBatteryVoltPercentage(millivolt) ?? 100;
         if (percent > 50)
         {
             return "green";

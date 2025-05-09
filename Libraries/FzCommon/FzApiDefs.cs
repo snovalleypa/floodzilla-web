@@ -231,6 +231,7 @@ namespace FzCommon
         public double? GroundHeight { get; set; }
         public double? WaterDischarge { get; set; }
         public int? BatteryMillivolt { get; set; }
+        public double? BatteryPercent { get; set; }
         public double? RoadSaddleHeight { get; set; }
         public bool IsDeleted { get; set; }
 
@@ -245,6 +246,7 @@ namespace FzCommon
             this.GroundHeight = FzCommonUtility.GetRoundValue(source.GroundHeightFeet);
             this.WaterDischarge = FzCommonUtility.GetRoundValue(source.WaterDischarge);
             this.BatteryMillivolt = source.BatteryVolt;
+            this.BatteryPercent = source.BatteryPercent;
             this.RoadSaddleHeight = FzCommonUtility.GetRoundValue(location.AdjustToFeetAboveSeaLevel(source.RoadSaddleHeight));
             this.IsDeleted = source.IsDeleted;
         }

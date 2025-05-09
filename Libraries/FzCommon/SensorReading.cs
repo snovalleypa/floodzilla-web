@@ -10,7 +10,7 @@ namespace FzCommon
     public class SensorReading
     {
         public int Id { get; set; }
-        
+
         // This is used to tag readings with metadata about the listener version, etc, for debugging purposes.
         [JsonProperty(PropertyName = "ListenerInfo")]
         public string ListenerInfo { get; set; }
@@ -73,12 +73,16 @@ namespace FzCommon
         [JsonProperty(PropertyName = "BatteryVolt")]
         public int? BatteryVolt { get; set; }
 
+        // Current battery percentage
+        [JsonProperty(PropertyName = "BatteryPercent")]
+        public double? BatteryPercent { get; set; }
+
         // RSSI and signal-to-noise ratio (for radio-using sensors)
         public double? RSSI { get; set; }
         public double? SNR { get; set; }
 
         // The actual type and data depends on the sensor type.
-        [JsonProperty(PropertyName = "RawSensorData" )]
+        [JsonProperty(PropertyName = "RawSensorData")]
         public object RawSensorData { get; set; }
 
         public bool IsDeleted { get; set; }
@@ -98,8 +102,21 @@ namespace FzCommon
         public double? MarkerTwoHeight { get; set; }
 
         // Like above but converted to ASL
-        public double? GreenASL { get { return this.ConvertToASL(this.Green); }}
-        public double? BrownASL { get { return this.ConvertToASL(this.Brown); }}
+        public double? GreenASL { get { return this.ConvertToASL(this.Green); } }
+        public double? BrownASL { get { return this.ConvertToASL(this.Brown); } }
+
+        public double GetEffectiveBatteryPercent()
+        {
+            if (this.BatteryPercent.HasValue && this.BatteryPercent.Value > 0)
+            {
+                return this.BatteryPercent.Value;
+            }
+            if (!this.BatteryVolt.HasValue)
+            {
+                return 100;
+            }
+            return FzCommonUtility.CalculateBatteryVoltPercentage(this.BatteryVolt.Value) ?? 100;
+        }
 
         public SensorReading()
         {
@@ -125,6 +142,7 @@ namespace FzCommon
             this.WaterDischarge = source.WaterDischarge;
             this.CalcWaterDischarge = source.CalcWaterDischarge;
             this.BatteryVolt = source.BatteryVolt;
+            this.BatteryPercent = source.BatteryPercent;
             this.RawSensorData = source.RawSensorData;
             this.IsDeleted = source.IsDeleted;
             this.IsFiltered = source.IsFiltered;
@@ -234,7 +252,7 @@ namespace FzCommon
             cmd.Parameters.Add("@LocationId", SqlDbType.Int).Value = this.LocationId;
             cmd.Parameters.Add("@DeviceId", SqlDbType.Int).Value = this.DeviceId;
             cmd.Parameters.Add("@DeviceTypeId", SqlDbType.Int).Value = this.DeviceTypeId;
-            
+
             cmd.Parameters.Add("@GroundHeight", SqlDbType.Float).Value = this.GroundHeight;
             cmd.Parameters.Add("@DistanceReading", SqlDbType.Float).Value = this.DistanceReading;
             cmd.Parameters.Add("@RawWaterHeight", SqlDbType.Float).Value = this.RawWaterHeight;
@@ -242,6 +260,7 @@ namespace FzCommon
             cmd.Parameters.Add("@WaterDischarge", SqlDbType.Float).Value = this.WaterDischarge;
             cmd.Parameters.Add("@CalcWaterDischarge", SqlDbType.Float).Value = this.CalcWaterDischarge;
             cmd.Parameters.Add("@BatteryVolt", SqlDbType.Int).Value = this.BatteryVolt;
+            cmd.Parameters.Add("@BatteryPercent", SqlDbType.Float).Value = this.BatteryPercent;
             if (this.RawSensorData != null)
             {
                 cmd.Parameters.Add("@RawSensorData", SqlDbType.Text).Value = JsonConvert.SerializeObject(this.RawSensorData);
@@ -266,7 +285,7 @@ namespace FzCommon
 
             cmd.Parameters.Add("@RSSI", SqlDbType.Float).Value = this.RSSI;
             cmd.Parameters.Add("@SNR", SqlDbType.Float).Value = this.SNR;
-            
+
             cmd.Parameters.Add("@IsDeleted", SqlDbType.Bit).Value = this.IsDeleted;
             cmd.Parameters.Add("@IsFiltered", SqlDbType.Bit).Value = this.IsFiltered;
 
@@ -302,37 +321,38 @@ namespace FzCommon
             {
                 sr = new SensorReading();
             }
-            sr.Id                           = SqlHelper.Read<int>(dr, "Id");
-            sr.ListenerInfo                 = SqlHelper.Read<string>(dr, "ListenerInfo");
-            sr.DeleteReason                 = SqlHelper.Read<string>(dr, "DeleteReason");
-            sr.Timestamp                    = SqlHelper.Read<DateTime>(dr, "Timestamp");
-            sr.DeviceTimestamp              = SqlHelper.Read<DateTime>(dr, "DeviceTimestamp");
-            sr.LocationId                   = SqlHelper.Read<int>(dr, "LocationId");
-            sr.DeviceId                     = SqlHelper.Read<int>(dr, "DeviceId");
-            sr.DeviceTypeId                 = SqlHelper.Read<int?>(dr, "DeviceTypeId");
-            sr.GroundHeight                 = SqlHelper.Read<double?>(dr, "GroundHeight");
-            sr.DistanceReading              = SqlHelper.Read<double?>(dr, "DistanceReading");
-            sr.WaterHeight                  = SqlHelper.Read<double?>(dr, "WaterHeight");
-            sr.RawWaterHeight               = SqlHelper.Read<double?>(dr, "RawWaterHeight");
-            sr.GroundHeightFeet             = SqlHelper.Read<double?>(dr, "GroundHeightFeet");
-            sr.DistanceReadingFeet          = SqlHelper.Read<double?>(dr, "DistanceReadingFeet");
-            sr.WaterHeightFeet              = SqlHelper.Read<double?>(dr, "WaterHeightFeet");
-            sr.RawWaterHeightFeet           = SqlHelper.Read<double?>(dr, "RawWaterHeightFeet");
-            sr.WaterDischarge               = SqlHelper.Read<double?>(dr, "WaterDischarge");
-            sr.CalcWaterDischarge           = SqlHelper.Read<double?>(dr, "CalcWaterDischarge");
-            sr.BatteryVolt                  = SqlHelper.Read<int?>(dr, "BatteryVolt");
-            sr.RawSensorData                = SqlHelper.Read<object>(dr, "RawSensorData");
-            sr.IsDeleted                    = SqlHelper.Read<bool>(dr, "IsDeleted");
-            sr.IsFiltered                   = SqlHelper.Read<bool>(dr, "IsFiltered");
-            sr.BenchmarkElevation           = SqlHelper.Read<double?>(dr, "BenchmarkElevation");
-            sr.RelativeSensorHeight         = SqlHelper.Read<double?>(dr, "RelativeSensorHeight");
-            sr.Green                        = SqlHelper.Read<double?>(dr, "Green");
-            sr.Brown                        = SqlHelper.Read<double?>(dr, "Brown");
-            sr.RoadSaddleHeight             = SqlHelper.Read<double?>(dr, "RoadSaddleHeight");
-            sr.MarkerOneHeight              = SqlHelper.Read<double?>(dr, "MarkerOneHeight");
-            sr.MarkerTwoHeight              = SqlHelper.Read<double?>(dr, "MarkerTwoHeight");
-            sr.RSSI                         = SqlHelper.Read<double?>(dr, "RSSI");
-            sr.SNR                          = SqlHelper.Read<double?>(dr, "SNR");
+            sr.Id = SqlHelper.Read<int>(dr, "Id");
+            sr.ListenerInfo = SqlHelper.Read<string>(dr, "ListenerInfo");
+            sr.DeleteReason = SqlHelper.Read<string>(dr, "DeleteReason");
+            sr.Timestamp = SqlHelper.Read<DateTime>(dr, "Timestamp");
+            sr.DeviceTimestamp = SqlHelper.Read<DateTime>(dr, "DeviceTimestamp");
+            sr.LocationId = SqlHelper.Read<int>(dr, "LocationId");
+            sr.DeviceId = SqlHelper.Read<int>(dr, "DeviceId");
+            sr.DeviceTypeId = SqlHelper.Read<int?>(dr, "DeviceTypeId");
+            sr.GroundHeight = SqlHelper.Read<double?>(dr, "GroundHeight");
+            sr.DistanceReading = SqlHelper.Read<double?>(dr, "DistanceReading");
+            sr.WaterHeight = SqlHelper.Read<double?>(dr, "WaterHeight");
+            sr.RawWaterHeight = SqlHelper.Read<double?>(dr, "RawWaterHeight");
+            sr.GroundHeightFeet = SqlHelper.Read<double?>(dr, "GroundHeightFeet");
+            sr.DistanceReadingFeet = SqlHelper.Read<double?>(dr, "DistanceReadingFeet");
+            sr.WaterHeightFeet = SqlHelper.Read<double?>(dr, "WaterHeightFeet");
+            sr.RawWaterHeightFeet = SqlHelper.Read<double?>(dr, "RawWaterHeightFeet");
+            sr.WaterDischarge = SqlHelper.Read<double?>(dr, "WaterDischarge");
+            sr.CalcWaterDischarge = SqlHelper.Read<double?>(dr, "CalcWaterDischarge");
+            sr.BatteryVolt = SqlHelper.Read<int?>(dr, "BatteryVolt");
+            sr.BatteryPercent = SqlHelper.Read<double?>(dr, "BatteryPercent");
+            sr.RawSensorData = SqlHelper.Read<object>(dr, "RawSensorData");
+            sr.IsDeleted = SqlHelper.Read<bool>(dr, "IsDeleted");
+            sr.IsFiltered = SqlHelper.Read<bool>(dr, "IsFiltered");
+            sr.BenchmarkElevation = SqlHelper.Read<double?>(dr, "BenchmarkElevation");
+            sr.RelativeSensorHeight = SqlHelper.Read<double?>(dr, "RelativeSensorHeight");
+            sr.Green = SqlHelper.Read<double?>(dr, "Green");
+            sr.Brown = SqlHelper.Read<double?>(dr, "Brown");
+            sr.RoadSaddleHeight = SqlHelper.Read<double?>(dr, "RoadSaddleHeight");
+            sr.MarkerOneHeight = SqlHelper.Read<double?>(dr, "MarkerOneHeight");
+            sr.MarkerTwoHeight = SqlHelper.Read<double?>(dr, "MarkerTwoHeight");
+            sr.RSSI = SqlHelper.Read<double?>(dr, "RSSI");
+            sr.SNR = SqlHelper.Read<double?>(dr, "SNR");
             return sr;
         }
 
@@ -347,15 +367,16 @@ namespace FzCommon
             {
                 sr = new SensorReading();
             }
-            sr.Id                           = SqlHelper.Read<int>(dr, "Id");
-            sr.Timestamp                    = SqlHelper.Read<DateTime>(dr, "Timestamp");
-            sr.LocationId                   = SqlHelper.Read<int>(dr, "LocationId");
-            sr.WaterHeightFeet              = SqlHelper.Read<double?>(dr, "WaterHeightFeet");
-            sr.WaterDischarge               = SqlHelper.Read<double?>(dr, "WaterDischarge");
-            sr.BatteryVolt                  = SqlHelper.Read<int?>(dr, "BatteryVolt");
-            sr.IsDeleted                    = SqlHelper.Read<bool>(dr, "IsDeleted");
-            sr.RoadSaddleHeight             = SqlHelper.Read<double?>(dr, "RoadSaddleHeight");
-            sr.GroundHeightFeet             = SqlHelper.Read<double?>(dr, "GroundHeightFeet");
+            sr.Id = SqlHelper.Read<int>(dr, "Id");
+            sr.Timestamp = SqlHelper.Read<DateTime>(dr, "Timestamp");
+            sr.LocationId = SqlHelper.Read<int>(dr, "LocationId");
+            sr.WaterHeightFeet = SqlHelper.Read<double?>(dr, "WaterHeightFeet");
+            sr.WaterDischarge = SqlHelper.Read<double?>(dr, "WaterDischarge");
+            sr.BatteryVolt = SqlHelper.Read<int?>(dr, "BatteryVolt");
+            sr.BatteryPercent = SqlHelper.Read<int?>(dr, "BatteryPercent");
+            sr.IsDeleted = SqlHelper.Read<bool>(dr, "IsDeleted");
+            sr.RoadSaddleHeight = SqlHelper.Read<double?>(dr, "RoadSaddleHeight");
+            sr.GroundHeightFeet = SqlHelper.Read<double?>(dr, "GroundHeightFeet");
             return sr;
         }
 
@@ -370,11 +391,11 @@ namespace FzCommon
             {
                 sr = new SensorReading();
             }
-            sr.Id                           = SqlHelper.Read<int>(dr, "Id");
-            sr.Timestamp                    = SqlHelper.Read<DateTime>(dr, "Timestamp");
-            sr.LocationId                   = SqlHelper.Read<int>(dr, "LocationId");
-            sr.WaterHeightFeet              = SqlHelper.Read<double?>(dr, "WaterHeightFeet");
-            sr.WaterDischarge               = SqlHelper.Read<double?>(dr, "WaterDischarge");
+            sr.Id = SqlHelper.Read<int>(dr, "Id");
+            sr.Timestamp = SqlHelper.Read<DateTime>(dr, "Timestamp");
+            sr.LocationId = SqlHelper.Read<int>(dr, "LocationId");
+            sr.WaterHeightFeet = SqlHelper.Read<double?>(dr, "WaterHeightFeet");
+            sr.WaterDischarge = SqlHelper.Read<double?>(dr, "WaterDischarge");
             return sr;
         }
 
@@ -710,7 +731,7 @@ namespace FzCommon
             SqlCommand cmd = new SqlCommand("GetLatestSensorReadingsByLocation", sqlcn);
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add("@RegionId", SqlDbType.Int).Value = regionId;
-            
+
             using (SqlDataReader dr = cmd.ExecuteReader())
             {
                 while (await dr.ReadAsync())
@@ -874,7 +895,7 @@ namespace FzCommon
 
     public class UsgsRawSensorData
     {
-        [JsonProperty(PropertyName = "CalibrationId" )]
+        [JsonProperty(PropertyName = "CalibrationId")]
         public int? CalibrationId { get; set; }
     }
 

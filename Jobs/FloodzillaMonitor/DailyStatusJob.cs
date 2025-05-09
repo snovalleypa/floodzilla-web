@@ -79,6 +79,7 @@ namespace FloodzillaMonitor
                     ls.LastUpdate = lastReadings[0].Timestamp;
                     ls.WaterLevel = (lastReadings[0].WaterHeight ?? 0.0) / 12.0;
                     ls.BatteryMillivolt = lastReadings[0].BatteryVolt ?? 0;
+                    ls.BatteryPercent = lastReadings[0].GetEffectiveBatteryPercent();
                     model.Statuses.Add(ls);
                 }
             }

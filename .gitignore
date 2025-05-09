@@ -358,7 +358,12 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# misc stuff
+.editorconfig
+profile.arm.json
 .vscode/settings.json
+dotnet-tools.json
 launchSettings.json
 Services/SenixListener/Properties/ServiceDependencies/SenixListener - Web Deploy/appInsights1.arm.json
 Services/SenixListener/Properties/ServiceDependencies/SenixListener - Web Deploy/storage1.arm.json

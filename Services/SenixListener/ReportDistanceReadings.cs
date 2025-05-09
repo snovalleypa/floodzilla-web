@@ -13,10 +13,10 @@ using Newtonsoft.Json;
 
 using FzCommon;
 
-[assembly: FunctionsStartup(typeof(SenixListener.ReportValues))]
+[assembly: FunctionsStartup(typeof(SenixListener.ReportDistanceReadings))]
 namespace SenixListener
 {
-    public class ReportValues : FunctionsStartup
+    public class ReportDistanceReadings : FunctionsStartup
     {
         public override void Configure(IFunctionsHostBuilder hostBuilder)
         {
@@ -25,14 +25,13 @@ namespace SenixListener
             //$ TODO: Any other configuration/initialization?
         }
 
-        // Setting a very short function name because the Senix UI only allows 20 characters total for path
-        [FunctionName("RV")]
+        [FunctionName("ReportDistanceReadings")]
         public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, ILogger log)
         {
-            log.LogInformation("Processing SenixListener.ReportValues request");
+            log.LogInformation("Processing SenixListener.ReportDistanceReadings request");
 
             SenixListenerLog result = null;
-            string listenerInfo = Environment.MachineName + " - SenixListener/ReportValues, 9/2020";
+            string listenerInfo = Environment.MachineName + " - SenixListener/ReportDistanceReadings, 3/2025";
             string clientIP = "";
             try
             {
@@ -59,18 +58,18 @@ namespace SenixListener
                         RawSensorData = requestBody,
                     };
 
-                    dynamic senixData = JsonConvert.DeserializeObject(requestBody);
+                    dynamic postData = JsonConvert.DeserializeObject(requestBody);
 
                     //$ TODO: How to decide whether we should do extra work (record receiver, etc)
 
                     string externalDeviceId;
+                    string receiverId;
                     DeviceBase device;
                     SensorReading reading = new SensorReading();
                     reading.ListenerInfo = listenerInfo;
-                    SenixReadingResult readingResult = SenixSensorHelper.ProcessReading(conn, reading, senixData, out externalDeviceId, out device);
+                    SenixReadingResult readingResult
+                       = ThingsNetworkHelper.ProcessReading(conn, reading, postData, out externalDeviceId, out receiverId, out device);
                     result.ExternalDeviceId = externalDeviceId;
-
-                    string receiverId = (string)senixData["gweui"];
                     result.ReceiverId = receiverId;
 
                     if (device != null)
@@ -85,7 +84,10 @@ namespace SenixListener
                         }
                         else
                         {
-                            result.Result = (readingResult.ShouldSaveAsDeleted) ? "Saved as IsDeleted" : "Saved";
+                            result.Result =
+                                (readingResult.ShouldSaveAsDeleted)
+                                    ? "Saved as IsDeleted"
+                                    : "Saved";
                         }
                         reading.IsDeleted = readingResult.ShouldSaveAsDeleted;
                         await reading.Save(conn);
@@ -103,28 +105,6 @@ namespace SenixListener
                         return new OkObjectResult(ignorePost);
                     }
 
-                    // Post-processing.  Record metadata about this reading.
-                    if (!String.IsNullOrEmpty((string)senixData["SampleRate1"]) && !String.IsNullOrEmpty((string)senixData["SampleRate2"]))
-                    {
-                        int sampleRate1 = (int)senixData["SampleRate1"];
-                        int sampleRate2 = (int)senixData["SampleRate2"];
-
-                        if (sampleRate1 != sampleRate2)
-                        {
-                            //$ TODO: Notify admins about this somehow.
-                        }
-
-                        try
-                        {
-                            RecordSampleRate(conn, device, sampleRate1);
-                        }
-                        catch (Exception /*ex*/)
-                        {
-                            //$ TODO: Figure out what to do here; this info isn't critical,
-                            //$ so we can probably just ignore the error...
-                        }
-                    }
-                    
                     try
                     {
                         RecordReceiver(conn, device, receiverId, clientIP, result.Timestamp);
@@ -143,11 +123,11 @@ namespace SenixListener
                         result.Result = String.Format("Exception: {0}", ex.ToString());
                         await result.Save(conn);
                     }
-                    
+
                     dynamic error = JsonConvert.SerializeObject($"Error: Unable to save sensor reading");
                     return new OkObjectResult(error);
                 }
-            conn.Close();
+                conn.Close();
             }
 
             dynamic okResult = JsonConvert.SerializeObject("ok");
@@ -156,7 +136,7 @@ namespace SenixListener
 
         private static void RecordReceiver(SqlConnection conn, DeviceBase device, string externalReceiverId, string clientIP, DateTime lastReadingReceived)
         {
-            ReceiverBase receiver = ReceiverBase.EnsureReceiver(conn, externalReceiverId , clientIP);
+            ReceiverBase receiver = ReceiverBase.EnsureReceiver(conn, externalReceiverId, clientIP);
             device.SetLatestReceiver(conn, externalReceiverId, lastReadingReceived).Wait();
         }
 
@@ -164,11 +144,5 @@ namespace SenixListener
         {
             device.SetSensorUpdateInterval(conn, sampleRate).Wait();
         }
-
-        [FunctionName("CheckStatus")]
-        public static IActionResult CheckStatus([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req, ILogger log)
-        {
-            return new OkObjectResult("All OK");
-        }        
     }
 }

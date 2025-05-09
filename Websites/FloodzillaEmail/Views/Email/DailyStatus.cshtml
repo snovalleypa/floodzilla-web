@@ -60,7 +60,7 @@
       <td><a href="@EmailHelpers.GetGageLink(Model.Model.Region, ls.PublicLocationId)">@ls.LocationName [@ls.PublicLocationId]</a>
          (<a href="@EmailHelpers.GetGageAdminLink(Model.Model.Region, ls.LocationId)">admin</a>)</td>
       <td>@FzCommonUtility.ToRegionTimeFromUtc(ls.LastUpdate)</td>
-      <td style="color: @EmailHelpers.GetBatteryColor(ls.BatteryMillivolt);">@FzCommonUtility.CalculateBatteryVoltPercentage(ls.BatteryMillivolt)%</td>
+      <td style="color: @EmailHelpers.GetBatteryColor(ls.BatteryPercent);">@ls.BatteryPercent%</td>
     </tr>
   }
 </table>

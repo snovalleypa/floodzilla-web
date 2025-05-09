@@ -4,6 +4,7 @@ CREATE TABLE GageStatistics (
     [LocationId] [int] NOT NULL,
     [Date] [datetime] NOT NULL,
     [AverageBatteryMillivolts] [int] NULL,
+    [AverageBatteryPercent] [float] NULL,
     [PercentReadingsReceived] [float] NULL,
     [AverageRssi] [float] NULL,
     [SensorUpdateInterval] [int] NULL,

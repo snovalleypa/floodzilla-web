@@ -81,6 +81,7 @@ namespace FloodzillaJobs
 
                 DateTime currentDayRegion = FzCommonUtility.ToRegionTimeFromUtc(allReadings[0].Timestamp).Date;
                 int totalBattery = 0;
+                double totalBatteryPct = 0;
                 double totalRssi = 0;
                 int expectedReadings = 0;
                 int receivedReadings = 0;
@@ -113,6 +114,7 @@ namespace FloodzillaJobs
                                 LocationId = location.Id,
                                 Date = FzCommonUtility.ToUtcFromRegionTime(currentDayRegion),
                                 AverageBatteryMillivolts = totalBattery / readingCount,
+                                AverageBatteryPercent = totalBatteryPct / readingCount,
                                 AverageRssi = totalRssi / (double)readingCount,
                                 SensorUpdateInterval = currentInterval,
                                 SensorUpdateIntervalChanged = intervalHasChanged,
@@ -127,6 +129,7 @@ namespace FloodzillaJobs
                         
                         currentDayRegion = thisDayRegion;
                         totalBattery = 0;
+                        totalBatteryPct = 0;
                         totalRssi = 0;
                         expectedReadings = 0;
                         receivedReadings = 0;
@@ -147,6 +150,7 @@ namespace FloodzillaJobs
                     readingCount++;
                     receivedReadings++;
                     totalBattery += sr.BatteryVolt ?? 0;
+                    totalBatteryPct += sr.BatteryPercent ?? 0;
                     totalRssi += sr.RSSI ?? 0;
 
                     int newInterval = SenixSensorHelper.GetSampleRate(senixData);

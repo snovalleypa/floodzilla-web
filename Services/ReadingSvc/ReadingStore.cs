@@ -18,6 +18,7 @@ namespace ReadingSvc
         public double? GroundHeight;
         public double? WaterDischarge;
         public int? BatteryMillivolt;
+        public double? BatteryPercent;
         public double? RoadSaddleHeight;
         public double? RSSI;
         public double? SNR;
@@ -47,6 +48,7 @@ namespace ReadingSvc
             this.GroundHeight = FzCommonUtility.GetRoundValue(source.GroundHeightFeet);
             this.WaterDischarge = FzCommonUtility.GetRoundValue(source.WaterDischarge);
             this.BatteryMillivolt = source.BatteryVolt;
+            this.BatteryPercent = source.BatteryPercent;
             this.RoadSaddleHeight = FzCommonUtility.GetRoundValue(location.AdjustToFeetAboveSeaLevel(source.RoadSaddleHeight));
             this.RSSI = source.RSSI;
             this.SNR = source.SNR;

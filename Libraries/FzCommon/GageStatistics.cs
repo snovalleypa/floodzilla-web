@@ -11,6 +11,7 @@ namespace FzCommon
         public DateTime Date { get; set; }
 
         public int? AverageBatteryMillivolts { get; set; }
+        public double? AverageBatteryPercent { get; set; }
         public double? PercentReadingsReceived { get; set; }
         public double? AverageRssi { get; set; }
 
@@ -30,6 +31,7 @@ namespace FzCommon
             cmd.Parameters.Add("@LocationId", SqlDbType.Int).Value = this.LocationId;
             cmd.Parameters.Add("@Date", SqlDbType.DateTime).Value = this.Date;
             cmd.Parameters.Add("@AverageBatteryMillivolts", SqlDbType.Int).Value = this.AverageBatteryMillivolts;
+            cmd.Parameters.Add("@AverageBatteryPercent", SqlDbType.Float).Value = this.AverageBatteryPercent;
             cmd.Parameters.Add("@PercentReadingsReceived", SqlDbType.Float).Value = this.PercentReadingsReceived;
             cmd.Parameters.Add("@AverageRssi", SqlDbType.Float).Value = this.AverageRssi;
             cmd.Parameters.Add("@SensorUpdateInterval", SqlDbType.Int).Value = this.SensorUpdateInterval;
@@ -135,6 +137,7 @@ namespace FzCommon
                 LocationId = SqlHelper.Read<int>(reader, "LocationId"),
                 Date = SqlHelper.Read<DateTime>(reader, "Date"),
                 AverageBatteryMillivolts = SqlHelper.Read<int?>(reader, "AverageBatteryMillivolts"),
+                AverageBatteryPercent = SqlHelper.Read<double?>(reader, "AverageBatteryPercent"),
                 PercentReadingsReceived = SqlHelper.Read<double?>(reader, "PercentReadingsReceived"),
                 AverageRssi = SqlHelper.Read<double?>(reader, "AverageRssi"),
                 SensorUpdateInterval = SqlHelper.Read<int?>(reader, "SensorUpdateInterval"),

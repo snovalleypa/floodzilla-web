@@ -9,7 +9,7 @@ CREATE PROCEDURE [GetRecentSensorReadings]
 AS
 BEGIN
     SELECT 
-        Id, Timestamp, LocationId, WaterHeightFeet, WaterDischarge, BatteryVolt, IsDeleted, RoadSaddleHeight, GroundHeightFeet
+        Id, Timestamp, LocationId, WaterHeightFeet, WaterDischarge, BatteryVolt, BatteryPercent, IsDeleted, RoadSaddleHeight, GroundHeightFeet
     FROM SensorReadings
     WHERE Timestamp > @fromTime
     AND IsDeleted = 0
