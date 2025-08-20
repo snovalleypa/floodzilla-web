@@ -231,7 +231,7 @@ namespace FloodzillaWeb.Controllers.Api
                         recent = recentReadings[location.Id];
                     }
 
-                    if (device.DeviceTypeId == DeviceTypeIds.Usgs)
+                    if (device.DeviceTypeId == DeviceTypeIds.Usgs || device.DeviceTypeId == DeviceTypeIds.UsgsTestingDevice)
                     {
                         usgsSite = usgsSites.FirstOrDefault(site => site.SiteId == device.DeviceId);
                     }
@@ -439,7 +439,7 @@ namespace FloodzillaWeb.Controllers.Api
                     latestReading = recent[0];
                 }
 
-                if (device.DeviceTypeId == DeviceTypeIds.Usgs)
+                if (device.DeviceTypeId == DeviceTypeIds.Usgs || device.DeviceTypeId == DeviceTypeIds.UsgsTestingDevice)
                 {
                     usgsSite = usgsSites.FirstOrDefault(site => site.SiteId == device.DeviceId);
                 }
@@ -680,7 +680,7 @@ namespace FloodzillaWeb.Controllers.Api
                     }
 
                     UsgsSite usgsSite = null;
-                    if (deviceType.DeviceTypeId == DeviceTypeIds.Usgs)
+                    if (deviceType.DeviceTypeId == DeviceTypeIds.Usgs || deviceType.DeviceTypeId == DeviceTypeIds.UsgsTestingDevice)
                     {
                         usgsSite = usgsSites.FirstOrDefault(site => site.SiteId == device.DeviceId);
                     }

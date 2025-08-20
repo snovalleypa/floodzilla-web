@@ -167,6 +167,7 @@ namespace ReadingSvc
                     device = devices.FirstOrDefault(d => d.LocationId == location.Id);
                     if (device != null)
                     {
+                        // NOTE: Don't allow DeviceTypeIds.UsgsTestingDevice here -- they shouldn't ever have forecasts...
                         if (device.DeviceTypeId == DeviceTypeIds.Usgs)
                         {
                             usgsSite = await UsgsSite.GetUsgsSite(sqlcn, device.DeviceId);
