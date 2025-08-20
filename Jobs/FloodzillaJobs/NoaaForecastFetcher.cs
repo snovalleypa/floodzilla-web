@@ -45,6 +45,10 @@ namespace FloodzillaJobs
             List<UsgsSite> usgsSites = await UsgsSite.GetUsgsSites(sqlcn);
             foreach (UsgsSite site in usgsSites)
             {
+                if (String.IsNullOrEmpty(site.NoaaSiteId))
+                {
+                    continue;
+                }
                 checkCount++;
                 sbDetails.AppendFormat("Checking site {0}...", site.NoaaSiteId);
                 NoaaForecast newForecast = await NoaaForecast.FetchNewForecast(site.NoaaSiteId);
