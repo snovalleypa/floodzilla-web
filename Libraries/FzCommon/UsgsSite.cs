@@ -179,7 +179,7 @@ namespace FzCommon
                         {
 #if DISCARD_MISMATCHED_READINGS
                             int i = 0;
-                            while (i < dischargeSeries.Values[0].Value.Count)
+                            while (i < dischargeSeries.Values[0].Value.Count && i < waterHeightSeries.Values[0].Value.Count)
                             {
                                 if (dischargeSeries.Values[0].Value[i].DateTime.Ticks != waterHeightSeries.Values[0].Value[i].DateTime.Ticks)
                                 {
@@ -193,6 +193,10 @@ namespace FzCommon
                             while (i < waterHeightSeries.Values[0].Value.Count)
                             {
                                 waterHeightSeries.Values[0].Value.RemoveAt(i);
+                            }
+                            while (i < dischargeSeries.Values[0].Value.Count)
+                            {
+                                dischargeSeries.Values[0].Value.RemoveAt(i);
                             }
                         }
                         else
