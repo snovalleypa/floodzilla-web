@@ -339,40 +339,37 @@ namespace FzCommon
         public void ConvertValuesForEditing()
         {
             this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel / 12);
-
             this.BenchmarkElevation = FzCommonUtility.GetRoundValue(this.BenchmarkElevation / 12.0);
-            this.RelativeSensorHeight = FzCommonUtility.GetRoundValue(this.RelativeSensorHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.Green = FzCommonUtility.GetRoundValue(this.Green / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.Brown = FzCommonUtility.GetRoundValue(this.Brown / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.YMin = FzCommonUtility.GetRoundValue(this.YMin / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.YMax = FzCommonUtility.GetRoundValue(this.YMax / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.GroundHeight = FzCommonUtility.GetRoundValue(this.GroundHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.RoadSaddleHeight = FzCommonUtility.GetRoundValue(this.RoadSaddleHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.MarkerOneHeight = FzCommonUtility.GetRoundValue(this.MarkerOneHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
-            this.MarkerTwoHeight = FzCommonUtility.GetRoundValue(this.MarkerTwoHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet;
+            this.RelativeSensorHeight = FzCommonUtility.GetRoundValue((this.RelativeSensorHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.Green = FzCommonUtility.GetRoundValue((this.Green / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.Brown = FzCommonUtility.GetRoundValue((this.Brown / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.YMin = FzCommonUtility.GetRoundValue((this.YMin / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.YMax = FzCommonUtility.GetRoundValue((this.YMax / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.GroundHeight = FzCommonUtility.GetRoundValue((this.GroundHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.RoadSaddleHeight = FzCommonUtility.GetRoundValue((this.RoadSaddleHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.MarkerOneHeight = FzCommonUtility.GetRoundValue((this.MarkerOneHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
+            this.MarkerTwoHeight = FzCommonUtility.GetRoundValue((this.MarkerTwoHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
         }
 
         // These fields are presented for display as feet above sea level
         public void ConvertValuesForDisplay()
         {
             this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel / 12);
-
             this.BenchmarkElevation = FzCommonUtility.GetRoundValue(this.BenchmarkElevation / 12.0);
-            this.RelativeSensorHeight = FzCommonUtility.GetRoundValue(this.RelativeSensorHeight / 12.0) + this.BenchmarkElevation;
-            this.Green = FzCommonUtility.GetRoundValue(this.Green / 12.0) + this.BenchmarkElevation;
-            this.Brown = FzCommonUtility.GetRoundValue(this.Brown / 12.0) + this.BenchmarkElevation;
-            this.YMin = FzCommonUtility.GetRoundValue(this.YMin / 12.0) + this.BenchmarkElevation;
-            this.YMax = FzCommonUtility.GetRoundValue(this.YMax / 12.0) + this.BenchmarkElevation;
-            this.GroundHeight = FzCommonUtility.GetRoundValue(this.GroundHeight / 12.0) + this.BenchmarkElevation;
-            this.RoadSaddleHeight = FzCommonUtility.GetRoundValue(this.RoadSaddleHeight / 12.0) + this.BenchmarkElevation;
-            this.MarkerOneHeight = FzCommonUtility.GetRoundValue(this.MarkerOneHeight / 12.0) + this.BenchmarkElevation;
-            this.MarkerTwoHeight = FzCommonUtility.GetRoundValue(this.MarkerTwoHeight / 12.0) + this.BenchmarkElevation;
+            this.RelativeSensorHeight = FzCommonUtility.GetRoundValue((this.RelativeSensorHeight / 12.0) + this.BenchmarkElevation);
+            this.Green = FzCommonUtility.GetRoundValue((this.Green / 12.0) + this.BenchmarkElevation);
+            this.Brown = FzCommonUtility.GetRoundValue((this.Brown / 12.0) + this.BenchmarkElevation);
+            this.YMin = FzCommonUtility.GetRoundValue((this.YMin / 12.0) + this.BenchmarkElevation);
+            this.YMax = FzCommonUtility.GetRoundValue((this.YMax / 12.0) + this.BenchmarkElevation);
+            this.GroundHeight = FzCommonUtility.GetRoundValue((this.GroundHeight / 12.0) + this.BenchmarkElevation);
+            this.RoadSaddleHeight = FzCommonUtility.GetRoundValue((this.RoadSaddleHeight / 12.0) + this.BenchmarkElevation);
+            this.MarkerOneHeight = FzCommonUtility.GetRoundValue((this.MarkerOneHeight / 12.0) + this.BenchmarkElevation);
+            this.MarkerTwoHeight = FzCommonUtility.GetRoundValue((this.MarkerTwoHeight / 12.0) + this.BenchmarkElevation);
         }
 
         public void ConvertValuesForStorage()
         {
             this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel * 12);
-
             this.BenchmarkElevation = FzCommonUtility.GetRoundValue(this.BenchmarkElevation * 12.0);
             this.RelativeSensorHeight = FzCommonUtility.GetRoundValue((this.RelativeSensorHeight - FzCommon.Constants.BenchmarkOffsetFeet) * 12.0);
             this.Green = FzCommonUtility.GetRoundValue((this.Green - FzCommon.Constants.BenchmarkOffsetFeet) * 12.0);
