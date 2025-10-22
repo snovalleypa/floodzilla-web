@@ -16,6 +16,9 @@ namespace FloodzillaJobs
 {
     public class GageStatisticsCollector : FloodzillaJob
     {
+        const int DefaultMileSightInterval = 15;
+        const int DefaultSensorInterval = 15;
+
         public GageStatisticsCollector() : base("FloodzillaJob.CollectGageStatistics",
                                                 "Gage Statistics Collector")
         {
@@ -24,8 +27,21 @@ namespace FloodzillaJobs
         protected override async Task RunJob(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
         {
             await this.CollectSenixGageStatistics(sqlcn, sbDetails, sbSummary);
-                    
+
             //$ TODO: Collect stats for other gage types
+        }
+
+        private int GetSampleRate(dynamic readingData, DeviceBase device)
+        {
+            if (device.DeviceTypeId == DeviceTypeIds.Milesight)
+            {
+                return DefaultMileSightInterval;
+            }
+            if (device.DeviceTypeId == DeviceTypeIds.Senix)
+            {
+                return SenixSensorHelper.GetSampleRate(readingData);
+            }
+            return DefaultSensorInterval;
         }
 
         public async Task CollectSenixGageStatistics(SqlConnection sqlcn, StringBuilder sbDetails, StringBuilder sbSummary)
@@ -40,7 +56,8 @@ namespace FloodzillaJobs
             {
                 // If the location currently has a Senix device attached to it, then gather statistics for it.
                 DeviceBase device = devices.FirstOrDefault(d => d.LocationId == location.Id);
-                if (device == null || device.DeviceTypeId != DeviceTypeIds.Senix)
+                if (device == null ||
+                    (device.DeviceTypeId != DeviceTypeIds.Senix && device.DeviceTypeId != DeviceTypeIds.Milesight))
                 {
                     continue;
                 }
@@ -87,7 +104,7 @@ namespace FloodzillaJobs
                 int receivedReadings = 0;
                 int readingCount = 0;
 
-                int currentInterval = SenixSensorHelper.GetSampleRate(allReadings[0]);
+                int currentInterval = GetSampleRate(allReadings[0], device);
                 bool intervalHasChanged = false;
 
                 // Start off at beginning-of-region-day minus our current interval
@@ -99,11 +116,11 @@ namespace FloodzillaJobs
 
                     // Some locations have had various kinds of devices attached.
                     DeviceBase thisDevice = devices.FirstOrDefault(d => d.DeviceId == sr.DeviceId);
-                    if (thisDevice != null && thisDevice.DeviceTypeId != DeviceTypeIds.Senix)
+                    if (thisDevice != null && thisDevice.DeviceTypeId != device.DeviceTypeId)
                     {
                         continue;
                     }
-                    
+
                     DateTime thisDayRegion = FzCommonUtility.ToRegionTimeFromUtc(sr.Timestamp).Date;
                     if (thisDayRegion > currentDayRegion)
                     {
@@ -123,10 +140,10 @@ namespace FloodzillaJobs
                             {
                                 stats.PercentReadingsReceived = 100.0 * ((double)receivedReadings / (double)expectedReadings);
                             }
-                            await stats.Save(sqlcn);
+                            if (device.DeviceTypeId == DeviceTypeIds.Milesight) await stats.Save(sqlcn);
                             statsCount++;
                         }
-                        
+
                         currentDayRegion = thisDayRegion;
                         totalBattery = 0;
                         totalBatteryPct = 0;
@@ -137,28 +154,40 @@ namespace FloodzillaJobs
                         intervalHasChanged = false;
                     }
 
-                    dynamic senixData = SenixSensorHelper.GetRawData(sr);
-
-                    // We need to double-check this because early versions of the senix listener did
-                    // not properly ignore these readings.
-                    string deleteReason;
-                    if (SenixSensorHelper.ShouldIgnoreReading(senixData, null, out deleteReason))
+                    if (device.DeviceTypeId == DeviceTypeIds.Senix)
                     {
-                        continue;
+                        dynamic senixData = SenixSensorHelper.GetRawData(sr);
+
+                        // We need to double-check this because early versions of the senix listener did
+                        // not properly ignore these readings.
+                        string deleteReason;
+                        if (SenixSensorHelper.ShouldIgnoreReading(senixData, null, out deleteReason))
+                        {
+                            continue;
+                        }
+                        int newInterval = GetSampleRate(senixData, device);
+                        if (newInterval != currentInterval)
+                        {
+                            intervalHasChanged = true;
+                            currentInterval = newInterval;
+                        }
                     }
-                    
+                    else if (device.DeviceTypeId == DeviceTypeIds.Milesight)
+                    {
+                        string deleteReason;
+                        if (ThingsNetworkHelper.ShouldIgnoreReading(sr.RawSensorData, null, out deleteReason))
+                        {
+                            continue;
+                        }
+                        //$ TODO: Someday, figure out if the Milesight sensors can report their sampling interval...
+                    }
+
                     readingCount++;
                     receivedReadings++;
                     totalBattery += sr.BatteryVolt ?? 0;
                     totalBatteryPct += sr.BatteryPercent ?? 0;
                     totalRssi += sr.RSSI ?? 0;
 
-                    int newInterval = SenixSensorHelper.GetSampleRate(senixData);
-                    if (newInterval != currentInterval)
-                    {
-                        intervalHasChanged = true;
-                        currentInterval = newInterval;
-                    }
                     TimeSpan elapsed = sr.Timestamp - lastReadingUtc;
 
                     // Add some wiggle room to take clock skew into account
