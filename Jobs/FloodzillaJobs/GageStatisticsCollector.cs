@@ -140,7 +140,7 @@ namespace FloodzillaJobs
                             {
                                 stats.PercentReadingsReceived = 100.0 * ((double)receivedReadings / (double)expectedReadings);
                             }
-                            if (device.DeviceTypeId == DeviceTypeIds.Milesight) await stats.Save(sqlcn);
+                            await stats.Save(sqlcn);
                             statsCount++;
                         }
 
