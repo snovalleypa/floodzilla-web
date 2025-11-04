@@ -459,14 +459,25 @@ namespace FzCommon
             reading.GroundHeight = groundHeight;
             reading.DistanceReading = distanceReading;
             reading.WaterHeight = distanceReading;
-            try
+            reading.BatteryPercent = 0;
+            if (uplink["last_battery_percentage"] != null && uplink["last_battery_percentage"]["value"] != null)
             {
                 reading.BatteryPercent = (double)(uplink["last_battery_percentage"]["value"]);
             }
-            catch
+            else if (decoded_payload["battery_percentage"] != null)
             {
-                reading.BatteryPercent = 0;
+                reading.BatteryPercent = (double)(decoded_payload["battery_percentage"]);
             }
+            reading.BatteryVolt = 0;
+            if (decoded_payload["battery_voltage_mv"] != null)
+            {
+                reading.BatteryVolt = (int)(decoded_payload["battery_voltage_mv"]);
+            }
+            else if (decoded_payload["battery_voltage_v"] != null)
+            {
+                reading.BatteryVolt = (int)(1000.0 * (double)(decoded_payload["battery_voltage_v"]));
+            }
+
             reading.RawSensorData = postData;
 
             reading.RSSI = (double)rx_metadata["rssi"];

@@ -152,7 +152,7 @@ namespace FloodzillaWeb.Controllers
             SensorReading sr = readings[0];
             return new DeviceReadingStatus()
             {
-                BatteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryVolt) ?? 0,
+                BatteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryPercent, sr.BatteryVolt) ?? 0,
                 LastReading = (sr.WaterHeight ?? 0) / 12.0,
                 LastReadingTime = sr.Timestamp.AddMinutes(tzOffset),
             };

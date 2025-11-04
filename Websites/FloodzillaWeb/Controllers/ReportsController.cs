@@ -380,7 +380,7 @@ namespace FloodzillaWeb.Controllers
             List<RecentReading> ret = new List<RecentReading>();
             foreach (SensorReading sr in readings)
             {
-                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryVolt);
+                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryPercent, sr.BatteryVolt);
                 ret.Add(new RecentReading()
                 {
                     Id = sr.Id,
@@ -449,7 +449,7 @@ namespace FloodzillaWeb.Controllers
             DateTime lastTime = DateTime.UtcNow;
             foreach (SensorReading sr in readings)
             {
-                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryVolt);
+                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryPercent, sr.BatteryVolt);
 
                 if (sr.DeviceId.HasValue && sr.DeviceId.Value != lastDeviceId && sr.DeviceId.Value != 0)
                 {

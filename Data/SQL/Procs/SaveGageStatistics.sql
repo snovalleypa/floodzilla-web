@@ -11,7 +11,9 @@ CREATE PROCEDURE [SaveGageStatistics]
     @PercentReadingsReceived float = null,
     @AverageRssi float = null,
     @SensorUpdateInterval int = null,
-    @SensorUpdateIntervalChanged bit = null
+    @SensorUpdateIntervalChanged bit = null,
+    @CountReadingsFiltered int = null,
+    @CountReadingsDeleted int = null
 AS
 BEGIN
 
@@ -23,7 +25,9 @@ BEGIN
             PercentReadingsReceived = @PercentReadingsReceived,
             AverageRssi = @AverageRssi,
             SensorUpdateInterval = @SensorUpdateInterval,
-            SensorUpdateIntervalChanged = @SensorUpdateIntervalChanged
+            SensorUpdateIntervalChanged = @SensorUpdateIntervalChanged,
+            CountReadingsFiltered = @CountReadingsFiltered,
+            CountReadingsDeleted = @CountReadingsDeleted
         WHERE LocationId=@LocationId AND Date=@Date
     END
     ELSE
@@ -37,7 +41,9 @@ BEGIN
             PercentReadingsReceived,
             AverageRssi,
             SensorUpdateInterval,
-            SensorUpdateIntervalChanged
+            SensorUpdateIntervalChanged,
+            CountReadingsFiltered,
+            CountReadingsDeleted
             )
         VALUES 
             (
@@ -48,7 +54,9 @@ BEGIN
             @PercentReadingsReceived,
             @AverageRssi,
             @SensorUpdateInterval,
-            @SensorUpdateIntervalChanged
+            @SensorUpdateIntervalChanged,
+            @CountReadingsFiltered,
+            @CountReadingsDeleted
             )
     END
 END
