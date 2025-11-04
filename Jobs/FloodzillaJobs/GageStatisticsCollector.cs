@@ -135,8 +135,8 @@ namespace FloodzillaJobs
                             {
                                 LocationId = location.Id,
                                 Date = FzCommonUtility.ToUtcFromRegionTime(currentDayRegion),
-                                AverageBatteryMillivolts = totalBattery / batteryVoltageReadingCount,
-                                AverageBatteryPercent = totalBatteryPct / batteryPctReadingCount,
+                                AverageBatteryMillivolts = (batteryVoltageReadingCount == 0) ? 0 : (totalBattery / batteryVoltageReadingCount),
+                                AverageBatteryPercent = (batteryPctReadingCount == 0) ? 0 : (totalBatteryPct / batteryPctReadingCount),
                                 AverageRssi = totalRssi / (double)readingCount,
                                 SensorUpdateInterval = currentInterval,
                                 SensorUpdateIntervalChanged = intervalHasChanged,
