@@ -1,63 +1,95 @@
+@using FloodzillaWeb.Controllers
 @{
-    Layout = "_AdminLayout";
-    ViewData["Title"] = "Latest Gage Statistics";
+  Layout = "_AdminLayout";
+  ViewData["Title"] = "Latest Gage Statistics";
 }
 
 <style>
-    div.barbox      {position:relative;white-space:nowrap;width:100%;} 
-    div.bars        {position:absolute;top:-2px;height:24px;width:100%;}
-    div.barleft     {position:absolute;height:22px;background-color:#cbdeeb}
-    div.barval      {position:relative;left:5px;}
+  div.barbox {
+    position: relative;
+    white-space: nowrap;
+    width: 100%;
+  }
+
+  div.bars {
+    position: absolute;
+    top: -2px;
+    height: 24px;
+    width: 100%;
+  }
+
+  div.barleft {
+    position: absolute;
+    height: 22px;
+    background-color: #cbdeeb
+  }
+
+  div.barval {
+    position: relative;
+    left: 5px;
+  }
 </style>
 
 <div class="row">
-    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
-        <div class="card card-info">
-          <div class="card-header">
-            <div class="card-title">Latest Gage Statistics</div>
-          </div>
-        </div>
+  <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+    <div class="card card-info">
+      <div class="card-header">
+        <div class="card-title">Latest Gage Statistics</div>
+      </div>
     </div>
+  </div>
 </div>
 
 <div class="row">
-    <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
-        <table style="width:100%" class="table table-striped table-bordered">
-            <thead>
-                <tr>
-                    <th>Location</th>
-                    <th>Date</th>
-                    <th>Avg Battery</th>
-                    <th>Percent Received</th>
-                    <th>Avg Rssi</th>
-                </tr>
-            </thead>
-            <tbody>
-              @foreach (var item in ViewBag.StatsSummary)
-              {
-                var rowClass = "";
-                var localDate = FzCommon.FzCommonUtility.ToRegionTimeFromUtc(item.Date);
-                var age = DateTime.UtcNow - item.Date;
-                if (age.TotalHours > 48)
-                {
-                  rowClass = "table-danger";
-                }
-                IEnumerable<FzCommon.SensorLocationBase> locs = (IEnumerable<FzCommon.SensorLocationBase>)(ViewBag.AllLocations);
-                var loc = locs.Where(l => l.Id == item.LocationId).FirstOrDefault();
-                if (loc == null || !loc.IsPublic)
-                {
-                  continue;
-                }
-                <tr class="@rowClass">
-                  <td><a asp-controller="Reports" asp-action="Stats" asp-route-locationId="@loc.Id">@loc.LocationName</a></td>
-                  <td >@localDate.ToString("d")</td>
-                  <td>@Math.Round(item.AverageBatteryMillivolts / 1000.0, 3)V</td>
-                  <td>@Math.Round(item.PercentReadingsReceived, 2)%</td>
-                  <td>@Math.Round(item.AverageRssi, 2)</td>
-                </tr>
-              }
-            </tbody>
-        </table>
-    </div>
-</div>
+  <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
+    <table style="width:100%" class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>Location</th>
+          <th>Latest Stats Date</th>
+          <th>Avg Battery</th>
+          <th>Percent Received</th>
+          <th>Avg Rssi</th>
+          <th># Filtered</th>
+          <th># Deleted</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in ViewBag.StatsSummary)
+        {
+          var rowClass = "";
+          var localDate = FzCommon.FzCommonUtility.ToRegionTimeFromUtc(item.Date);
+          var age = DateTime.UtcNow - item.Date;
+          if (age.TotalHours > 48)
+          {
+            rowClass = "table-danger";
+          }
+          IEnumerable<FzCommon.SensorLocationBase> locs = (IEnumerable<FzCommon.SensorLocationBase>)(ViewBag.AllLocations);
+          var loc = locs.Where(l => l.Id == item.LocationId).FirstOrDefault();
 
+          // Currently we're hiding non-public gauges here.  Might be nice to add a checkbox or something to show them...
+          if (loc == null || !loc.IsPublic)
+          {
+            continue;
+          }
+          if (!loc.IsPublic)
+          {
+            rowClass = "table-warning";
+          }
+          string batteryText = ReportsController.GetAverageBatteryText(item.AverageBatteryPercent, item.AverageBatteryMillivolts);
+          string filteredText = item.CountReadingsFiltered == null ? "-" : item.CountReadingsFiltered.ToString();
+          string deletedText = item.CountReadingsDeleted == null ? "-" : item.CountReadingsDeleted.ToString();
+          <tr class="@rowClass">
+            <td><a asp-controller="Reports" asp-action="Stats" asp-route-locationId="@loc.Id">@loc.LocationName</a></td>
+            <td>@localDate.ToString("d")</td>
+            <td>@batteryText</td>
+            <td>@Math.Round(item.PercentReadingsReceived, 2)%</td>
+            <td>@Math.Round(item.AverageRssi, 2)</td>
+            <td>@filteredText</td>
+            <td>@deletedText</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
