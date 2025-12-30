@@ -6,6 +6,8 @@ CREATE TABLE GageStatistics (
     [AverageBatteryMillivolts] [int] NULL,
     [AverageBatteryPercent] [float] NULL,
     [PercentReadingsReceived] [float] NULL,
+    [CountReadingsFiltered] [int] NULL,
+    [CountReadingsDeleted] [int] NULL,
     [AverageRssi] [float] NULL,
     [SensorUpdateInterval] [int] NULL,
     [SensorUpdateIntervalChanged] [bit] NULL,

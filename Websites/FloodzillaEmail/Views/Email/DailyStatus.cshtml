@@ -79,6 +79,8 @@ Latest gauge statistics:
     <th>Avg Battery</th>
     <th>Percent Received</th>
     <th>Avg Rssi</th>
+    <th># Filtered</th>
+    <th># Deleted</th>
   </tr>
 @foreach (DailyStatusEmailModel.LocationStatistics stats in Model.Model.LatestStatistics) {
   string rowClass = "";
@@ -91,9 +93,11 @@ Latest gauge statistics:
     <td><a href="@EmailHelpers.GetGageStatsLink(Model.Model.Region, stats.LocationId)">@stats.LocationName</a>
        (<a href="@EmailHelpers.GetGageAdminLink(Model.Model.Region, stats.LocationId)">admin</a>)</td>
     <td >@stats.DateInRegionTime.ToString("d")</td>
-    <td>@Math.Round(stats.Stats.AverageBatteryMillivolts.Value / 1000.0, 3)V</td>
+    <td>@EmailHelpers.GetAverageBatteryText(stats.Stats.AverageBatteryPercent, stats.Stats.AverageBatteryMillivolts)</td>
     <td>@Math.Round(stats.Stats.PercentReadingsReceived.Value, 2)%</td>
     <td>@Math.Round(stats.Stats.AverageRssi.Value, 2)</td>
+    <td>@(stats.Stats.CountReadingsFiltered.HasValue ? stats.Stats.CountReadingsFiltered.ToString() : "-")</td>
+    <td>@(stats.Stats.CountReadingsDeleted.HasValue ? stats.Stats.CountReadingsDeleted.ToString() : "-")</td>
   </tr>
 }
 </table>

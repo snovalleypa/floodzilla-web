@@ -48,7 +48,7 @@ namespace FloodzillaWeb.Controllers
                 : base(context, memoryCache, userPermissions)
         {
         }
-        
+
         // GET: /<controller>/
         // NOTE: date is expected to be in region time
         public async Task<IActionResult> Index(int? locationId, string readings, string date = null, int page = 0)
@@ -61,7 +61,7 @@ namespace FloodzillaWeb.Controllers
                 sqlcn.Close();
             }
             DateTime targetDate = region.ToRegionTimeFromUtc(DateTime.UtcNow);
-            
+
             if (date != null)
             {
                 if (!DateTime.TryParse(date, out targetDate))
@@ -86,7 +86,7 @@ namespace FloodzillaWeb.Controllers
             await SensorReading.MarkReadingsAsDeleted(deleteIds, fullDeleteReason);
             return RedirectToAction("DeviceReadings", new { deviceId = deviceId });
         }
-        
+
         [Authorize(Roles = "Admin,Organization Admin,Gage Steward")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -204,7 +204,7 @@ namespace FloodzillaWeb.Controllers
             }
         }
 
-        public async Task<IActionResult> ViewReadings([FromQuery]string readings)
+        public async Task<IActionResult> ViewReadings([FromQuery] string readings)
         {
             Tuple<SensorReading, RegionBase> target = await GetSampleTargetReading(readings);
             if (target == null)
@@ -218,7 +218,7 @@ namespace FloodzillaWeb.Controllers
             return RedirectToAction("Index", new { locationId = locationId, date = endDate.ToString("yyyy-MM-dd"), readings = readings });
         }
 
-        public async Task<IActionResult> ViewSenixLogForReadings([FromQuery]string readings)
+        public async Task<IActionResult> ViewSenixLogForReadings([FromQuery] string readings)
         {
             Tuple<SensorReading, RegionBase> target = await GetSampleTargetReading(readings);
             if (target == null)
@@ -247,7 +247,7 @@ namespace FloodzillaWeb.Controllers
                 sqlcn.Close();
             }
             DateTime targetDate = region.ToRegionTimeFromUtc(DateTime.UtcNow);
-            
+
             if (date != null)
             {
                 if (!DateTime.TryParse(date, out targetDate))
@@ -265,7 +265,9 @@ namespace FloodzillaWeb.Controllers
         {
             ViewBag.Locations = GetLocations(locationId ?? 0,
                                              (l => l.Devices != null &&
-                                                 (l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Senix || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Milesight)));
+                                                 (l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Senix
+                                                 || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Milesight
+                                                 || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Dragino)));
             return View();
         }
 
@@ -305,7 +307,7 @@ namespace FloodzillaWeb.Controllers
                 }
                 selectListItems.Add(sli);
             }
-            selectListItems.Insert(0, new SelectListItem() { Text="-- Select Device --", Value="0" });
+            selectListItems.Insert(0, new SelectListItem() { Text = "-- Select Device --", Value = "0" });
             return selectListItems;
         }
 
@@ -340,7 +342,7 @@ namespace FloodzillaWeb.Controllers
                 }
                 selectListItems.Add(sli);
             }
-            selectListItems.Insert(0, new SelectListItem() { Text="-- Select Location --", Value="0" });
+            selectListItems.Insert(0, new SelectListItem() { Text = "-- Select Location --", Value = "0" });
             return selectListItems;
         }
 
@@ -351,7 +353,7 @@ namespace FloodzillaWeb.Controllers
             var selectListItems = new List<SelectListItem>();
 
             selectListItems.Add(new SelectListItem() { Text = "All Logs", Value = DeviceName_All, Selected = (deviceValue == DeviceName_All) });
-            
+
             foreach (var item in devices)
             {
                 string text = item.Name ?? "" + "[" + item.DeviceId.ToString() + "]";
@@ -374,13 +376,30 @@ namespace FloodzillaWeb.Controllers
             return selectListItems;
         }
 
+        public static string GetAverageBatteryText(double? avgBatteryPercent, int? avgBatteryMillivolts)
+        {
+            if (!avgBatteryPercent.HasValue && !avgBatteryMillivolts.HasValue)
+            {
+                return "[n/a]";
+            }
+            if (avgBatteryMillivolts <= 0 && avgBatteryPercent <= 0)
+            {
+                return "[n/a]";
+            }
+            if (avgBatteryMillivolts.HasValue && avgBatteryMillivolts > 0)
+            {
+                return Math.Round(avgBatteryMillivolts.Value / 1000.0, 3).ToString() + "V";
+            }
+            return Math.Round(avgBatteryPercent.Value, 2).ToString() + "%";
+        }
+
         public async Task<IActionResult> GetReadingsForDevice(double tzOffset, int deviceId)
         {
             List<SensorReading> readings = await SensorReading.GetReadingsForDevice(deviceId, 500, null, null);
             List<RecentReading> ret = new List<RecentReading>();
             foreach (SensorReading sr in readings)
             {
-                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryVolt);
+                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryPercent, sr.BatteryVolt);
                 ret.Add(new RecentReading()
                 {
                     Id = sr.Id,
@@ -420,7 +439,7 @@ namespace FloodzillaWeb.Controllers
                 region = RegionBase.GetRegion(sqlcn, FzCommon.Constants.SvpaRegionId);
                 sqlcn.Close();
             }
-            
+
             DateTime? endDate = null;
             if (!String.IsNullOrEmpty(endDateString))
             {
@@ -449,14 +468,14 @@ namespace FloodzillaWeb.Controllers
             DateTime lastTime = DateTime.UtcNow;
             foreach (SensorReading sr in readings)
             {
-                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryVolt);
+                double? batteryPercent = FzCommonUtility.CalculateBatteryVoltPercentage(sr.BatteryPercent, sr.BatteryVolt);
 
                 if (sr.DeviceId.HasValue && sr.DeviceId.Value != lastDeviceId && sr.DeviceId.Value != 0)
                 {
                     lastDeviceId = sr.DeviceId.Value;
                     device = (DeviceBase)devices.FirstOrDefault(d => d.DeviceId == lastDeviceId);
                 }
-                
+
                 ret.Add(new RecentReading()
                 {
                     Id = sr.Id,
@@ -506,14 +525,14 @@ namespace FloodzillaWeb.Controllers
                 {
                     DateTime missedDay = lastDate.Date.AddDays(1);
                     ret.Add(new GageStatistics()
-                            {
-                                LocationId = locationId,
-                                Date = missedDay,
-                                AverageBatteryMillivolts = 0,
-                                PercentReadingsReceived = 0,
-                                AverageRssi = 0,
-                                SensorUpdateInterval = 0,
-                            });
+                    {
+                        LocationId = locationId,
+                        Date = missedDay,
+                        AverageBatteryMillivolts = 0,
+                        PercentReadingsReceived = 0,
+                        AverageRssi = 0,
+                        SensorUpdateInterval = 0,
+                    });
                     lastDate = missedDay;
                 }
                 ret.Add(stat);
@@ -560,7 +579,7 @@ namespace FloodzillaWeb.Controllers
             using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
             {
                 await sqlcn.OpenAsync();
-            
+
                 //$ TODO: Region
                 RegionBase region = RegionBase.GetRegion(sqlcn, FzCommon.Constants.SvpaRegionId);
                 List<DeviceBase> devices = await DeviceBase.GetDevicesAsync(sqlcn);
@@ -575,7 +594,7 @@ namespace FloodzillaWeb.Controllers
                 targetDate = new DateTime(targetDate.Ticks, DateTimeKind.Unspecified);
                 DateTime fromDate = region.ToUtcFromRegionTime(targetDate.Date);
                 DateTime toDate = region.ToUtcFromRegionTime(targetDate.AddDays(1).Date);
-            
+
                 switch (device)
                 {
                     case DeviceName_All:
@@ -648,7 +667,7 @@ namespace FloodzillaWeb.Controllers
                             receiverNames[log.ReceiverId] = sle.Receiver;
                         }
                     }
-                    
+
                     ret.Add(sle);
                 }
                 sqlcn.Close();

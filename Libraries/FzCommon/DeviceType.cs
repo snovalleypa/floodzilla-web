@@ -11,6 +11,7 @@ namespace FzCommon
         public const int Senix = 4;
         public const int UsgsTestingDevice = 5;
         public const int Milesight = 6;
+        public const int Dragino = 7;
     }
     
     public class DeviceType

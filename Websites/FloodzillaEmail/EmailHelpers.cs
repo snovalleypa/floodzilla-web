@@ -53,24 +53,41 @@ public class EmailHelpers
         }
     }
 
+    public static string GetAverageBatteryText(double? avgBatteryPercent, int? avgBatteryMillivolts)
+    {
+        if (!avgBatteryPercent.HasValue && !avgBatteryMillivolts.HasValue)
+        {
+            return "[n/a]";
+        }
+        if (avgBatteryMillivolts <= 0 && avgBatteryPercent <= 0)
+        {
+            return "[n/a]";
+        }
+        if (avgBatteryMillivolts.HasValue && avgBatteryMillivolts > 0)
+        {
+            return Math.Round(avgBatteryMillivolts.Value / 1000.0, 3).ToString() + "V";
+        }
+        return Math.Round(avgBatteryPercent.Value, 2).ToString() + "%";
+    }
+
     public static string RenderDayOfWeek(RegionBase region, DateTime timestamp)
     {
         DateTime local = region.ToRegionTimeFromUtc(timestamp);
         return local.ToString("ddd");
     }
-    
+
     public static string RenderTimestampNoDay(RegionBase region, DateTime timestamp)
     {
         DateTime local = region.ToRegionTimeFromUtc(timestamp);
         return local.ToString("M/d hh:mm tt");
     }
-    
+
     public static string RenderTimestamp(RegionBase region, DateTime timestamp)
     {
         DateTime local = region.ToRegionTimeFromUtc(timestamp);
         return local.ToString("ddd M/d hh:mm tt");
     }
-    
+
     public static string RenderFeet(double f)
     {
         return String.Format("{0:0.00} ft", f);

@@ -4,17 +4,36 @@
 }
 
 <style>
-    div.barbox      {position:relative;white-space:nowrap;width:100%;} 
-    div.bars        {position:absolute;top:-2px;height:24px;width:100%;}
-    div.barleft     {position:absolute;height:22px;background-color:#cbdeeb}
-    div.barval      {position:relative;left:5px;}
+    div.barbox {
+        position: relative;
+        white-space: nowrap;
+        width: 100%;
+    }
+
+    div.bars {
+        position: absolute;
+        top: -2px;
+        height: 24px;
+        width: 100%;
+    }
+
+    div.barleft {
+        position: absolute;
+        height: 22px;
+        background-color: #cbdeeb
+    }
+
+    div.barval {
+        position: relative;
+        left: 5px;
+    }
 </style>
 <div class="row">
     <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
         <div class="card card-info">
-          <div class="card-header">
-            <div class="card-title">Gage Statistics by Location</div>
-          </div>
+            <div class="card-header">
+                <div class="card-title">Gage Statistics by Location</div>
+            </div>
         </div>
     </div>
 </div>
@@ -23,7 +42,8 @@
     <div class="col-md-5 col-lg-5 col-sm-5 col-xs-12">
         <div class="form-group">
             <label for="LocationIdSelect">Sensor Location:</label><br />
-            <select id="LocationIdSelect" style="display:inline" name="LocationId" class="form-control" asp-items="@ViewBag.Locations"></select>
+            <select id="LocationIdSelect" style="display:inline" name="LocationId" class="form-control"
+                asp-items="@ViewBag.Locations"></select>
         </div>
     </div>
 </div>
@@ -40,6 +60,8 @@
                     <th>Date</th>
                     <th>Avg Battery</th>
                     <th>Percent Received</th>
+                    <th># Filtered</th>
+                    <th># Deleted</th>
                     <th>Avg Rssi</th>
                     <th>Update Interval (min)</th>
                     <th>Interval Changed?</th>
@@ -56,11 +78,27 @@
     </div>
 </div>
 
-@section Scripts{
+@section Scripts {
     <script>
 
         var pageSize = 100;
-      
+
+        function renderBattery(data) {
+            if (data == undefined || data == 0) {
+                return '';
+            }
+            if (!data.averageBatteryMillivolts && !data.averageBatteryPercent) {
+                return "n/a";
+            }
+            if (data.averageBatteryMillivolts && !data.averageBatteryPercent) {
+                return `<span>${(data.averageBatteryMillivolts / 1000.0).toFixed(3)}V`;
+            }
+            if (data.averageBatteryPercent && !data.averageBatteryMillivolts) {
+                return `<span>${data.averageBatteryPercent.toFixed(2)}%`;
+            }
+            return `<span data-toggle="tooltip" title="${(data.averageBatteryMillivolts / 1000.0).toFixed(3) + "V"}>${data.averageBatteryPercent.toFixed(2)}%</span>`;
+        }
+
         var dataTable;
         function InitTable() {
             dataTable = $("table").DataTable({
@@ -71,7 +109,7 @@
                 language: { emptyTable: "...", infoEmpty: "", zeroRecords: "No data" },
                 dom: 'lBfrtip',
                 buttons: ['copy', 'excel', 'pdf'],
-                createdRow: function(row, data, dataIndex) {
+                createdRow: function (row, data, dataIndex) {
                     if (data.sensorUpdateIntervalChanged) {
                         $(row).addClass('table-inactive');
                     }
@@ -80,12 +118,14 @@
                     }
                 },
                 columns: [
-                { "data": "date", "orderable": true, render: function(data, type, row) { data = data.replace('Z', ''); return moment(data).format("MM/DD/YYYY"); } },
-                { "data": "averageBatteryMillivolts", "orderable": true, render: function(data, type, row) { return (data/1000).toFixed(3) + 'V'; } },
-                { "data": "percentReadingsReceived", "orderable": true, render: function(data, type, row) { return data.toFixed(2) + '%'; } },
-                { "data": "averageRssi", "orderable": true , render: function(data, type, row) { return data.toFixed(2); } },
-                { "data": "sensorUpdateInterval", "orderable": true },
-                { "data": "sensorUpdateIntervalChanged", "orderable": true },
+                    { "data": "date", "orderable": true, render: function (data, type, row) { data = data.replace('Z', ''); return moment(data).format("MM/DD/YYYY"); } },
+                    { "data": renderBattery },
+                    { "data": "percentReadingsReceived", "orderable": true, render: function (data, type, row) { return data ? data.toFixed(2) + '%' : "n/a"; } },
+                    { "data": "countReadingsFiltered", "orderable": true, render: function (data, type, row) { return (data === null || data === undefined) ? "-" : data } },
+                    { "data": "countReadingsDeleted", "orderable": true, render: function (data, type, row) { return (data === null || data === undefined) ? "-" : data } },
+                    { "data": "averageRssi", "orderable": true, render: function (data, type, row) { return data.toFixed(2); } },
+                    { "data": "sensorUpdateInterval", "orderable": true },
+                    { "data": "sensorUpdateIntervalChanged", "orderable": true },
                 ]
             });
             $('table').on('xhr.dt', function (e, settings, json, xhr) {
@@ -112,10 +152,10 @@
             dataTable.ajax.reload();
         }
 
-        $(function() {
+        $(function () {
             var curLocation = parseInt($("#LocationIdSelect").children("option:selected").val());
             InitTable();
-            $("#LocationIdSelect").change(function() {
+            $("#LocationIdSelect").change(function () {
                 window.location.href = "/Reports/Stats/?locationId=" + $(this).children("option:selected").val();
             });
 

@@ -17,6 +17,7 @@ namespace FloodzillaJobs
     public class GageStatisticsCollector : FloodzillaJob
     {
         const int DefaultMileSightInterval = 15;
+        const int DefaultDraginoInterval = 15;
         const int DefaultSensorInterval = 15;
 
         public GageStatisticsCollector() : base("FloodzillaJob.CollectGageStatistics",
@@ -36,6 +37,10 @@ namespace FloodzillaJobs
             if (device.DeviceTypeId == DeviceTypeIds.Milesight)
             {
                 return DefaultMileSightInterval;
+            }
+            if (device.DeviceTypeId == DeviceTypeIds.Dragino)
+            {
+                return DefaultDraginoInterval;
             }
             if (device.DeviceTypeId == DeviceTypeIds.Senix)
             {
@@ -57,7 +62,7 @@ namespace FloodzillaJobs
                 // If the location currently has a Senix device attached to it, then gather statistics for it.
                 DeviceBase device = devices.FirstOrDefault(d => d.LocationId == location.Id);
                 if (device == null ||
-                    (device.DeviceTypeId != DeviceTypeIds.Senix && device.DeviceTypeId != DeviceTypeIds.Milesight))
+                    (device.DeviceTypeId != DeviceTypeIds.Senix && device.DeviceTypeId != DeviceTypeIds.Milesight && device.DeviceTypeId != DeviceTypeIds.Dragino))
                 {
                     continue;
                 }
@@ -78,6 +83,7 @@ namespace FloodzillaJobs
 
                 sbDetails.AppendFormat("Checking location {0} [{1}]--", location.Id, location.LocationName);
                 int processedReadings = 0;
+                int statsCountThisGauge = 0;
                 // If firstDay is null (because we don't yet have any stats), this will fetch all readings...
                 List<SensorReading> allReadings
                         = await SensorReading.GetAllReadingsForLocation(location.Id,
@@ -88,7 +94,7 @@ namespace FloodzillaJobs
                                                                         0);
                 if (allReadings == null || allReadings.Count == 0)
                 {
-                    sbDetails.Append("no readings");
+                    sbDetails.Append("no readings\r\n");
                     continue;
                 }
 
@@ -103,6 +109,10 @@ namespace FloodzillaJobs
                 int expectedReadings = 0;
                 int receivedReadings = 0;
                 int readingCount = 0;
+                int batteryPctReadingCount = 0;
+                int batteryVoltageReadingCount = 0;
+                int filteredCount = 0;
+                int deletedCount = 0;
 
                 int currentInterval = GetSampleRate(allReadings[0], device);
                 bool intervalHasChanged = false;
@@ -130,11 +140,13 @@ namespace FloodzillaJobs
                             {
                                 LocationId = location.Id,
                                 Date = FzCommonUtility.ToUtcFromRegionTime(currentDayRegion),
-                                AverageBatteryMillivolts = totalBattery / readingCount,
-                                AverageBatteryPercent = totalBatteryPct / readingCount,
+                                AverageBatteryMillivolts = (batteryVoltageReadingCount == 0) ? 0 : (totalBattery / batteryVoltageReadingCount),
+                                AverageBatteryPercent = (batteryPctReadingCount == 0) ? 0 : (totalBatteryPct / batteryPctReadingCount),
                                 AverageRssi = totalRssi / (double)readingCount,
                                 SensorUpdateInterval = currentInterval,
                                 SensorUpdateIntervalChanged = intervalHasChanged,
+                                CountReadingsFiltered = filteredCount,
+                                CountReadingsDeleted = deletedCount,
                             };
                             if (expectedReadings > 0)
                             {
@@ -142,6 +154,7 @@ namespace FloodzillaJobs
                             }
                             await stats.Save(sqlcn);
                             statsCount++;
+                            statsCountThisGauge++;
                         }
 
                         currentDayRegion = thisDayRegion;
@@ -151,6 +164,10 @@ namespace FloodzillaJobs
                         expectedReadings = 0;
                         receivedReadings = 0;
                         readingCount = 0;
+                        batteryPctReadingCount = 0;
+                        batteryVoltageReadingCount = 0;
+                        filteredCount = 0;
+                        deletedCount = 0;
                         intervalHasChanged = false;
                     }
 
@@ -172,20 +189,36 @@ namespace FloodzillaJobs
                             currentInterval = newInterval;
                         }
                     }
-                    else if (device.DeviceTypeId == DeviceTypeIds.Milesight)
+                    else if (device.DeviceTypeId == DeviceTypeIds.Milesight || device.DeviceTypeId == DeviceTypeIds.Dragino)
                     {
                         string deleteReason;
                         if (ThingsNetworkHelper.ShouldIgnoreReading(sr.RawSensorData, null, out deleteReason))
                         {
                             continue;
                         }
-                        //$ TODO: Someday, figure out if the Milesight sensors can report their sampling interval...
+                        //$ TODO: Someday, figure out if the Milesight/Dragino sensors can report their sampling interval...
                     }
 
                     readingCount++;
                     receivedReadings++;
-                    totalBattery += sr.BatteryVolt ?? 0;
-                    totalBatteryPct += sr.BatteryPercent ?? 0;
+                    if (sr.IsFiltered)
+                    {
+                        filteredCount++;
+                    }
+                    else if (sr.IsDeleted)
+                    {
+                        deletedCount++;
+                    }
+                    if (sr.BatteryPercent > 0)
+                    {
+                        totalBatteryPct += sr.BatteryPercent ?? 0;
+                        batteryPctReadingCount++;
+                    }
+                    if (sr.BatteryVolt > 0)
+                    {
+                        totalBattery += sr.BatteryVolt ?? 0;
+                        batteryVoltageReadingCount++;
+                    }
                     totalRssi += sr.RSSI ?? 0;
 
                     TimeSpan elapsed = sr.Timestamp - lastReadingUtc;
@@ -194,11 +227,10 @@ namespace FloodzillaJobs
                     expectedReadings += ((int)(elapsed.TotalMinutes + 2)) / currentInterval;
 
                     lastReadingUtc = sr.Timestamp;
-                    sbDetails.AppendFormat("Processed {0} readings", processedReadings);
                 }
 
                 // Don't worry about the last set of stats collected; we'll save it tomorrow.
-                sbDetails.Append("\r\n");
+                sbDetails.AppendFormat("Processed {0} readings, saved {1} sets of stats\r\n", processedReadings, statsCountThisGauge);
             }
             sbSummary.AppendFormat("Saved {0} sets of statistics about {1} gages", statsCount, locationCount);
         }

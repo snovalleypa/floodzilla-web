@@ -55,6 +55,15 @@
             return Math.Round(value, 2);
         }
 
+        public static double? CalculateBatteryVoltPercentage(double? readingPercent, double? readingMillivolts)
+        {
+            if (readingPercent.HasValue && readingPercent.Value > 0)
+            {
+                return readingPercent;
+            }
+            return CalculateBatteryVoltPercentage(readingMillivolts);
+        }
+
         //$ TODO: Allow different kinds of sensors to have different battery voltage ranges
         public static double? CalculateBatteryVoltPercentage(double? millivolts)
         {
@@ -84,7 +93,7 @@
         public const string IanaTimeZone = "America/Los_Angeles";
 
         //$ TODO: cache the TZI
-        
+
         public static DateTime ToRegionTimeFromUtc(DateTime utc)
         {
             TimeZoneInfo tzi = TimeZoneInfo.FindSystemTimeZoneById(WindowsTimeZone);

@@ -4,17 +4,36 @@
 }
 
 <style>
-    div.barbox      {position:relative;white-space:nowrap;width:100%;} 
-    div.bars        {position:absolute;top:-2px;height:24px;width:100%;}
-    div.barleft     {position:absolute;height:22px;background-color:#cbdeeb}
-    div.barval      {position:relative;left:5px;}
+    div.barbox {
+        position: relative;
+        white-space: nowrap;
+        width: 100%;
+    }
+
+    div.bars {
+        position: absolute;
+        top: -2px;
+        height: 24px;
+        width: 100%;
+    }
+
+    div.barleft {
+        position: absolute;
+        height: 22px;
+        background-color: #cbdeeb
+    }
+
+    div.barval {
+        position: relative;
+        left: 5px;
+    }
 </style>
 <div class="row">
     <div class="col-lg-12 col-md-12 col-xs-12 col-sm-12">
         <div class="card card-info">
-          <div class="card-header">
-            <div class="card-title">Sensor Readings by Location</div>
-          </div>
+            <div class="card-header">
+                <div class="card-title">Sensor Readings by Location</div>
+            </div>
         </div>
     </div>
 </div>
@@ -23,7 +42,8 @@
     <div class="col-md-5 col-lg-5 col-sm-5 col-xs-12">
         <div class="form-group">
             <label for="LocationIdSelect">Sensor Location:</label><br />
-            <select id="LocationIdSelect" style="display:inline" name="LocationId" class="form-control" asp-items="@ViewBag.Locations"></select>
+            <select id="LocationIdSelect" style="display:inline" name="LocationId" class="form-control"
+                asp-items="@ViewBag.Locations"></select>
         </div>
     </div>
     <div class="col-md-2 col-lg-2 col-sm-2 col-xs-12">
@@ -44,9 +64,10 @@
         <div class="form-group">
             <label for="page">Page:</label><br />
             <select id="page" style="display:inline; width:200px" name="page" class="form-control">
-              <option value="0">1</option>
+                <option value="0">1</option>
             </select>
-            <button style="display:none" class="btn btn-danger float-right" id="btnToggleOffline" onclick="ToggleOffline()">Loading...</button>
+            <button style="display:none" class="btn btn-danger float-right" id="btnToggleOffline"
+                onclick="ToggleOffline()">Loading...</button>
         </div>
     </div>
 </div>
@@ -94,17 +115,19 @@
             <form asp-action="DeleteLocationReadings" method="post">
                 <div class="modal-header">
                     <h4 class="modal-title" id="myModalLabel">Confirm</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="deleteReadingIds" id="deleteReadingIds" value="" />
                     <input type="hidden" name="deleteLocationId" id="deleteLocationId" />
                     <div class="col">
                         <div class="row">
-                        Reason for deleting?
+                            Reason for deleting?
                         </div>
                         <div class="row">
-                        <input class="admin-del-reason" style="width:100%;" type="text" name="deleteReason" id="deleteReason" />
+                            <input class="admin-del-reason" style="width:100%;" type="text" name="deleteReason"
+                                id="deleteReason" />
                         </div>
                     </div>
                 </div>
@@ -123,17 +146,19 @@
             <form asp-action="UndeleteLocationReadings" method="post">
                 <div class="modal-header">
                     <h4 class="modal-title" id="myModalLabel">Confirm</h4>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="undeleteReadingIds" id="undeleteReadingIds" value="" />
                     <input type="hidden" name="undeleteLocationId" id="undeleteLocationId" />
                     <div class="col">
                         <div class="row">
-                        Reason for undeleting?
+                            Reason for undeleting?
                         </div>
                         <div class="row">
-                        <input class="admin-undel-reason" style="width:100%;" type="text" name="undeleteReason" id="undeleteReason" />
+                            <input class="admin-undel-reason" style="width:100%;" type="text" name="undeleteReason"
+                                id="undeleteReason" />
                         </div>
                     </div>
                 </div>
@@ -146,7 +171,7 @@
     </div>
 </div>
 
-@section Scripts{
+@section Scripts {
     <environment names="Development">
         <script src="~/js/Admin/AdminDelUndelWithReason.js"></script>
     </environment>
@@ -164,6 +189,7 @@
         var dataTable;
         function InitTable() {
             dataTable = $("table").DataTable({
+                autoWidth: false,
                 retrieve: true,
                 paging: false,
                 searching: false,
@@ -171,7 +197,7 @@
                 language: { emptyTable: "...", infoEmpty: "", zeroRecords: "No data" },
                 dom: 'lfBrtip',
                 buttons: ['copy', 'excel', 'pdf'],
-                createdRow: function(row, data, dataIndex) {
+                createdRow: function (row, data, dataIndex) {
                     if (highlight.includes('' + data.id)) {
                         $(row).addClass('highlight');
                     }
@@ -183,16 +209,16 @@
                     }
                 },
                 columns: [
-                { "data": renderCheckbox },
-                { "data": renderTimestamp },
-                { "data": "deviceId", "orderable": true },
-                { "data": "groundHeight", "orderable": true, render: function(data, type, row) { if (data == undefined || data == 0) return ''; else return data.toFixed(2) } },
-                { "data": "distanceReading", "orderable": true, render: function(data, type, row) { if (data == undefined || data == 0) return ''; else return data.toFixed(2) } },
-                { "data": renderHeight },
-                { "data": "status", "orderable": true },
-                { "data": "rssi", "orderable": true, render: function(data, type, row) { if (data == undefined || data == 0) return ''; else return data.toFixed(2) } },
-                { "data": renderBattery },
-                { "data": "deleteReason", orderable:true, defaultContent: '' },
+                    { "data": renderCheckbox },
+                    { "data": renderTimestamp },
+                    { "data": "deviceId", "orderable": true },
+                    { "data": "groundHeight", "orderable": true, render: function (data, type, row) { if (data == undefined || data == 0) return ''; else return data.toFixed(2) } },
+                    { "data": "distanceReading", "orderable": true, render: function (data, type, row) { if (data == undefined || data == 0) return ''; else return data.toFixed(2) } },
+                    { "data": renderHeight },
+                    { "data": "status", "orderable": true },
+                    { "data": "rssi", "orderable": true, render: function (data, type, row) { if (data == undefined || data == 0) return ''; else return data.toFixed(2) } },
+                    { "data": renderBattery },
+                    { "data": "deleteReason", orderable: true, defaultContent: '' },
                 ]
             });
             $('table').on('draw.dt', function () {
@@ -207,7 +233,7 @@
                     var pageCount = (xhr.responseJSON.count / pageSize);
                     $('#page').children().remove();
                     for (var p = 0; p < pageCount; p++) {
-                       $('#page').append(new Option(p+1, p, false, p == xhr.responseJSON.pageNumber));
+                        $('#page').append(new Option(p + 1, p, false, p == xhr.responseJSON.pageNumber));
                     }
                 }
                 else {
@@ -229,7 +255,7 @@
             $('#results').hide();
             $('#noData').hide();
             dataTable.ajax.reload(function () {
-                $('.highlight').first().each(function() { this.scrollIntoView(); });
+                $('.highlight').first().each(function () { this.scrollIntoView(); });
             });
         }
 
@@ -244,8 +270,8 @@
             }
             var ts = moment(data.timestamp).format("MM/DD/YYYY hh:mm:ss a");
             var log = '';
-            if (data.deviceTypeId === 4) {
-                log = '&nbsp;&nbsp;<a href="@Url.Action("ViewSenixLogForReadings")?readings=' + data.id + '">[Senix log]</a>';
+            if (data.deviceTypeId === 4 || data.deviceTypeId === 6) {
+                log = '&nbsp;&nbsp;<a href="@Url.Action("ViewSenixLogForReadings")?readings=' + data.id + '">[Raw log]</a>';
             }
             return ts + log;
         }
@@ -275,10 +301,13 @@
             if (data == undefined || data == 0) {
                 return '';
             }
-            if (data.batteryVoltage == undefined || data.batteryVoltage == 0 || data.batteryPercent == undefined || data.batteryPercent == 0) {
+            if (data.batteryPercent == undefined || data.batteryPercent == 0) {
                 return '';
             }
-                
+            if (data.batteryVoltage == undefined || data.batteryVoltage == 0) {
+                return '<span>' + data.batteryPercent.toFixed(2) + '%</span>';
+            }
+
             return '<span data-toggle="tooltip" title="' + (data.batteryVoltage / 1000).toFixed(3) + 'V">' + data.batteryPercent.toFixed(2) + '%</span>';
         }
 
@@ -327,22 +356,22 @@
             });
         }
 
-        $(function() {
+        $(function () {
 
             var date = moment($("#InDate").val());
             var curLocation = parseInt($("#LocationIdSelect").children("option:selected").val());
             $('#endDate').datetimepicker({ format: "MM/DD/YYYY", maxDate: new Date() });
             $('#endDate').datetimepicker('date', date.format('MM/DD/YYYY'));
-            $('#endDate').on('change.datetimepicker', function(event) {
+            $('#endDate').on('change.datetimepicker', function (event) {
                 var newDate = moment($('#endDate').datetimepicker('date')).format('YYYY-MM-DD');
                 window.location.href = "/Reports/?locationId=" + curLocation + "&date=" + newDate;
             });
 
             InitTable();
-            $("#LocationIdSelect").change(function() {
+            $("#LocationIdSelect").change(function () {
                 window.location.href = "/Reports/?locationId=" + $(this).children("option:selected").val() + '&date=' + moment($('#endDate').datetimepicker('date')).format('YYYY-MM-DD');
             });
-            $("#page").change(function() {
+            $("#page").change(function () {
                 UpdateTable(curLocation);
             });
 

@@ -20,6 +20,9 @@ namespace FzCommon
         public int? SensorUpdateInterval { get; set; }
         public bool? SensorUpdateIntervalChanged { get; set; }
 
+        public int? CountReadingsFiltered { get; set; }
+        public int? CountReadingsDeleted { get; set; }
+
         public GageStatistics()
         {
         }
@@ -36,6 +39,8 @@ namespace FzCommon
             cmd.Parameters.Add("@AverageRssi", SqlDbType.Float).Value = this.AverageRssi;
             cmd.Parameters.Add("@SensorUpdateInterval", SqlDbType.Int).Value = this.SensorUpdateInterval;
             cmd.Parameters.Add("@SensorUpdateIntervalChanged", SqlDbType.Bit).Value = this.SensorUpdateIntervalChanged;
+            cmd.Parameters.Add("@CountReadingsFiltered", SqlDbType.Int).Value = this.CountReadingsFiltered;
+            cmd.Parameters.Add("@CountReadingsDeleted", SqlDbType.Int).Value = this.CountReadingsDeleted;
             await cmd.ExecuteNonQueryAsync();
         }
 
@@ -142,6 +147,8 @@ namespace FzCommon
                 AverageRssi = SqlHelper.Read<double?>(reader, "AverageRssi"),
                 SensorUpdateInterval = SqlHelper.Read<int?>(reader, "SensorUpdateInterval"),
                 SensorUpdateIntervalChanged = SqlHelper.Read<bool?>(reader, "SensorUpdateIntervalChanged"),
+                CountReadingsFiltered = SqlHelper.Read<int?>(reader, "CountReadingsFiltered"),
+                CountReadingsDeleted = SqlHelper.Read<int?>(reader, "CountReadingsDeleted"),
             };
         }
     }
