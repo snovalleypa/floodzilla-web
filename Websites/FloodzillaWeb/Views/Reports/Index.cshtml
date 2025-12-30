@@ -270,7 +270,7 @@
             }
             var ts = moment(data.timestamp).format("MM/DD/YYYY hh:mm:ss a");
             var log = '';
-            if (data.deviceTypeId === 4 || data.deviceTypeId === 6) {
+            if (data.deviceTypeId === 4 || data.deviceTypeId === 6 || data.deviceTypeId === 7) {
                 log = '&nbsp;&nbsp;<a href="@Url.Action("ViewSenixLogForReadings")?readings=' + data.id + '">[Raw log]</a>';
             }
             return ts + log;

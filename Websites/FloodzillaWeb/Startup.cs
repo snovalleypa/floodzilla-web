@@ -28,9 +28,9 @@ namespace FloodzillaWeb
                     NamingStrategy = new CamelCaseNamingStrategy()
                 },
                 NullValueHandling = NullValueHandling.Ignore,
-                Converters = new List<JsonConverter> 
-                { 
-                    new StringEnumConverter() { AllowIntegerValues = false }, 
+                Converters = new List<JsonConverter>
+                {
+                    new StringEnumConverter() { AllowIntegerValues = false },
                 },
             };
 
@@ -140,7 +140,20 @@ namespace FloodzillaWeb
                            .AllowAnyHeader());
 
             app.UseDefaultFiles();
-            app.UseStaticFiles();
+            StaticFileOptions sfoNoCacheIndex = new StaticFileOptions()
+            {
+                OnPrepareResponse = (context) =>
+                {
+                    // Disable caching of index.html
+                    if (context.File.Name.ToLower() == "index.html")
+                    {
+                        context.Context.Response.Headers["Cache-Control"] = "no-cache, no-store";
+                        context.Context.Response.Headers["Pragma"] = "no-cache";
+                        context.Context.Response.Headers["Expires"] = "-1";
+                    }
+                }
+            };
+            app.UseStaticFiles(sfoNoCacheIndex);
 
             app.UseRouting();
 
@@ -148,14 +161,22 @@ namespace FloodzillaWeb
             app.UseAuthentication();
             app.UseAuthorization();
 
+            StaticFileOptions sfoNoCacheFallback = new StaticFileOptions()
+            {
+                OnPrepareResponse = (context) =>
+                {
+                    context.Context.Response.Headers["Cache-Control"] = "no-cache, no-store";
+                    context.Context.Response.Headers["Pragma"] = "no-cache";
+                    context.Context.Response.Headers["Expires"] = "-1";
+                }
+            };
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-                endpoints.MapFallbackToFile("/index.html");
-                endpoints.MapFallbackToFile("Admin/{*path:nonfile}", "/admin-react/index.html");
+                endpoints.MapFallbackToFile("/index.html", sfoNoCacheFallback);
             });
 
         }
