@@ -31,7 +31,7 @@ namespace SenixListener
             log.LogInformation("Processing SenixListener.ReportDistanceReadings request");
 
             SenixListenerLog result = null;
-            string listenerInfo = Environment.MachineName + " - SenixListener/ReportDistanceReadings, 3/2025";
+            string listenerInfo = Environment.MachineName + " - SenixListener/ReportDistanceReadings, 11/2025";
             string clientIP = "";
             try
             {

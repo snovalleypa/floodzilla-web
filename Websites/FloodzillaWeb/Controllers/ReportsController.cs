@@ -265,7 +265,9 @@ namespace FloodzillaWeb.Controllers
         {
             ViewBag.Locations = GetLocations(locationId ?? 0,
                                              (l => l.Devices != null &&
-                                                 (l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Senix || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Milesight)));
+                                                 (l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Senix
+                                                 || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Milesight
+                                                 || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Dragino)));
             return View();
         }
 

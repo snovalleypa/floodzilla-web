@@ -11,6 +11,64 @@ namespace FzCommon
         public string Result;
     }
 
+    // NOTE: This does not have all the same responsibilities as the other two SensorHelper classes; it is
+    // not interchangeable with them.
+    public class DraginoSensorHelper
+    {
+        public static bool ShouldIgnoreReading(
+            dynamic postData,
+            SenixReadingResult result,
+            out string deleteReason
+        )
+        {
+            // If this reading appears to come from a Dragino sensor, validate that the signal strength
+            // is good.  If it doesn't appear to come from a Dragino sensor, return false and leave reason empty.
+            deleteReason = null;
+            if (!postData.ContainsKey("uplink_message"))
+            {
+                return false;
+            }
+            var uplink = postData["uplink_message"];
+            if (uplink["decoded_payload"] == null)
+            {
+                return false;
+            }
+            var decoded_payload = uplink["decoded_payload"];
+            if (decoded_payload["Distance_signal_strength"] == null)
+            {
+                return false;
+            }
+            int strength = (int)(decoded_payload["Distance_signal_strength"]);
+            if (strength < 100)
+            {
+                // If we have a potential 'result' object, set it to save as deleted
+                if (result != null)
+                {
+                    deleteReason = "Filtered (Distance signal strength too low)";
+                    result.Result = "Filtered (Distance signal strength too low)";
+                    result.ShouldSave = true;
+                    result.ShouldSaveAsDeleted = true;
+                    return false;
+                }
+                return true;
+            }
+            if (strength >= 65535)
+            {
+                // If we have a potential 'result' object, set it to save as deleted
+                if (result != null)
+                {
+                    deleteReason = "Filtered (Distance signal strength above 65534)";
+                    result.Result = "Filtered (Distance signal strength above 65534)";
+                    result.ShouldSave = true;
+                    result.ShouldSaveAsDeleted = true;
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+
     public class SenixSensorHelper
     {
         public static int DefaultSampleRate = 15; // minutes
@@ -215,8 +273,12 @@ namespace FzCommon
             // Figure out if this is the "old style" receiver format or the "new style" receiver format.
             if (senixData.ContainsKey("uplink_message"))
             {
-                // This is a "new style" reading.  We don't yet have any obvious red flags to look
-                // for to indiciate that this is a bad reading, so we assume we're good.
+                // For now, our only new-style receiver messages that we may want to discard are
+                // Dragino sensor readings.
+                if (DraginoSensorHelper.ShouldIgnoreReading(senixData, result, out deleteReason))
+                {
+                    return true;
+                }
                 return false;
             }
             else
@@ -406,6 +468,11 @@ namespace FzCommon
             {
                 distanceFeet = (double)(decoded_payload["distance_feet"]);
             }
+            else if (decoded_payload["Distance_cm"] != null)
+            {
+                double distanceCm = (double)(decoded_payload["Distance_cm"]);
+                distanceFeet = distanceCm * 0.0328084;
+            }
             else if (decoded_payload["distance"] != null)
             {
                 double distanceMeters = (double)(decoded_payload["distance"]);
@@ -413,7 +480,7 @@ namespace FzCommon
             }
             else
             {
-                result.Result = "Ignored (decoded_payload doesn't have distance or distance_feet)";
+                result.Result = "Ignored (decoded_payload doesn't have a recognizable distance value)";
                 return result;
             }
             double groundHeight = location == null ? 0 : (location.GroundHeight ?? 0);
@@ -468,6 +535,8 @@ namespace FzCommon
             {
                 reading.BatteryPercent = (double)(decoded_payload["battery_percentage"]);
             }
+
+            // NOTE: This is dumb.  reading.BatteryVolt is actually in millivolts.  I apologize.
             reading.BatteryVolt = 0;
             if (decoded_payload["battery_voltage_mv"] != null)
             {
@@ -476,6 +545,10 @@ namespace FzCommon
             else if (decoded_payload["battery_voltage_v"] != null)
             {
                 reading.BatteryVolt = (int)(1000.0 * (double)(decoded_payload["battery_voltage_v"]));
+            }
+            else if (decoded_payload["batV"] != null)
+            {
+                reading.BatteryVolt = (int)(1000.0 * (double)(decoded_payload["batV"]));
             }
 
             reading.RawSensorData = postData;
@@ -585,9 +658,11 @@ namespace FzCommon
         {
             deleteReason = null;
 
-            //$ TODO: As we determine cases where the data coming from the new sensors is dodgy,
-            //$ we'll add code here to filter out those cases...
-
+            // If this is a Dragino sensor, and we should ignore the reading, do so.
+            if (DraginoSensorHelper.ShouldIgnoreReading(postData, result, out deleteReason))
+            {
+                return true;
+            }
             return false;
         }
 

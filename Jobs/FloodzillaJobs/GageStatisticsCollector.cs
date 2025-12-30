@@ -17,6 +17,7 @@ namespace FloodzillaJobs
     public class GageStatisticsCollector : FloodzillaJob
     {
         const int DefaultMileSightInterval = 15;
+        const int DefaultDraginoInterval = 15;
         const int DefaultSensorInterval = 15;
 
         public GageStatisticsCollector() : base("FloodzillaJob.CollectGageStatistics",
@@ -36,6 +37,10 @@ namespace FloodzillaJobs
             if (device.DeviceTypeId == DeviceTypeIds.Milesight)
             {
                 return DefaultMileSightInterval;
+            }
+            if (device.DeviceTypeId == DeviceTypeIds.Dragino)
+            {
+                return DefaultDraginoInterval;
             }
             if (device.DeviceTypeId == DeviceTypeIds.Senix)
             {
@@ -57,7 +62,7 @@ namespace FloodzillaJobs
                 // If the location currently has a Senix device attached to it, then gather statistics for it.
                 DeviceBase device = devices.FirstOrDefault(d => d.LocationId == location.Id);
                 if (device == null ||
-                    (device.DeviceTypeId != DeviceTypeIds.Senix && device.DeviceTypeId != DeviceTypeIds.Milesight))
+                    (device.DeviceTypeId != DeviceTypeIds.Senix && device.DeviceTypeId != DeviceTypeIds.Milesight && device.DeviceTypeId != DeviceTypeIds.Dragino))
                 {
                     continue;
                 }
@@ -184,14 +189,14 @@ namespace FloodzillaJobs
                             currentInterval = newInterval;
                         }
                     }
-                    else if (device.DeviceTypeId == DeviceTypeIds.Milesight)
+                    else if (device.DeviceTypeId == DeviceTypeIds.Milesight || device.DeviceTypeId == DeviceTypeIds.Dragino)
                     {
                         string deleteReason;
                         if (ThingsNetworkHelper.ShouldIgnoreReading(sr.RawSensorData, null, out deleteReason))
                         {
                             continue;
                         }
-                        //$ TODO: Someday, figure out if the Milesight sensors can report their sampling interval...
+                        //$ TODO: Someday, figure out if the Milesight/Dragino sensors can report their sampling interval...
                     }
 
                     readingCount++;
