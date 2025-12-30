@@ -1,4 +1,5 @@
-#define DISCARD_MISMATCHED_READINGS
+#define ALLOW_HEIGHT_ONLY_READINGS
+// #define DISCARD_MISMATCHED_READINGS
 
 using System.ComponentModel.DataAnnotations;
 using System.Xml;
@@ -11,13 +12,13 @@ namespace FzCommon
     public class UsgsSite
     {
         [Required]
-        public int SiteId           { get; set; }
-        public string SiteName      { get; set; }
-        public double? Latitude     { get; set; }
-        public double? Longitude    { get; set; }
-        public string NoaaSiteId    { get; set; }
+        public int SiteId { get; set; }
+        public string SiteName { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string NoaaSiteId { get; set; }
         public bool NotifyForecasts { get; set; }
-        
+
         public static async Task<List<UsgsSite>> GetUsgsSites(SqlConnection sqlcn)
         {
             SqlCommand cmd = new SqlCommand($"SELECT * FROM UsgsSites", sqlcn);
@@ -172,6 +173,9 @@ namespace FzCommon
                 {
                     if (dischargeSeries.Values[0].Value.Count != waterHeightSeries.Values[0].Value.Count)
                     {
+#if ALLOW_HEIGHT_ONLY_READINGS
+                        dischargeSeries = null;
+#else
                         // This happens frequently when new readings come in. For whatever reason, the discharge
                         // readings are often delayed relative to the water height readings. As long as they aren't
                         // too far out of synch, we can just ignore this.
@@ -209,6 +213,7 @@ namespace FzCommon
                             ErrorManager.ReportError(ErrorSeverity.Major, "UsgsSite.FetchUsgsReadings", String.Format("USGS response had mismatch between discharge count {0} and water height count {1}.\n URL: {2}", dischargeSeries.Values[0].Value.Count, waterHeightSeries.Values[0].Value.Count, url));
                         }
                         return null;
+#endif
 #endif
                     }
                 }

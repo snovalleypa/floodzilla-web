@@ -612,10 +612,10 @@ namespace FzCommon
                     return null;
                 }
                 SensorReading maxReading = this.Readings[0];
-                double maxDischarge = this.Readings[0].WaterDischarge.Value;
+                double maxDischarge = (this.Readings[0].WaterDischarge.HasValue ? this.Readings[0].WaterDischarge.Value : 0);
                 foreach (SensorReading reading in this.Readings)
                 {
-                    if (reading.WaterDischarge.Value > maxDischarge)
+                    if (reading.WaterDischarge.HasValue && reading.WaterDischarge.Value > maxDischarge)
                     {
                         maxReading = reading;
                         maxDischarge = reading.WaterDischarge.Value;

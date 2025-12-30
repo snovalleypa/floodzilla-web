@@ -8,7 +8,9 @@ AS
 BEGIN
 
   SELECT * FROM NoaaForecasts 
-    WHERE Created = (SELECT TOP 1 Created FROM NoaaForecasts ORDER BY Created DESC)
+    WHERE ForecastId IN (
+      SELECT MAX(ForecastId) FROM NoaaForecasts GROUP BY NoaaSiteId
+    )
     ORDER BY ForecastId ASC
 
 END

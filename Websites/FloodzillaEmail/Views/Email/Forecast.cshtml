@@ -6,13 +6,13 @@
                    ForecastEmailModel.ModelGageData mgd,
                    DateTime timestamp,
                    double? waterHeight,
-                   double discharge,
+                   double? discharge,
                    double? delta)
     {
         string style = "font-size:13px;";
         string waterText = "";
         string deltaText = "";
-        if (discharge > mgd.WarningCfsLevel)
+        if (discharge.HasValue && discharge > mgd.WarningCfsLevel)
         {
             style += " font-weight:bold;";
         }
@@ -30,7 +30,7 @@
           <td width="15"    style="@style">@EmailHelpers.RenderDayOfWeek(region, timestamp)</td>
           <td width="130"   style="@style">@EmailHelpers.RenderTimestampNoDay(region, timestamp)</td>
           <td width="50"    style="@style">@waterText</td>
-          <td width="90"    style="@style">@Math.Floor(discharge) cfs</td>
+          <td width="90"    style="@style">@(discharge.HasValue ? Math.Floor(discharge.Value) + " cfs" : "")</td>
           <td align="right" style="@style">@deltaText</td>
         </tr>
     }
@@ -48,14 +48,14 @@
     <br />
     <div style="font-size:13px; color:green; margin-left:15px;">Latest Reading:</div>
     <table cellspacing="0" width="400" style="margin-left:20px;">
-      @{ReadingRow(Model.Model.Region, mgd, latestReading.Timestamp, latestReading.WaterHeightFeet, latestReading.WaterDischarge.Value, mgd.PredictedCfsPerHour);}
+      @{ReadingRow(Model.Model.Region, mgd, latestReading.Timestamp, latestReading.WaterHeightFeet, latestReading.WaterDischarge == null ? null : latestReading.WaterDischarge.Value, mgd.PredictedCfsPerHour);}
     </table>
   }
   @if (mgd.GetRecentMax() != null) {
     SensorReading recentMax = mgd.GetRecentMax();
     <div style="font-size:13px; color:green; margin-left:15px;">Past 24hr max:</div>
     <table cellspacing="0" width="400" style="margin-left:20px;">
-      @{ReadingRow(Model.Model.Region, mgd, recentMax.Timestamp, recentMax.WaterHeightFeet, recentMax.WaterDischarge.Value, null);}
+      @{ReadingRow(Model.Model.Region, mgd, recentMax.Timestamp, recentMax.WaterHeightFeet, recentMax.WaterDischarge == null ? null : recentMax.WaterDischarge.Value, null);}
     </table>
   }
  
