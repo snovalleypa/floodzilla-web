@@ -109,6 +109,7 @@ namespace FzCommon
             return null;
         }
 
+        //$ TODO: RegionID parameter
         public static List<DeviceBase> GetDevices(SqlConnection conn)
         {
             SqlCommand cmd = new SqlCommand($"SELECT {GetColumnList()} FROM Devices", conn);
@@ -131,6 +132,7 @@ namespace FzCommon
             return null;
         }
 
+        //$ TODO: RegionID parameter
         public static async Task<List<DeviceBase>> GetDevicesAsync(SqlConnection conn)
         {
             SqlCommand cmd = new SqlCommand($"SELECT {GetColumnList()} FROM Devices", conn);

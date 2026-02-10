@@ -25,7 +25,7 @@ namespace FzCommon
             }
 
             string errorText = String.Format("Site error: Severity {0}\r\nsource: {1}\r\nError: {2}", sev, source, error);
-            
+
             // try/catch around all this stuff; if anything here fails, we're probably just dead anyway
             try
             {
@@ -38,8 +38,8 @@ namespace FzCommon
                 catch
                 {
                     sqlcn = null;
-                }                
-                
+                }
+
                 // First: if this is a severe issue, try to report it via email/slack.
                 if (sev != ErrorSeverity.Minor && !saveOnly)
                 {
@@ -63,7 +63,7 @@ namespace FzCommon
                         try
                         {
                             Task task = SlackClient.NotifySlack(url, errorText);
-                            task.Wait();                            
+                            task.Wait();
                         }
                         catch
                         {
@@ -106,9 +106,30 @@ namespace FzCommon
             ReportError(sev, source, String.Format("Exception: {0}", ex.ToString()), exceptionTime);
         }
 
+        public static void ReportUrlException(ErrorSeverity sev, string source, string url, Exception ex, DateTime? exceptionTime = null)
+        {
+            ReportError(sev, source, String.Format("Network Exception: {0}\nURL: {1}\nFull details:{2}", ex.Message, url, ex.ToString()), exceptionTime);
+        }
+
         // remember sqlcn can be null, and FzConfig could throw...
         private static string GetNotifyEmailAddress(SqlConnection sqlcn)
         {
+            try
+            {
+                string overrideAddr = FzConfig.Config[FzConfig.Keys.EmailSiteAdminOverride];
+                if (!String.IsNullOrEmpty(overrideAddr))
+                {
+                    if (overrideAddr.ToLower() == "none")
+                    {
+                        return null;
+                    }
+                    return overrideAddr;
+                }
+            }
+            catch
+            {
+                // Keep trying...
+            }
             try
             {
                 if (sqlcn != null)

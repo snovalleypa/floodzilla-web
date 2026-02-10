@@ -1,14 +1,28 @@
 #define ALLOW_HEIGHT_ONLY_READINGS
 // #define DISCARD_MISMATCHED_READINGS
 
-using System.ComponentModel.DataAnnotations;
-using System.Xml;
+using FzCommon.ExternalModels.UsgsJsonData;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
-using FzCommon.ExternalModels.UsgsJsonData;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Xml;
 
 namespace FzCommon
 {
+    // For new WDFN-style USGS APIs
+    public class WdfnReading
+    {
+        public DateTime Timestamp { get; set; }
+        public double? Value { get; set; }
+    }
+    public enum WdfnReadingType
+    {
+        Height = 0,
+        Discharge = 1,
+    }
+
     public class UsgsSite
     {
         [Required]
@@ -18,7 +32,9 @@ namespace FzCommon
         public double? Longitude { get; set; }
         public string NoaaSiteId { get; set; }
         public bool NotifyForecasts { get; set; }
+        public bool NoDischarge { get; set; }
 
+        //$ TODO: RegionId parameter
         public static async Task<List<UsgsSite>> GetUsgsSites(SqlConnection sqlcn)
         {
             SqlCommand cmd = new SqlCommand($"SELECT * FROM UsgsSites", sqlcn);
@@ -71,6 +87,7 @@ namespace FzCommon
                 Longitude = SqlHelper.Read<double?>(reader, "Longitude"),
                 NoaaSiteId = SqlHelper.Read<string>(reader, "NoaaSiteId"),
                 NotifyForecasts = SqlHelper.Read<bool>(reader, "NotifyForecasts"),
+                NoDischarge = SqlHelper.Read<bool>(reader, "NoDischarge"),
             };
         }
 
@@ -299,6 +316,89 @@ namespace FzCommon
             string periodString = XmlConvert.ToString(period);
             return String.Format(urlFormat, this.SiteId, periodString);
         }
+
+        #region New WDFN Data Handling
+        public const int DEFAULT_WDFN_READING_LIMIT = 10000;
+
+        public async Task<List<WdfnReading>?> FetchRawWdfnReadings(DateTime startDateUtc,
+                                                                   DateTime endDateUtc,
+                                                                   DeviceBase device,
+                                                                   WdfnReadingType readingType,
+                                                                   int readingLimit = DEFAULT_WDFN_READING_LIMIT)
+        {
+            string parameterCode = VARCODE_WATERHEIGHT;
+            if (readingType == WdfnReadingType.Discharge)
+            {
+                parameterCode = VARCODE_DISCHARGE;
+            }
+            string url = this.GetWdfnUrl(startDateUtc, endDateUtc, parameterCode, readingLimit);
+            JsonSerializer jsonSerializer = new JsonSerializer();
+            HttpClient client = new();
+            HttpRequestMessage request = new(HttpMethod.Get, url);
+            WdfnJsonResponse wdfnResponse = null;
+            try
+            {
+                HttpResponseMessage response = await client.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException(response.ReasonPhrase);
+                }
+                using (Stream stream = await response.Content.ReadAsStreamAsync())
+                {
+                    using (StreamReader sr = new StreamReader(stream))
+                    {
+                        using (JsonTextReader jr = new JsonTextReader(sr))
+                        {
+                            wdfnResponse = jsonSerializer.Deserialize<WdfnJsonResponse>(jr);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                ErrorManager.ReportUrlException(ErrorSeverity.Major, "UsgsSite.FetchRawWdfnReadings", url, e);
+                return null;
+            }
+            List<WdfnReading> ret = new();
+            if (wdfnResponse != null && wdfnResponse.Features != null)
+            {
+                foreach (WdfnDataFeature f in wdfnResponse.Features)
+                {
+                    if (f.Properties.Parameter_Code != parameterCode)
+                    {
+                        string error = String.Format("USGS WDFN Error: Requested parameter code {0}, received {1}.  URL: {2}", parameterCode, f.Properties.Parameter_Code, url);
+                        ErrorManager.ReportError(ErrorSeverity.Major, "Usgs", error);
+                        return null;
+                    }
+                    ret.Add(new WdfnReading()
+                    {
+                        Timestamp = f.Properties.Time.ToUniversalTime(),
+                        Value = f.Properties.Value,
+                    });
+                }
+            }
+            return ret;
+        }
+
+        private string GetWdfnUrl(DateTime startDateUtc, DateTime endDateUtc, string parameterCode, int readingLimit)
+        {
+            string apiKey = FzConfig.Config[FzConfig.Keys.UsgsWDFNApiKey];
+            string fullSiteId = "USGS-" + this.SiteId.ToString();
+            string urlFormat = FzConfig.Config[FzConfig.Keys.UsgsWDFNUrlFormat];
+            string periodString = String.Format("{0}Z/{1}Z", DateTimeToRfc3339String(startDateUtc), DateTimeToRfc3339String(endDateUtc));
+            return String.Format(urlFormat, readingLimit, fullSiteId, parameterCode, periodString, apiKey);
+        }
+        #endregion
+
+        private static string DateTimeToRfc3339String(DateTime dt)
+        {
+            if (dt.Kind != DateTimeKind.Utc)
+            {
+                throw new ApplicationException(String.Format("Expected UTC DateTime in DateTimeToRfc3339String; got {0}", dt.Kind));
+            }
+            return dt.ToString("yyyy-MM-dd'T'HH:mm:ss", DateTimeFormatInfo.InvariantInfo);
+        }
     }
 }
+
 

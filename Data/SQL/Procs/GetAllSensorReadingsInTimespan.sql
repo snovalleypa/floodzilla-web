@@ -12,8 +12,8 @@ BEGIN
     SELECT 
         Id, Timestamp, LocationId, WaterHeightFeet, WaterDischarge, BatteryVolt, BatteryPercent, IsDeleted, RoadSaddleHeight, GroundHeightFeet
     FROM SensorReadings
-    WHERE Timestamp > @fromTime
-    AND Timestamp <  @toTime
+    WHERE Timestamp >= @fromTime
+    AND Timestamp <= @toTime
     AND IsDeleted = 0
     ORDER BY LocationId ASC, Timestamp DESC
 END

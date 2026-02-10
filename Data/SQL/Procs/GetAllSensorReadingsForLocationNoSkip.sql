@@ -22,8 +22,8 @@ BEGIN
 		SET ROWCOUNT @readingcount
 	SELECT * from SensorReadings
 		WHERE LocationId = @locationId
-		AND (@fromTime IS NULL OR Timestamp > @fromTime)
-		AND (@toTime IS NULL OR Timestamp < @toTime)
+		AND (@fromTime IS NULL OR Timestamp >= @fromTime)
+		AND (@toTime IS NULL OR Timestamp <= @toTime)
 		ORDER BY Timestamp DESC
 	SET ROWCOUNT 0
 END

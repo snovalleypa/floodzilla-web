@@ -103,3 +103,17 @@ CREATE NONCLUSTERED INDEX [Ix_Sensorreadings_Minimal] ON [SensorReadings]
     [WaterDischarge]
 )WITH (STATISTICS_NORECOMPUTE = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]
 GO
+CREATE NONCLUSTERED INDEX [Ix_SensorReadings_LocationDischarge] ON [SensorReadings]
+(
+    [LocationId] ASC,
+    [Timestamp] DESC,
+    [WaterDischarge]
+)WITH (STATISTICS_NORECOMPUTE = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]
+GO
+CREATE NONCLUSTERED INDEX [Ix_SensorReadings_LocationHeight] ON [SensorReadings]
+(
+    [LocationId] ASC,
+    [Timestamp] DESC,
+    [WaterHeight]
+)WITH (STATISTICS_NORECOMPUTE = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]
+GO

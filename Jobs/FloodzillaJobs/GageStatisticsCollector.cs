@@ -192,7 +192,8 @@ namespace FloodzillaJobs
                     else if (device.DeviceTypeId == DeviceTypeIds.Milesight || device.DeviceTypeId == DeviceTypeIds.Dragino)
                     {
                         string deleteReason;
-                        if (ThingsNetworkHelper.ShouldIgnoreReading(sr.RawSensorData, null, out deleteReason))
+                        dynamic postData = JsonConvert.DeserializeObject((string)sr.RawSensorData);
+                        if (ThingsNetworkHelper.ShouldIgnoreReading(postData, null, out deleteReason))
                         {
                             continue;
                         }

@@ -19,16 +19,14 @@ namespace FloodzillaJobs
     // This is a wrapper for all of the supported functions in this project.
     public class ProjectFunctions
     {
-#if THIS_IS_OBSOLETE
-        public static async Task CalculateUsgsLevels()
+        public static async Task TESTMODE_FetchWdfnUsgsReadings()
         {
-            UsgsLevelCalculator job = new UsgsLevelCalculator();
+            WdfnUsgsDataFetcher job = new WdfnUsgsDataFetcher(true);
             await job.Execute();
         }
-#endif
-        public static async Task FetchUsgsReadings()
+        public static async Task FetchWdfnUsgsReadings()
         {
-            UsgsDataFetcher job = new UsgsDataFetcher();
+            WdfnUsgsDataFetcher job = new WdfnUsgsDataFetcher(false);
             await job.Execute();
         }
         public static async Task FetchNoaaForecasts()
@@ -61,19 +59,29 @@ namespace FloodzillaJobs
             //$ TODO: Any other configuration/initialization?
         }
 
+        // This is currently only enabled for manual calling.
 #if DEBUG
-        [FunctionName("FetchUsgsReadings")]
-        public static async Task<IActionResult> FetchUsgsReadings([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req, ILogger log)
+        [FunctionName("TESTMODE_FetchWdfnUsgsReadings")]
+        public static async Task<IActionResult> TESTMODE_FetchWdfnUsgsReadings([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req, ILogger log)
         {
-            await ProjectFunctions.FetchUsgsReadings();
+            await ProjectFunctions.TESTMODE_FetchWdfnUsgsReadings();
+            return new OkObjectResult("Triggered");
+        }
+#endif
+
+#if DEBUG
+        [FunctionName("FetchWdfnUsgsReadings")]
+        public static async Task<IActionResult> FetchWdfnUsgsReadings([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req, ILogger log)
+        {
+            await ProjectFunctions.FetchWdfnUsgsReadings();
             return new OkObjectResult("Triggered");
         }
 #else
-        [FunctionName("FetchUsgsReadings")]
+        [FunctionName("FetchWdfnUsgsReadings")]
         // Current schedule is to run once every 5 minutes.
-        public static async Task FetchUsgsReadings([TimerTrigger("0 */5 * * * *", RunOnStartup = false)]TimerInfo myTimer, ILogger log)
+        public static async Task FetchWdfnUsgsReadings([TimerTrigger("0 */5 * * * *", RunOnStartup = false)]TimerInfo myTimer, ILogger log)
         {
-            await ProjectFunctions.FetchUsgsReadings();
+            await ProjectFunctions.FetchWdfnUsgsReadings();
         }
 #endif
 
@@ -108,7 +116,7 @@ namespace FloodzillaJobs
             await ProjectFunctions.CollectGageStatistics();
         }
 #endif
-        
+
 #if DEBUG
         [FunctionName("DetectGageEvents")]
         public static async Task<IActionResult> DetectGageEvents([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req, ILogger log)
@@ -124,7 +132,7 @@ namespace FloodzillaJobs
             await ProjectFunctions.DetectGageEvents();
         }
 #endif
-        
+
 #if DEBUG
         [FunctionName("NotifyGageEvents")]
         public static async Task<IActionResult> NotifyGageEvents([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequest req, ILogger log)

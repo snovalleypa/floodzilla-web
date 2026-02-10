@@ -9,12 +9,11 @@ CREATE TABLE [UsgsSites](
     [Latitude] [float] NULL,
     [Longitude] [float] NULL,
     [NoaaSiteId] [varchar](20) NULL,
-    [NotifyForecasts] bit NOT NULL,
+    [NotifyForecasts] bit NOT NULL DEFAULT(0),
+    [NoDischarge] bit NOT NULL DEFAULT(0)
  CONSTRAINT [PK_UsgsSites] PRIMARY KEY CLUSTERED 
 (
     [SiteId] ASC
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-
-ALTER TABLE [Users] ADD  DEFAULT ((0)) FOR [NotifyForecasts]

@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using System.Data;
 using System.Diagnostics;
 using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Protocols;
 
 namespace FzCommon
 {
@@ -670,6 +671,36 @@ namespace FzCommon
             return ret;
         }
 
+        public static async Task<List<SensorReading>> GetAllReadingsForDevice(SqlConnection sqlcn,
+                                                                              int deviceId,
+                                                                              int? readingCount,
+                                                                              DateTime? utcFromDate,
+                                                                              DateTime? utcToDate,
+                                                                              int skipCount = 0,
+                                                                              int lastReadingId = 0)
+        {
+            List<SensorReading> ret = new();
+            using (SqlCommand cmd = new("GetAllSensorReadingsForDevice", sqlcn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@deviceId", SqlDbType.Int).Value = deviceId;
+                if (readingCount.HasValue) cmd.Parameters.Add("@readingCount", SqlDbType.Int).Value = readingCount;
+                if (utcFromDate.HasValue) cmd.Parameters.Add("@fromTime", SqlDbType.DateTime).Value = utcFromDate;
+                if (utcToDate.HasValue) cmd.Parameters.Add("@toTime", SqlDbType.DateTime).Value = utcToDate;
+                cmd.Parameters.Add("@skipCount", SqlDbType.Int).Value = skipCount;
+                cmd.Parameters.Add("@lastReadingId", SqlDbType.Int).Value = lastReadingId;
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        SensorReading sr = InstantiateFromReader(dr);
+                        ret.Add(sr);
+                    }
+                }
+            }
+            return ret;
+        }
+
         public static async Task<List<SensorReading>> GetAllReadingsForDevice(int deviceId,
                                                                               int? readingCount,
                                                                               DateTime? utcFromDate,
@@ -677,30 +708,13 @@ namespace FzCommon
                                                                               int skipCount = 0,
                                                                               int lastReadingId = 0)
         {
-            List<SensorReading> ret = new List<SensorReading>();
-            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            using (SqlConnection sqlcn = new(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
             {
-                using (SqlCommand cmd = new SqlCommand("GetAllSensorReadingsForDevice", sqlcn))
-                {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@deviceId", SqlDbType.Int).Value = deviceId;
-                    if (readingCount.HasValue) cmd.Parameters.Add("@readingCount", SqlDbType.Int).Value = readingCount;
-                    if (utcFromDate.HasValue) cmd.Parameters.Add("@fromTime", SqlDbType.DateTime).Value = utcFromDate;
-                    if (utcToDate.HasValue) cmd.Parameters.Add("@toTime", SqlDbType.DateTime).Value = utcToDate;
-                    cmd.Parameters.Add("@skipCount", SqlDbType.Int).Value = skipCount;
-                    cmd.Parameters.Add("@lastReadingId", SqlDbType.Int).Value = lastReadingId;
-                    await sqlcn.OpenAsync();
-                    using (SqlDataReader dr = cmd.ExecuteReader(CommandBehavior.CloseConnection))
-                    {
-                        while (await dr.ReadAsync())
-                        {
-                            SensorReading sr = InstantiateFromReader(dr);
-                            ret.Add(sr);
-                        }
-                    }
-                }
+                await sqlcn.OpenAsync();
+                var ret = await GetAllReadingsForDevice(sqlcn, deviceId, readingCount, utcFromDate, utcToDate, skipCount, lastReadingId);
+                await sqlcn.CloseAsync();
+                return ret;
             }
-            return ret;
         }
 
         public static async Task<SensorReading> GetLatestReadingForLocation(int locationId)
@@ -708,6 +722,50 @@ namespace FzCommon
             using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
             {
                 using (SqlCommand cmd = new SqlCommand("GetLatestSensorReadingForLocation", sqlcn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@locationId", SqlDbType.Int).Value = locationId;
+
+                    await sqlcn.OpenAsync();
+                    using (SqlDataReader dr = cmd.ExecuteReader(CommandBehavior.CloseConnection))
+                    {
+                        if (await dr.ReadAsync())
+                        {
+                            return InstantiateFromReader(dr);
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        public static async Task<SensorReading> GetLatestReceivedWaterHeightSensorReadingForLocation(int locationId)
+        {
+            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            {
+                using (SqlCommand cmd = new SqlCommand("GetLatestReceivedWaterHeightSensorReadingForLocation", sqlcn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@locationId", SqlDbType.Int).Value = locationId;
+
+                    await sqlcn.OpenAsync();
+                    using (SqlDataReader dr = cmd.ExecuteReader(CommandBehavior.CloseConnection))
+                    {
+                        if (await dr.ReadAsync())
+                        {
+                            return InstantiateFromReader(dr);
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        public static async Task<SensorReading> GetLatestReceivedDischargeSensorReadingForLocation(int locationId)
+        {
+            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            {
+                using (SqlCommand cmd = new SqlCommand("GetLatestReceivedDischargeSensorReadingForLocation", sqlcn))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@locationId", SqlDbType.Int).Value = locationId;

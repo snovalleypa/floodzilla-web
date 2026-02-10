@@ -12,6 +12,7 @@ namespace FzCommon
             public const string EmailSiteRoot = "EmailSiteRoot";
             public const string EmailFromAddress = "EmailFromAddress";
             public const string EmailToAddressOverride = "EmailToAddressOverride";
+            public const string EmailSiteAdminOverride = "EmailSiteAdminOverride";
             public const string ExpoPushRequestUrl = "ExpoPushRequestUrl";
             public const string ExpoReceiptRequestUrl = "ExpoReceiptRequestUrl";
             public const string FacebookUserQueryEndpointFormat = "FacebookUserQueryEndpointFormat";
@@ -46,7 +47,10 @@ namespace FzCommon
             public const string TestPushNotificationServiceUrl = "TestPushNotificationServiceUrl";
             public const string UploadsBlobContainer = "UploadsBlobContainer";
             public const string UseSendGridSandboxMode = "UseSendGridSandboxMode";
+            public const string UsgsFetcherTestOnlyMode = "UsgsFetcherTestOnlyMode";
             public const string UsgsWaterServiceUrlFormat = "UsgsWaterServiceUrlFormat";
+            public const string UsgsWDFNUrlFormat = "UsgsWDFNUrlFormat";
+            public const string UsgsWDFNApiKey = "UsgsWDFNApiKey";
         }
 
         //$ TODO: use managed identities for services
