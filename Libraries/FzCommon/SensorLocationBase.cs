@@ -209,6 +209,7 @@ namespace FzCommon
             return null;
         }
 
+        //$ TODO: RegionId parameter
         public static List<SensorLocationBase> GetLocations(SqlConnection conn)
         {
             List<SensorLocationBase> locations = new List<SensorLocationBase>();
@@ -230,6 +231,7 @@ namespace FzCommon
             return locations;
         }
 
+        //$ TODO: RegionId parameter
         public static async Task<List<SensorLocationBase>> GetLocationsAsync(SqlConnection conn)
         {
             List<SensorLocationBase> locations = new List<SensorLocationBase>();

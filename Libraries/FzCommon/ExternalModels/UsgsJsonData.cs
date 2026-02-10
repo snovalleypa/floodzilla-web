@@ -150,4 +150,31 @@ namespace FzCommon.ExternalModels.UsgsJsonData
         public string Name { get; set; }
         public TopLevelValue Value { get; set; }
     }
+
+    #region New WDFN Data Formats
+    // I think this is basically just GeoJSON, but I'm breaking it out here specifically
+    // in order to keep this stuff isolated, in case it changes again.
+
+    public class WdfnDataFeatureProperties
+    {
+        public DateTime Time { get; set; }
+        public double? Value { get; set; }
+        public string Approval_Status { get; set; }
+        public string Parameter_Code { get; set; }
+        public string Unit_Of_Measure { get; set; }
+    }
+
+    public class WdfnDataFeature
+    {
+        public string Type { get; set; } // Expected "Feature"
+        public WdfnDataFeatureProperties Properties { get; set; }
+    }
+
+    public class WdfnJsonResponse
+    {
+        public string Type { get; set; } // Expected "FeatureCollection"
+        public int NumberReturned { get; set; }
+        public List<WdfnDataFeature> Features { get; set; }
+    }
+    #endregion
 }

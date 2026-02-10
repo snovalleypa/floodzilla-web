@@ -34,37 +34,37 @@ namespace FzCommon
                 return false;
             }
             var decoded_payload = uplink["decoded_payload"];
-            if (decoded_payload["Distance_signal_strength"] == null)
+            if (decoded_payload["Distance_signal_strength"] != null)
             {
-                return false;
-            }
-            int strength = (int)(decoded_payload["Distance_signal_strength"]);
-            if (strength < 100)
-            {
-                // If we have a potential 'result' object, set it to save as deleted
-                if (result != null)
+                int strength = (int)decoded_payload["Distance_signal_strength"];
+                if (strength < 100)
                 {
-                    deleteReason = "Filtered (Distance signal strength too low)";
-                    result.Result = "Filtered (Distance signal strength too low)";
-                    result.ShouldSave = true;
-                    result.ShouldSaveAsDeleted = true;
-                    return false;
+                    // If we have a potential 'result' object, set it to save as deleted
+                    if (result != null)
+                    {
+                        deleteReason = "Filtered (Distance signal strength too low)";
+                        result.Result = "Filtered (Distance signal strength too low)";
+                        result.ShouldSave = true;
+                        result.ShouldSaveAsDeleted = true;
+                        return false;
+                    }
+                    return true;
                 }
-                return true;
-            }
-            if (strength >= 65535)
-            {
-                // If we have a potential 'result' object, set it to save as deleted
-                if (result != null)
+                if (strength >= 65535)
                 {
-                    deleteReason = "Filtered (Distance signal strength above 65534)";
-                    result.Result = "Filtered (Distance signal strength above 65534)";
-                    result.ShouldSave = true;
-                    result.ShouldSaveAsDeleted = true;
-                    return false;
+                    // If we have a potential 'result' object, set it to save as deleted
+                    if (result != null)
+                    {
+                        deleteReason = "Filtered (Distance signal strength above 65534)";
+                        result.Result = "Filtered (Distance signal strength above 65534)";
+                        result.ShouldSave = true;
+                        result.ShouldSaveAsDeleted = true;
+                        return false;
+                    }
+                    return true;
                 }
-                return true;
             }
+
             return false;
         }
     }
