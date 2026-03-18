@@ -75,7 +75,7 @@ namespace FloodzillaJobs
                 if (location.IsOffline)
                 {
                     sbDetails.Append("offline\r\n");
-                    continue;
+                    continue; // next gauge
                 }
 
                 //$ TODO: Do we want to entirely ignore !IsActive and/or !IsPublic gages?
@@ -83,7 +83,7 @@ namespace FloodzillaJobs
                 if (!recentReadings.ContainsKey(location.Id))
                 {
                     sbDetails.Append("no recent readings\r\n");
-                    continue;
+                    continue; // next gauge
                 }
 
                 // Assume these come in most-recent-first
@@ -91,69 +91,87 @@ namespace FloodzillaJobs
                 if (readings.Count < 2)
                 {
                     sbDetails.Append("not enough recent readings\r\n");
-                    continue;
+                    continue; // next gauge
                 }
 
                 if (readings[0].Id <= curStatus.LastReadingId)
                 {
                     sbDetails.Append("no new readings\r\n");
-                    continue;
+                    continue; // next gauge
                 }
-                newReadingsCount++;
+                int lastReadingIndex = readings.Count - 1;
+                for (int i = 0; i < readings.Count; i++)
+                {
+                    if (readings[i].Id == curStatus.LastReadingId)
+                    {
+                        lastReadingIndex = i;
+                        break;
+                    }
+                }
+                if (readings[lastReadingIndex].Id != curStatus.LastReadingId)
+                {
+                    //$ TODO: Can we actually do anything here?
+                    ErrorManager.ReportError(ErrorSeverity.Major,
+                        "GageEventDetector",
+                        String.Format("Missing reading in GageEventDetector: {0} wasn't in readings, using {1}", curStatus.LastReadingId, readings[lastReadingIndex].Id));
+                }
 
                 Trends trends = TrendCalculator.CalculateWaterTrends(readings);
                 curStatus.LastReadingId = readings[0].Id;
 
                 location.ConvertValuesForDisplay();
 
-                // Theoretically, there could be more than one new reading per gage, but
-                // we intend to run this often enough that there won't be...
-                double curFeet = readings[0].WaterHeightFeet ?? 0;
-                double prevFeet = readings[1].WaterHeightFeet ?? 0;
-
-                // These threshold levels have a precedence -- if any two threshold levels are equal,
-                // we should detect events in this priority order.
-
-                //$ TODO: Add explicit check for RoadSaddleHeight?
-                if (location.Brown.HasValue)
+                for (int i = lastReadingIndex; i > 0; i--)
                 {
-                    
-                    if (await MaybeCreateEvent(sqlcn,
-                                               location,
-                                               readings[0],
-                                               readings[0].Timestamp,
-                                               curFeet,
-                                               prevFeet,
-                                               trends,
-                                               location.Brown.Value,
-                                               GageEventTypes.RedRising,
-                                               GageEventTypes.RedFalling))
+                    newReadingsCount++;
+
+                    double curFeet = readings[i - 1].WaterHeightFeet ?? 0;
+                    double prevFeet = readings[i].WaterHeightFeet ?? 0;
+
+                    // These threshold levels have a precedence -- if any two threshold levels are equal,
+                    // we should detect events in this priority order.
+
+                    //$ TODO: Add explicit check for RoadSaddleHeight?
+                    if (location.Brown.HasValue)
                     {
-                        floodingCount++;
-                        sbDetails.Append("Flooding\r\n");
-                        continue;
+
+                        if (await MaybeCreateEvent(sqlcn,
+                                                   location,
+                                                   readings[i - 1],
+                                                   readings[i - 1].Timestamp,
+                                                   curFeet,
+                                                   prevFeet,
+                                                   trends,
+                                                   location.Brown.Value,
+                                                   GageEventTypes.RedRising,
+                                                   GageEventTypes.RedFalling))
+                        {
+                            floodingCount++;
+                            sbDetails.AppendFormat("Flooding ({0} @ {1}) ", curFeet, readings[i - 1].Timestamp);
+                            continue; // next pair of readings
+                        }
                     }
-                }
-                if (location.Green.HasValue)
-                {
-                    if (location.Brown.HasValue && location.Brown.Value == location.Green.Value)
+                    if (location.Green.HasValue)
                     {
-                        continue;
-                    }
-                    if (await MaybeCreateEvent(sqlcn,
-                                               location,
-                                               readings[0],
-                                               readings[0].Timestamp,
-                                               curFeet,
-                                               prevFeet,
-                                               trends,
-                                               location.Green.Value,
-                                               GageEventTypes.YellowRising,
-                                               GageEventTypes.YellowFalling))
-                    {
-                        sbDetails.Append("Near Flooding\r\n");
-                        nearCount++;
-                        continue;
+                        if (location.Brown.HasValue && location.Brown.Value == location.Green.Value)
+                        {
+                            continue; // next pair of readings
+                        }
+                        if (await MaybeCreateEvent(sqlcn,
+                                                   location,
+                                                   readings[i - 1],
+                                                   readings[i - 1].Timestamp,
+                                                   curFeet,
+                                                   prevFeet,
+                                                   trends,
+                                                   location.Green.Value,
+                                                   GageEventTypes.YellowRising,
+                                                   GageEventTypes.YellowFalling))
+                        {
+                            sbDetails.AppendFormat("Near Flooding ({0} @ {1}) ", curFeet, readings[i - 1].Timestamp);
+                            nearCount++;
+                            continue; // next pair of readings
+                        }
                     }
                 }
                 sbDetails.Append("\r\n");

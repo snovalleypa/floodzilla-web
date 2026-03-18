@@ -374,7 +374,7 @@ namespace FzCommon
             sr.WaterHeightFeet = SqlHelper.Read<double?>(dr, "WaterHeightFeet");
             sr.WaterDischarge = SqlHelper.Read<double?>(dr, "WaterDischarge");
             sr.BatteryVolt = SqlHelper.Read<int?>(dr, "BatteryVolt");
-            sr.BatteryPercent = SqlHelper.Read<int?>(dr, "BatteryPercent");
+            sr.BatteryPercent = SqlHelper.Read<double?>(dr, "BatteryPercent");
             sr.IsDeleted = SqlHelper.Read<bool>(dr, "IsDeleted");
             sr.RoadSaddleHeight = SqlHelper.Read<double?>(dr, "RoadSaddleHeight");
             sr.GroundHeightFeet = SqlHelper.Read<double?>(dr, "GroundHeightFeet");
