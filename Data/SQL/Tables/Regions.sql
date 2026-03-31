@@ -27,6 +27,9 @@ CREATE TABLE [Regions](
 	[SensorOfflineThreshold] [int] NULL,
 	[SlackNotifyUrl] [nvarchar](256) NULL,
     [DefaultForecastGageList] [nvarchar](256) NULL,
+    [RegionBounds] [nvarchar](256) NULL,
+    [DefaultWebMapBounds] [nvarchar](256) NULL,
+    [DefaultMobileMapBounds] [nvarchar](256) NULL,
  CONSTRAINT [PK__Regions__3214EC07A4B42177] PRIMARY KEY CLUSTERED 
 (
 	[RegionId] ASC

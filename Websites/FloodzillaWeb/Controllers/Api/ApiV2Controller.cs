@@ -17,6 +17,9 @@ namespace FloodzillaWeb.Controllers.Api
         public string Name { get; }
         public string Timezone { get; }
         public string BaseUrl { get; }
+        public double[]? RegionBounds { get; }
+        public double[]? DefaultWebMapBounds { get; }
+        public double[]? DefaultMobileMapBounds { get; }
         // Deprecated
         public string[] DefaultForecastGageList { get; }
         public string[] DefaultForecastGaugeList { get; }
@@ -28,6 +31,27 @@ namespace FloodzillaWeb.Controllers.Api
             this.BaseUrl = source.BaseURL ?? DEFAULT_URL;
             this.DefaultForecastGageList = (source.DefaultForecastGageList ?? "").Split(",");
             this.DefaultForecastGaugeList = (source.DefaultForecastGageList ?? "").Split(",");
+            this.RegionBounds = ParseBounds(source.RegionBounds);
+            this.DefaultWebMapBounds = ParseBounds(source.DefaultWebMapBounds);
+            this.DefaultMobileMapBounds = ParseBounds(source.DefaultMobileMapBounds);
+        }
+
+        private static double[]? ParseBounds(string? boundStr)
+        {
+            if (String.IsNullOrEmpty(boundStr))
+            {
+                return null;
+            }
+            string[] parts = boundStr.Split(',');
+            double[] parsed = new double[parts.Length];
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (!Double.TryParse(parts[i], out parsed[i]))
+                {
+                    return null;
+                }
+            }
+            return parsed;
         }
     }
 

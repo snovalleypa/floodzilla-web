@@ -1,0 +1,11 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [Map_GetMapMetadataForRegion]
+    @RegionId int
+AS
+BEGIN
+    SELECT * FROM Map_MapMetadata WHERE RegionId=@RegionId
+END
+GO

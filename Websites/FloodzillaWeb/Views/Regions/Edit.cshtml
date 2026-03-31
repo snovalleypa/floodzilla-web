@@ -118,6 +118,35 @@
 
   <hr />
 
+  <h6>Map Defaults -- <a href="/Regions/MapMetadata/@Model.RegionId">Edit Metadata</a></h6>
+
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="RegionBounds" class="control-label">Region Map Bounds (w, s, e, n):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="RegionBounds" class="form-control" placeholder="(w, s, e, n)"/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="DefaultWebMapBounds" class="control-label">Default Web Map Bounds (w, s, e, n):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="DefaultWebMapBounds" class="form-control" placeholder="(w, s, e, n)"/>
+    </div>
+  </div>
+  <div class="form-group row">
+    <div class="col-md-2 control-label">
+      <label asp-for="DefaultMobileMapBounds" class="control-label">Default Mobile Map Bounds (w, s, e, n):</label>
+    </div>
+    <div class="col-md-10">
+      <input asp-for="DefaultMobileMapBounds" class="form-control" placeholder="(w, s, e, n)"/>
+    </div>
+  </div>
+
+  <hr />
+
   <div class="form-group row">
     <div class="col-md-2 offset-2">
       <label><input type="checkbox" asp-for="IsActive" /> Active</label><br/>

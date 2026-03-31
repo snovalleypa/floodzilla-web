@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../../Libraries/FzCommon/FzCommon.csproj" />
+  <Project Path="MBTilesTool.csproj" />
+</Solution>
