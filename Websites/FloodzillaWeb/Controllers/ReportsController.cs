@@ -267,7 +267,8 @@ namespace FloodzillaWeb.Controllers
                                              (l => l.Devices != null &&
                                                  (l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Senix
                                                  || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Milesight
-                                                 || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Dragino)));
+                                                 || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Dragino
+                                                 || l.Devices.DeviceType.DeviceTypeId == DeviceTypeIds.Vega)));
             return View();
         }
 

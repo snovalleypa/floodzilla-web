@@ -11,7 +11,7 @@ namespace FzCommon
         public string Result;
     }
 
-    // NOTE: This does not have all the same responsibilities as the other two SensorHelper classes; it is
+    // NOTE: This does not have all the same responsibilities as the other SensorHelper classes; it is
     // not interchangeable with them.
     public class DraginoSensorHelper
     {
@@ -273,12 +273,21 @@ namespace FzCommon
             // Figure out if this is the "old style" receiver format or the "new style" receiver format.
             if (senixData.ContainsKey("uplink_message"))
             {
-                // For now, our only new-style receiver messages that we may want to discard are
-                // Dragino sensor readings.
-                if (DraginoSensorHelper.ShouldIgnoreReading(senixData, result, out deleteReason))
+                var uplink = senixData["uplink_message"];
+                if (uplink.ContainsKey("decoded_payload"))
                 {
-                    return true;
+                    var decoded = uplink["decoded_payload"];
+                    if (decoded.ContainsKey("Distance_signal_strength"))
+                    {
+                        // For now, our only new-style receiver messages that we may want to discard are
+                        // Dragino sensor readings.
+                        if (DraginoSensorHelper.ShouldIgnoreReading(senixData, result, out deleteReason))
+                        {
+                            return true;
+                        }
+                    }
                 }
+
                 return false;
             }
             else
@@ -534,6 +543,10 @@ namespace FzCommon
             else if (decoded_payload["battery_percentage"] != null)
             {
                 reading.BatteryPercent = (double)(decoded_payload["battery_percentage"]);
+            }
+            else if (decoded_payload["RemainingPower"] != null)
+            {
+                reading.BatteryPercent = (double)(decoded_payload["RemainingPower"]);
             }
 
             // NOTE: This is dumb.  reading.BatteryVolt is actually in millivolts.  I apologize.
