@@ -18,6 +18,7 @@ namespace FloodzillaJobs
     {
         const int DefaultMileSightInterval = 15;
         const int DefaultDraginoInterval = 15;
+        const int DefaultVegaInterval = 15;
         const int DefaultSensorInterval = 15;
 
         public GageStatisticsCollector() : base("FloodzillaJob.CollectGageStatistics",
@@ -42,6 +43,10 @@ namespace FloodzillaJobs
             {
                 return DefaultDraginoInterval;
             }
+            if (device.DeviceTypeId == DeviceTypeIds.Vega)
+            {
+                return DefaultVegaInterval;
+            }
             if (device.DeviceTypeId == DeviceTypeIds.Senix)
             {
                 return SenixSensorHelper.GetSampleRate(readingData);
@@ -62,7 +67,10 @@ namespace FloodzillaJobs
                 // If the location currently has a Senix device attached to it, then gather statistics for it.
                 DeviceBase device = devices.FirstOrDefault(d => d.LocationId == location.Id);
                 if (device == null ||
-                    (device.DeviceTypeId != DeviceTypeIds.Senix && device.DeviceTypeId != DeviceTypeIds.Milesight && device.DeviceTypeId != DeviceTypeIds.Dragino))
+                    (device.DeviceTypeId != DeviceTypeIds.Senix 
+                     && device.DeviceTypeId != DeviceTypeIds.Milesight 
+                     && device.DeviceTypeId != DeviceTypeIds.Dragino
+                     && device.DeviceTypeId != DeviceTypeIds.Vega))
                 {
                     continue;
                 }
@@ -189,7 +197,7 @@ namespace FloodzillaJobs
                             currentInterval = newInterval;
                         }
                     }
-                    else if (device.DeviceTypeId == DeviceTypeIds.Milesight || device.DeviceTypeId == DeviceTypeIds.Dragino)
+                    else if (device.DeviceTypeId == DeviceTypeIds.Milesight || device.DeviceTypeId == DeviceTypeIds.Dragino || device.DeviceTypeId == DeviceTypeIds.Vega)
                     {
                         string deleteReason;
                         dynamic postData = JsonConvert.DeserializeObject((string)sr.RawSensorData);
@@ -197,7 +205,7 @@ namespace FloodzillaJobs
                         {
                             continue;
                         }
-                        //$ TODO: Someday, figure out if the Milesight/Dragino sensors can report their sampling interval...
+                        //$ TODO: Someday, figure out if the Milesight/Dragino/Vega sensors can report their sampling interval...
                     }
 
                     readingCount++;
