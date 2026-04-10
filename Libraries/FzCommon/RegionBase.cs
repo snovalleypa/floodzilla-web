@@ -18,6 +18,9 @@ namespace FzCommon
 
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+        public string? RegionBounds { get; set; }
+        public string? DefaultWebMapBounds { get; set; }
+        public string? DefaultMobileMapBounds { get; set; }
 
         public string? WindowsTimeZone { get; set; }
         public string? IanaTimeZone { get; set; }
@@ -146,7 +149,8 @@ namespace FzCommon
 
         private static string GetColumnList()
         {
-            return "RegionId, OrganizationsId, RegionName, Address, Latitude, Longitude, WindowsTimeZone, IanaTimeZone, BaseURL, SmsFormatBaseURL, "
+            return "RegionId, OrganizationsId, RegionName, Address, Latitude, Longitude, RegionBounds, DefaultWebMapBounds, "
+                  +"DefaultMobileMapBounds, WindowsTimeZone, IanaTimeZone, BaseURL, SmsFormatBaseURL, "
                   +"IsActive, IsDeleted, IsPublic, NotifyList, SensorOfflineThreshold, SlackNotifyUrl, DefaultForecastGageList";
         }
 
@@ -160,6 +164,9 @@ namespace FzCommon
                 Address = SqlHelper.Read<string>(reader, "Address"),
                 Latitude = SqlHelper.Read<double?>(reader, "Latitude"),
                 Longitude = SqlHelper.Read<double?>(reader, "Longitude"),
+                RegionBounds = SqlHelper.Read<string?>(reader, "RegionBounds"),
+                DefaultWebMapBounds = SqlHelper.Read<string?>(reader, "DefaultWebMapBounds"),
+                DefaultMobileMapBounds = SqlHelper.Read<string?>(reader, "DefaultMobileMapBounds"),
                 WindowsTimeZone = SqlHelper.Read<string>(reader, "WindowsTimeZone"),
                 IanaTimeZone = SqlHelper.Read<string>(reader, "IanaTimeZone"),
                 BaseURL = SqlHelper.Read<string>(reader, "BaseURL"),

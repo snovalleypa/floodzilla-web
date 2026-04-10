@@ -11,6 +11,7 @@ using FloodzillaWeb.Cache;
 using FloodzillaWeb.Models;
 using FloodzillaWeb.Models.FzModels;
 using FzCommon;
+using FzCommon.Map;
 
 namespace FloodzillaWeb.Controllers
 {
@@ -66,8 +67,8 @@ namespace FloodzillaWeb.Controllers
     {
         public List<Result> results { get; set; }
         public string status { get; set; }
-    } 
-    
+    }
+
     [Authorize(Roles = "Admin,Organization Admin,Organization Member")]
     public class RegionsController : FloodzillaController
     {
@@ -106,7 +107,7 @@ namespace FloodzillaWeb.Controllers
 
             string gmapKey = FzConfig.Config[FzConfig.Keys.GoogleMapsApiKey];
 
-            HttpResponseMessage response = await client.GetAsync("https://maps.googleapis.com/maps/api/geocode/json?address=" + Address + "&key="+ gmapKey);
+            HttpResponseMessage response = await client.GetAsync("https://maps.googleapis.com/maps/api/geocode/json?address=" + Address + "&key=" + gmapKey);
 
             if (response.IsSuccessStatusCode)
             {
@@ -118,7 +119,7 @@ namespace FloodzillaWeb.Controllers
                 }
             }
             return location;
-        } 
+        }
 
         [NonAction]
         private void SetDropdownList(RegionBase currentRegion)
@@ -172,7 +173,7 @@ namespace FloodzillaWeb.Controllers
             }
             return Ok(JsonConvert.SerializeObject(new { Data = regions }));
         }
-        
+
         // GET: Regions
         public IActionResult Index()
         {
@@ -189,7 +190,7 @@ namespace FloodzillaWeb.Controllers
 
             return View(regions);
         }
-        
+
         // GET: Regions/Create
         [Authorize(Roles = "Admin,Organization Admin")]
         public IActionResult Create()
@@ -207,7 +208,7 @@ namespace FloodzillaWeb.Controllers
             {
                 try
                 {
-                    var location= await GeoCoordinates(regions.Address);
+                    var location = await GeoCoordinates(regions.Address);
                     if (location != null)
                     {
                         regions.Latitude = location.lat;
@@ -252,11 +253,11 @@ namespace FloodzillaWeb.Controllers
             return View(regions);
         }
 
-        
+
         [Authorize(Roles = "Admin,Organization Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Regions regions, string isAddressChanged,int? CountValidTill, int? hiddenHours)
+        public async Task<IActionResult> Edit(int id, Regions regions, string isAddressChanged, int? CountValidTill, int? hiddenHours)
         {
 
             if (id != regions.RegionId)
@@ -307,6 +308,80 @@ namespace FloodzillaWeb.Controllers
                 }
             }
             return View(regions);
+        }
+
+        // GET: Regions/MapMetadata/5
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> MapMetadata(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var region = await _context.Regions.SingleOrDefaultAsync(m => m.RegionId == id);
+            if (region == null)
+            {
+                return NotFound();
+            }
+
+            if (!User.IsInRole("Admin") && !_userPermissions.CheckPermission(region.RegionId, GetAspNetUserId(), PermissionOptions.Region))
+            {
+                return Redirect("~/NotAuthorized");
+            }
+
+            MapMetadata? md = null;
+            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            {
+                await sqlcn.OpenAsync();
+                md = await FzCommon.Map.MapMetadata.Get(region.RegionId);
+                sqlcn.Close();
+            }
+            ViewBag.Region = region;
+            return View(md);
+        }
+
+        [Authorize(Roles = "Admin,Organization Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MapMetadata(int id, MapMetadata md)
+        {
+            if (id != md.RegionId)
+            {
+                return NotFound();
+            }
+
+            var region = await _context.Regions.SingleOrDefaultAsync(m => m.RegionId == id);
+
+            if (!User.IsInRole("Admin") && !_userPermissions.CheckPermission(id, GetAspNetUserId(), PermissionOptions.Region))
+            {
+                return Redirect("~/NotAuthorized");
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+                    {
+                        await sqlcn.OpenAsync();
+                        await md.Save(sqlcn);
+                        sqlcn.Close();
+                        FzCommon.Map.MapMetadata.DropMetadataFromCache(id);
+                        return RedirectToAction("Edit", new { id = id });
+                    }
+                }
+                catch
+                {
+                    TempData["error"] = "Unable to save metadata.";
+                }
+            }
+            else
+            {
+                TempData["error"] = "Invalid data.  Please fix and resubmit .";
+            }
+            ViewBag.Region = region;
+            return View(md);
         }
 
         /// <summary>
@@ -450,6 +525,46 @@ namespace FloodzillaWeb.Controllers
                 TempData["error"] = "Something went wrong. Please contact SVPA.";
             }
             return RedirectToAction("Index");
+        }
+        // GET: Regions/CacheInfo/5
+        [Authorize(Roles = "Admin,Organization Admin")]
+        public async Task<IActionResult> CacheInfo(int? id, bool? precache = false)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+            var region = await _context.Regions.SingleOrDefaultAsync(m => m.RegionId == id);
+            if (region == null)
+            {
+                return NotFound();
+            }
+
+            if (!User.IsInRole("Admin") && !_userPermissions.CheckPermission(region.RegionId, GetAspNetUserId(), PermissionOptions.Region))
+            {
+                return Redirect("~/NotAuthorized");
+            }
+
+            MapMetadata? md = null;
+            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            {
+                await sqlcn.OpenAsync();
+                md = await FzCommon.Map.MapMetadata.Get(region.RegionId);
+
+                if (precache != null && precache.Value)
+                {
+                    DateTime start = DateTime.Now;
+                    await MapCache.Get().PrecacheTiles(sqlcn, id.Value);
+                    DateTime end = DateTime.Now;
+                    TimeSpan diff = end - start;
+                    var stats = MapCache.Get().GetCacheStats(id.Value);
+                    TempData["precacheResult"] = String.Format("Precached {0} tiles ({1} bytes) in {2}", stats.tileCount, stats.totalSize, diff);
+                }
+
+                sqlcn.Close();
+            }
+            ViewBag.Region = region;
+            return View(md);
         }
     }
 }

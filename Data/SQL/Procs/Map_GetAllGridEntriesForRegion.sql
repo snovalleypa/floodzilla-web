@@ -1,0 +1,11 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [Map_GetAllGridEntriesForRegion]
+    @RegionId int
+AS
+BEGIN
+    SELECT * FROM Map_MapGrid WHERE RegionId=@RegionId
+END
+GO

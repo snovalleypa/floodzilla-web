@@ -10,6 +10,7 @@ using Newtonsoft.Json.Serialization;
 using FloodzillaWeb.Data;
 using FloodzillaWeb.Models;
 using FzCommon;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace FloodzillaWeb
 {
@@ -41,6 +42,8 @@ namespace FloodzillaWeb
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHttpLogging(o => { });
+
             //$ TODO: figure out whether we want to enable this globally like this or not. It allows
             //$ local (i.e. http://localhost:3000) development of web apps.
             services.AddCors(options =>
@@ -54,7 +57,8 @@ namespace FloodzillaWeb
                 });
             });
 
-            services.AddControllersWithViews().AddNewtonsoftJson();
+            services.AddControllersWithViews(o => o.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
+                    .AddNewtonsoftJson();
 
             services.AddScoped<IdentityUser, ApplicationUser>();
             services.AddScoped<UserPermissions>();
@@ -122,6 +126,8 @@ namespace FloodzillaWeb
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseHttpLogging();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -140,6 +146,8 @@ namespace FloodzillaWeb
                            .AllowAnyHeader());
 
             app.UseDefaultFiles();
+            FileExtensionContentTypeProvider ctp = new FileExtensionContentTypeProvider();
+            ctp.Mappings[".pbf"] = "application/x-protobuf";
             StaticFileOptions sfoNoCacheIndex = new StaticFileOptions()
             {
                 OnPrepareResponse = (context) =>
@@ -151,7 +159,8 @@ namespace FloodzillaWeb
                         context.Context.Response.Headers["Pragma"] = "no-cache";
                         context.Context.Response.Headers["Expires"] = "-1";
                     }
-                }
+                },
+                ContentTypeProvider = ctp,
             };
             app.UseStaticFiles(sfoNoCacheIndex);
 

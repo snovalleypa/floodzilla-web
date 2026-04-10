@@ -1,0 +1,11 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [Map_GetAllTileImagesForRegion]
+    @RegionId int
+AS
+BEGIN
+    SELECT * FROM Map_MapImages WHERE RegionId=@RegionId
+END
+GO
