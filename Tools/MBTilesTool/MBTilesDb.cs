@@ -1,4 +1,7 @@
+using Microsoft.Data.Sqlite;
 using System.Security.Cryptography;
+using FzCommon;
+using FzCommon.Map;
 
 public class MBTilesDb
 {
