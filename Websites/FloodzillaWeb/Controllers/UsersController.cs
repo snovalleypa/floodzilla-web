@@ -343,7 +343,7 @@ namespace FloodzillaWeb.Controllers
             return RedirectToAction("Index");
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Organization Admin")]
         public IActionResult GetUsers(bool showDeleted)
         {
             return Ok(JsonConvert.SerializeObject(new { Data = GetUserList(showDeleted) }));
