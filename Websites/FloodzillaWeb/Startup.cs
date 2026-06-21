@@ -146,8 +146,9 @@ namespace FloodzillaWeb
                            .AllowAnyHeader());
 
             app.UseDefaultFiles();
-            FileExtensionContentTypeProvider ctp = new FileExtensionContentTypeProvider();
+            FileExtensionContentTypeProvider ctp = new();
             ctp.Mappings[".pbf"] = "application/x-protobuf";
+            ctp.Mappings[".geojson"] = "application/geo+json";
             StaticFileOptions sfoNoCacheIndex = new StaticFileOptions()
             {
                 OnPrepareResponse = (context) =>
