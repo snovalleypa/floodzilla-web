@@ -60,6 +60,8 @@ namespace FloodzillaWeb
             services.AddControllersWithViews(o => o.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
                     .AddNewtonsoftJson();
 
+            services.AddResponseCaching();
+
             services.AddScoped<IdentityUser, ApplicationUser>();
             services.AddScoped<UserPermissions>();
 
@@ -144,6 +146,7 @@ namespace FloodzillaWeb
                            .AllowAnyOrigin()
                            .AllowAnyMethod()
                            .AllowAnyHeader());
+            app.UseResponseCaching();
 
             app.UseDefaultFiles();
             FileExtensionContentTypeProvider ctp = new();
