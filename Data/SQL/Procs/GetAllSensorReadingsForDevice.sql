@@ -21,13 +21,21 @@ BEGIN
 	END
 
 	IF @readingCount IS NOT NULL
-		SET ROWCOUNT @readingcount
-	SELECT * from SensorReadings
-		WHERE DeviceId = @deviceId
-		AND (@fromTime IS NULL OR Timestamp >= @fromTime)
-		AND (@toTime IS NULL OR Timestamp <= @toTime)
-		ORDER BY Timestamp DESC
-		OFFSET (@skipCount) ROWS
-	SET ROWCOUNT 0
+
+        SELECT * from SensorReadings
+            WHERE DeviceId = @deviceId
+            AND (@fromTime IS NULL OR Timestamp >= @fromTime)
+            AND (@toTime IS NULL OR Timestamp <= @toTime)
+            ORDER BY Timestamp DESC
+            OFFSET (@skipCount) ROWS
+            FETCH NEXT @readingCount ROWS ONLY
+    ELSE
+        SELECT * from SensorReadings
+            WHERE DeviceId = @deviceId
+            AND (@fromTime IS NULL OR Timestamp >= @fromTime)
+            AND (@toTime IS NULL OR Timestamp <= @toTime)
+            ORDER BY Timestamp DESC
+            OFFSET (@skipCount) ROWS
+
 END
 GO
