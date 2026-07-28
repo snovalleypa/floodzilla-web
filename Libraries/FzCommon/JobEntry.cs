@@ -53,6 +53,7 @@ namespace FzCommon
         public string? LastError                { get; set; }
         public string? LastFullException        { get; set; }
         public bool IsEnabled                   { get; set; }
+        public bool ShouldSaveDetails           { get; set; }
         public string? DisableReason            { get; set; }
         public DateTime? DisabledTime           { get; set; }
         public string? DisabledBy               { get; set; }
@@ -150,7 +151,7 @@ namespace FzCommon
             return true;
         }
 
-        public void ReportJobSuccess(SqlConnection sqlcn, string summary)
+        public void ReportJobSuccess(SqlConnection sqlcn, string summary, string details)
         {
             if (this.m_currentRun == null)
             {
@@ -158,6 +159,10 @@ namespace FzCommon
             }
             this.LastEndTime = DateTime.UtcNow;
             m_currentRun.Summary = summary;
+            if (this.ShouldSaveDetails)
+            {
+                m_currentRun.Details = details;
+            }
             RecentJobRun jobRun = this.m_currentRun.ReportJobRunSuccess(sqlcn, this.LastEndTime.Value);
             this.LastRunLogId = jobRun.Id;
             this.m_currentRun = null;
@@ -169,13 +174,17 @@ namespace FzCommon
             this.Save(sqlcn);
         }
 
-        public void ReportJobException(SqlConnection sqlcn, Exception ex)
+        public void ReportJobException(SqlConnection sqlcn, string details, Exception ex)
         {
             if (this.m_currentRun == null)
             {
                 throw new ApplicationException("ReportJobException requires StartJobRun to be called first");
             }
             this.LastEndTime = DateTime.UtcNow;
+            if (this.ShouldSaveDetails)
+            {
+                m_currentRun.Details = details;
+            }
             RecentJobRun jobRun = this.m_currentRun.ReportJobRunException(sqlcn, ex, this.LastEndTime.Value);
             this.LastRunLogId = jobRun.Id;
             this.m_currentRun = null;
@@ -219,6 +228,7 @@ namespace FzCommon
             cmd.Parameters.AddWithValue("@JobName", this.JobName);
             cmd.Parameters.AddWithValue("@FriendlyName", this.FriendlyName);
             cmd.Parameters.AddWithValue("@IsEnabled", this.IsEnabled);
+            cmd.Parameters.AddWithValue("@ShouldSaveDetails", this.ShouldSaveDetails);
             SqlHelper.AddParamIfNotEmpty<DateTime?>(cmd.Parameters, "@LastStartTime", this.LastStartTime);
             SqlHelper.AddParamIfNotEmpty<DateTime?>(cmd.Parameters, "@LastEndTime", this.LastEndTime);
             SqlHelper.AddParamIfNotEmpty<DateTime?>(cmd.Parameters, "@LastSuccessfulEndTime", this.LastSuccessfulEndTime);
@@ -250,6 +260,7 @@ namespace FzCommon
                 LastError = SqlHelper.Read<string?>(reader, "LastError"),
                 LastFullException = SqlHelper.Read<string?>(reader, "LastFullException"),
                 IsEnabled = SqlHelper.Read<bool>(reader, "IsEnabled"),
+                ShouldSaveDetails = SqlHelper.Read<bool>(reader, "ShouldSaveDetails"),
                 DisableReason = SqlHelper.Read<string?>(reader, "DisableReason"),
                 DisabledTime = SqlHelper.Read<DateTime?>(reader, "DisabledTime"),
                 DisabledBy = SqlHelper.Read<string?>(reader, "DisabledBy"),

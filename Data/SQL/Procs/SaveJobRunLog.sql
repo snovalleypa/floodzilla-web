@@ -10,7 +10,8 @@ CREATE PROCEDURE [SaveJobRunLog]
 	@EndTime datetime,
 	@Summary nvarchar(500) = null,
 	@Exception nvarchar(200) = null,
-	@FullException text = null
+	@FullException text = null,
+    @Details text = null
 AS
 BEGIN
   DECLARE @Id int
@@ -20,9 +21,9 @@ BEGIN
     INSERT INTO JobNames (JobName) VALUES (@JobName)
   END
 
-	INSERT INTO JobRunLogs (JobName, MachineName, StartTime, EndTime, Summary, Exception, FullException)
-   	VALUES (@JobName, @MachineName, @StartTime, @EndTime, @Summary, @Exception, @FullException)
-	END
+  INSERT INTO JobRunLogs (JobName, MachineName, StartTime, EndTime, Summary, Exception, FullException, Details)
+    VALUES (@JobName, @MachineName, @StartTime, @EndTime, @Summary, @Exception, @FullException, @Details)
+  END
 
   SELECT * FROM JobRunLogs WHERE Id=@@IDENTITY
 GO

@@ -15,7 +15,8 @@ CREATE PROCEDURE [SaveJob]
     @LastFullException TEXT = NULL,
     @DisableReason NVARCHAR(200) = NULL,
     @DisabledTime DATETIME = NULL,
-    @DisabledBy NVARCHAR(200) = NULL
+    @DisabledBy NVARCHAR(200) = NULL,
+    @ShouldSaveDetails BIT = 0
 )
 AS
 BEGIN
@@ -34,7 +35,8 @@ BEGIN
     LastFullException = @LastFullException,
     DisableReason = @DisableReason,
     DisabledTime = @DisabledTime,
-    DisabledBy = @DisabledBy
+    DisabledBy = @DisabledBy,
+    ShouldSaveDetails = @ShouldSaveDetails
   WHERE
     Id = @Id
 END

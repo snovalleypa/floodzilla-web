@@ -47,7 +47,7 @@ namespace FzCommon.Processors
             try
             {
                 await this.RunJob(sqlcn, sbDetails, sbSummary);
-                jobEntry.ReportJobSuccess(sqlcn, sbSummary.ToString());
+                jobEntry.ReportJobSuccess(sqlcn, sbSummary.ToString(), sbDetails.ToString());
 
                 // If this fails, just eat the exception -- this is just informational, so we
                 // can lose it without worrying about it.
@@ -61,7 +61,7 @@ namespace FzCommon.Processors
             }
             catch (Exception ex)
             {
-                jobEntry.ReportJobException(sqlcn, ex);
+                jobEntry.ReportJobException(sqlcn, sbDetails.ToString(), ex);
             }
         }
 

@@ -10,6 +10,7 @@ CREATE TABLE [JobRunLogs](
 	[StartTime] [datetime] NOT NULL,
 	[EndTime] [datetime] NOT NULL,
 	[Summary] [nvarchar](500) NULL,
+    [Details] [text] NULL,
 	[Exception] [nvarchar](200) NULL,
 	[FullException] [text] NULL,
 PRIMARY KEY CLUSTERED 
