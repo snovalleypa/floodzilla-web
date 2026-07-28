@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -217,20 +217,59 @@ namespace FzCommon.Fetchers
             // This is a shortcut -- if our latest discharge reading and our latest height reading are the same
             // (which should be the common case, if we're updating a gauge that has been receiving data), we don't
             // need to go back and fetch any old data, we can just start with the reading we've got.
+            if (latestDischarge == null)
+            {
+                updStat.sbDetails.AppendFormat("-- Device {0}: No latest discharge reading\r\n", device.DeviceId);
+            }
+            else
+            {
+                updStat.sbDetails.AppendFormat("-- Device {0}: Latest discharge reading [{1}], {2} ft / {3} cfs @ {4}\r\n",
+                                               device.DeviceId,
+                                               latestDischarge.Id,
+                                               latestDischarge.WaterHeightFeet,
+                                               latestDischarge.WaterDischarge,
+                                               latestDischarge.Timestamp);
+            }
+            if (latestHeight == null)
+            {
+                updStat.sbDetails.AppendFormat("-- Device {0}: No latest height reading\r\n", device.DeviceId);
+            }
+            else
+            {
+                updStat.sbDetails.AppendFormat("-- Device {0}: Latest height reading [{1}], {2} ft / {3} cfs @ {4}\r\n",
+                                               device.DeviceId,
+                                               latestHeight.Id,
+                                               latestHeight.WaterHeightFeet,
+                                               latestHeight.WaterHeight,
+                                               latestHeight.Timestamp);
+            }
             if (latestDischarge != null && latestHeight != null && latestDischarge.Timestamp == latestHeight.Timestamp)
             {
                 if (latestDischarge.Id != latestHeight.Id)
                 {
                     ErrorManager.ReportError(ErrorSeverity.Major,
-                                             "FloodzillaJobs.UsgsDataFetcher",
+                                             "FloodzillaJobs.USGSWdfnFetcher",
                                              String.Format("Duplicate reading for location {0}, timestamp {1}: {2} != {3}", location.Id, latestDischarge.Timestamp, latestDischarge.Id, latestHeight.Id));
+                    updStat.sbDetails.AppendFormat("!! Device {0}: duplicate reading @ {1}: {2} != {3}\r\n", device.DeviceId, latestDischarge.Timestamp, latestDischarge.Id, latestHeight.Id);
                 }
                 availableReadings.Add(latestHeight);
+                updStat.sbDetails.AppendFormat("Device {0}: Loaded existing latest reading [{1}] {2} ft, {3} cfs @ {4}\r\n",
+                                               device.DeviceId,
+                                               latestHeight.Id,
+                                               latestHeight.WaterHeightFeet,
+                                               latestHeight.WaterDischarge,
+                                               latestHeight.Timestamp);
             }
             else
             {
                 // We need to make sure we've loaded every relevant reading.
+                updStat.sbDetails.AppendFormat("-- Device {0}: Loading all readings for location {1} from {2} until now\r\n", device.DeviceId, location.Id, startTime);
                 availableReadings = await SensorReading.GetAllReadingsForLocation(location.Id, 0, startTime, DateTime.UtcNow);
+                updStat.sbDetails.AppendFormat("Device {0}: Loaded {1} readings (first 10 shown)\r\n", device.DeviceId, availableReadings.Count);
+                for (int i = 0; i < 10 && i < availableReadings.Count; i++)
+                {
+                    updStat.sbDetails.AppendFormat("  [{0}]: {1} ft, {2} cfs @ {3}\r\n", availableReadings[i].Id, availableReadings[i].WaterHeightFeet, availableReadings[i].WaterDischarge, availableReadings[i].Timestamp);
+                }
             }
             await FetchAndUpdateGaugeData(sqlcn,
                                           usgsSite,
@@ -267,7 +306,7 @@ namespace FzCommon.Fetchers
             }
             else
             {
-                dischargeReadings = await usgsSite.FetchRawWdfnReadings(startTimeUtc, endTimeUtc, device, WdfnReadingType.Discharge);;
+                dischargeReadings = await usgsSite.FetchRawWdfnReadings(startTimeUtc, endTimeUtc, device, WdfnReadingType.Discharge); ;
             }
             if (dischargeReadings != null)
             {
@@ -285,6 +324,15 @@ namespace FzCommon.Fetchers
                 // No news is good news.
                 updStat.sbDetails.AppendFormat("Device {0}: No new USGS data available", device.DeviceId);
                 return;
+            }
+
+            foreach (WdfnReading dr in dischargeReadings)
+            {
+                updStat.sbDetails.AppendFormat("-- Device {0}: READING: Discharge: {1} @ {2}\r\n", device.DeviceId, dr.Value, dr.Timestamp);
+            }
+            foreach (WdfnReading hr in heightReadings)
+            {
+                updStat.sbDetails.AppendFormat("-- Device {0}: READING: Height: {1} @ {2}\r\n", device.DeviceId, hr.Value, hr.Timestamp);
             }
 
             // Keep track of which, if any, of our already-loaded readings will have to be saved.
@@ -317,13 +365,19 @@ namespace FzCommon.Fetchers
                                                : "Filtered (invalid water height)";
                     }
                     await availableReadings[i].Save(sqlcn);
+                    updStat.sbDetails.AppendFormat("++ Device {0}: Saved reading [{1}] {2} ft / {3} cfs @ {4}\r\n",
+                                                   device.DeviceId,
+                                                   availableReadings[i].Id,
+                                                   availableReadings[i].WaterHeightFeet,
+                                                   availableReadings[i].WaterDischarge,
+                                                   availableReadings[i].Timestamp);
                 }
             }
-            updStat.sbDetails.AppendFormat("Device {0}: {1} new height readings, {2} new discharge readings\n",
+            updStat.sbDetails.AppendFormat("Device {0}: {1} new height readings, {2} new discharge readings\r\n",
                                            device.DeviceId,
                                            subStat.heightReadingCount,
                                            subStat.dischargeReadingCount);
-            updStat.sbSummary.AppendFormat("Device {0}: {1} new height readings, {2} new discharge readings\n",
+            updStat.sbSummary.AppendFormat("Device {0}: {1} new height readings, {2} new discharge readings\r\n",
                                            device.DeviceId,
                                            subStat.heightReadingCount,
                                            subStat.dischargeReadingCount);
@@ -402,12 +456,13 @@ namespace FzCommon.Fetchers
                 // separately...
                 if (!reading.WaterHeight.HasValue)
                 {
-                    updStat.sbDetails.AppendFormat("Device {0}: Received height reading of {1} at {2}\n", device.DeviceId, newWaterHeightFeet.Value, reading.Timestamp);
+                    updStat.sbDetails.AppendFormat("Device {0}: Received height reading [{1}] of {2} at {3}\n", device.DeviceId, reading.Id, newWaterHeightFeet.Value, reading.Timestamp);
                 }
                 else if (reading.WaterHeight.Value != waterHeightInches)
                 {
-                    updStat.sbDetails.AppendFormat("Device {0}: Updating height reading from {1} to {2} at {3}\n",
+                    updStat.sbDetails.AppendFormat("Device {0}: Updating height reading [{1}] from {2} to {3} at {4}\n",
                                                    device.DeviceId,
+                                                   reading.Id,
                                                    reading.WaterHeight.Value,
                                                    newWaterHeightFeet.Value,
                                                    reading.Timestamp);
@@ -454,12 +509,13 @@ namespace FzCommon.Fetchers
                 // separately...
                 if (!reading.WaterDischarge.HasValue)
                 {
-                    updStat.sbDetails.AppendFormat("Device {0}: Received discharge reading of {1} at {2}\n", device.DeviceId, newDischarge.Value, reading.Timestamp);
+                    updStat.sbDetails.AppendFormat("Device {0}: Received discharge reading [{1}] of {2} at {3}\n", device.DeviceId, reading.Id, newDischarge.Value, reading.Timestamp);
                 }
                 else if (reading.WaterDischarge.Value != newDischarge.Value)
                 {
-                    updStat.sbDetails.AppendFormat("Device {0}: Updating discharge reading from {1} to {2} at {3}\n",
+                    updStat.sbDetails.AppendFormat("Device {0}: Updating discharge reading [{1}] from {2} to {3} at {4}\n",
                                                    device.DeviceId,
+                                                   reading.Id,
                                                    reading.WaterDischarge.Value,
                                                    newDischarge.Value,
                                                    reading.Timestamp);

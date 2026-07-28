@@ -20,7 +20,7 @@ BEGIN
 		SELECT @fromTime = Timestamp FROM SensorReadings WHERE Id = @lastReadingId
 	END
 
-	IF @readingCount IS NOT NULL
+	IF @readingCount IS NOT NULL AND @readingCount > 0
         SELECT * from SensorReadings
             WHERE LocationId = @locationId
             AND (@fromTime IS NULL OR Timestamp >= @fromTime)

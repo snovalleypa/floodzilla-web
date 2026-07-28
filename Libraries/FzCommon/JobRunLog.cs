@@ -12,6 +12,7 @@ namespace FzCommon
         public DateTime StartTime;
         public DateTime EndTime;
         public string Summary;
+        public string Details;
         public string Exception;
         public string FullException;
 
@@ -30,12 +31,13 @@ namespace FzCommon
                 StartTime = (DateTime)dr[columnPrefix + "StartTime"],
                 EndTime = (DateTime)dr[columnPrefix + "EndTime"],
                 Summary = SqlHelper.Read<string>(dr, columnPrefix + "Summary"),
+                Details = SqlHelper.Read<string>(dr, columnPrefix + "Details"),
                 Exception = SqlHelper.Read<string>(dr, columnPrefix + "Exception"),
                 FullException = SqlHelper.Read<string>(dr, columnPrefix + "FullException"),
             };
         }
     }
-    
+
     public class JobRunLog
     {
         internal JobRunLog(string jobName, DateTime startTime)
@@ -64,6 +66,10 @@ namespace FzCommon
             cmd.Parameters.AddWithValue("@StartTime", m_startTime);
             cmd.Parameters.AddWithValue("@EndTime", endTime);
             cmd.Parameters.AddWithValue("@Summary", m_summary);
+            if (m_details != null)
+            {
+                cmd.Parameters.AddWithValue("@Details", m_details);
+            }
             if (ex != null)
             {
                 cmd.Parameters.AddWithValue("@Exception", ex.Message);
@@ -117,6 +123,24 @@ namespace FzCommon
             return ret;
         }
 
+        public static async Task<List<RecentJobRun>> GetRecentJobRunLogsWithDetails(SqlConnection sqlcn, DateTime startTime)
+        {
+            List<RecentJobRun> ret = new List<RecentJobRun>();
+            using (SqlCommand cmd = new SqlCommand("GetRecentJobRunLogsWithDetails", sqlcn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@startTime", startTime);
+                using (SqlDataReader dr = cmd.ExecuteReader(CommandBehavior.CloseConnection))
+                {
+                    while (await dr.ReadAsync())
+                    {
+                        ret.Add(RecentJobRun.InstantiateFromReader(dr));
+                    }
+                }
+            }
+            return ret;
+        }
+
         public static async Task<List<RecentJobRun>> GetLatestJobRunLogsAsync(SqlConnection sqlcn)
         {
             List<RecentJobRun> ret = new List<RecentJobRun>();
@@ -133,7 +157,7 @@ namespace FzCommon
             }
             return ret;
         }
-        
+
         public static async Task<List<RecentJobRun>> GetJobRunLogsForNameAsync(SqlConnection sqlcn, string jobName)
         {
             List<RecentJobRun> ret = new List<RecentJobRun>();
@@ -152,10 +176,12 @@ namespace FzCommon
             return ret;
         }
 
-        public string Summary   { get { return m_summary; } set { m_summary = value; }}
+        public string Summary { get { return m_summary; } set { m_summary = value; } }
+        public string? Details { get { return m_details; } set { m_details = value; } }
 
         private string m_jobName;
         private DateTime m_startTime;
         private string m_summary;
+        private string? m_details;
     }
 }

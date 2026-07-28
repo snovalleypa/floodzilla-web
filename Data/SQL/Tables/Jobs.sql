@@ -19,6 +19,7 @@ CREATE TABLE [dbo].[Jobs](
 	[LastError] [nvarchar](200) NULL,
 	[LastFullException] [text] NULL,
 	[IsEnabled] [bit] NOT NULL,
+    [ShouldSaveDetails] [bit] NOT NULL,
 	[DisableReason] [nvarchar](200) NULL,
 	[DisabledTime] [datetime] NULL,
 	[DisabledBy] [nvarchar](200) NULL,
@@ -30,6 +31,9 @@ PRIMARY KEY CLUSTERED
 GO
 
 ALTER TABLE [dbo].[Jobs] ADD  CONSTRAINT [Jobs_DefaultIsEnabled]  DEFAULT ((1)) FOR [IsEnabled]
+GO
+
+ALTER TABLE [dbo].[Jobs] ADD  CONSTRAINT [Jobs_DefaultShouldSaveDetails]  DEFAULT ((0)) FOR [ShouldSaveDetails]
 GO
 
 CREATE UNIQUE NONCLUSTERED INDEX [IX_Job_JobName] ON [dbo].[Jobs]
