@@ -1,10 +1,7 @@
 ﻿using System.Collections;
 using System.Data;
 using FzCommon;
-using FzCommon.Map;
 using Microsoft.Data.SqlClient;
-
-//$ TODO: Metadata?
 
 async Task DumpJobDetails(SqlConnection sqlcn, DateTime startDate)
 {
