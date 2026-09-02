@@ -1,9 +1,9 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.JsonWebTokens;
 using FloodzillaWeb.Models;
 using FloodzillaWeb.Models.FzModels;
 using FzCommon;
@@ -94,7 +94,7 @@ namespace FloodzillaWeb
 
             // We also make sure these claims get pushed into the ASP.NET claims
             // so that they're available to other methods/controllers (like Reauthenticate).
-            JwtSecurityToken jwt = (JwtSecurityToken)context.SecurityToken;
+            JsonWebToken jwt = (JsonWebToken)context.SecurityToken;
             bool rememberMe = false;
             string loginProvider = null;
             foreach (Claim claim in jwt.Claims)
@@ -122,10 +122,10 @@ namespace FloodzillaWeb
             TimeSpan tokenAge = DateTime.UtcNow - jwt.ValidFrom;
             if (user != null && tokenAge.TotalMinutes > JwtManager.MaxTokenAgeMinutes || timeToExpiration.TotalMinutes < JwtManager.MinTokenLifetime)
             {
-                var tokenHandler = new JwtSecurityTokenHandler();
+                var tokenHandler = new JsonWebTokenHandler();
                 var tokenDescriptor = JwtManager.CreateIdentityToken(user, rememberMe, loginProvider);
                 var token = tokenHandler.CreateToken(tokenDescriptor);
-                context.HttpContext.Items[JwtManager.JwtTokenHeader] = tokenHandler.WriteToken(token);
+                context.HttpContext.Items[JwtManager.JwtTokenHeader] = token;
             }
         }
 
@@ -187,7 +187,7 @@ namespace FloodzillaWeb
                                                                         bool rememberMe,
                                                                         string loginProvider)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenHandler = new JsonWebTokenHandler();
 
             var tokenDescriptor = JwtManager.CreateIdentityToken(user, rememberMe, loginProvider);
 
@@ -210,7 +210,7 @@ namespace FloodzillaWeb
                 LastName = userinfo.LastName,
                 Username = user.UserName,
                 Phone = user.PhoneNumber,
-                Token = tokenHandler.WriteToken(token),
+                Token = token,
                 LoginProvider = loginProvider,
                 IsAdmin = isAdmin,
                 HasPassword = hasPassword,
