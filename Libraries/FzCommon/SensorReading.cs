@@ -3,6 +3,7 @@ using System.Data;
 using System.Diagnostics;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Protocols;
+using System.Data.Common;
 
 namespace FzCommon
 {
@@ -241,12 +242,25 @@ namespace FzCommon
 
         public async Task Save(SqlConnection sqlConnection)
         {
-            await this.SaveSQL(sqlConnection);
+            await this.SaveSQL(sqlConnection, null);
         }
 
-        private async Task SaveSQL(SqlConnection sqlConnection)
+        public async Task BulkSave(SqlConnection sqlConnection, SqlTransaction xaction)
         {
-            SqlCommand cmd = new SqlCommand("SaveSensorReading", sqlConnection);
+            await this.SaveSQL(sqlConnection, xaction);
+        }
+
+        private async Task SaveSQL(SqlConnection sqlConnection, SqlTransaction? xaction)
+        {
+            SqlCommand cmd;
+            if (xaction != null)
+            {
+                cmd = new("SaveSensorReading", sqlConnection, xaction);
+            }
+            else
+            {
+                cmd = new("SaveSensorReading", sqlConnection);
+            }
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add("@ListenerInfo", SqlDbType.VarChar, 200).Value = this.ListenerInfo;
             cmd.Parameters.Add("@Timestamp", SqlDbType.DateTime).Value = this.Timestamp;
@@ -264,7 +278,14 @@ namespace FzCommon
             cmd.Parameters.Add("@BatteryPercent", SqlDbType.Float).Value = this.BatteryPercent;
             if (this.RawSensorData != null)
             {
-                cmd.Parameters.Add("@RawSensorData", SqlDbType.Text).Value = JsonConvert.SerializeObject(this.RawSensorData);
+                if (this.RawSensorData is System.String)
+                {
+                    cmd.Parameters.Add("@RawSensorData", SqlDbType.Text).Value = this.RawSensorData;
+                }
+                else
+                {
+                    cmd.Parameters.Add("@RawSensorData", SqlDbType.Text).Value = JsonConvert.SerializeObject(this.RawSensorData);
+                }
             }
             else
             {
@@ -311,7 +332,7 @@ namespace FzCommon
             }
         }
 
-        protected static SensorReading InstantiateFromReader(SqlDataReader dr, Func<SensorReading> factory = null)
+        protected static SensorReading InstantiateFromReader(SqlDataReader dr, Func<SensorReading>? factory = null)
         {
             SensorReading sr;
             if (factory != null)

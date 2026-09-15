@@ -340,7 +340,7 @@ namespace FzCommon
         // is relative to FzCommon.Constants.BenchmarkOffsetFeet.
         public void ConvertValuesForEditing()
         {
-            this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel / 12);
+            this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel / 12.0);
             this.BenchmarkElevation = FzCommonUtility.GetRoundValue(this.BenchmarkElevation / 12.0);
             this.RelativeSensorHeight = FzCommonUtility.GetRoundValue((this.RelativeSensorHeight / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
             this.Green = FzCommonUtility.GetRoundValue((this.Green / 12.0) + FzCommon.Constants.BenchmarkOffsetFeet);
@@ -356,7 +356,7 @@ namespace FzCommon
         // These fields are presented for display as feet above sea level
         public void ConvertValuesForDisplay()
         {
-            this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel / 12);
+            this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel / 12.0);
             this.BenchmarkElevation = FzCommonUtility.GetRoundValue(this.BenchmarkElevation / 12.0);
             this.RelativeSensorHeight = FzCommonUtility.GetRoundValue((this.RelativeSensorHeight / 12.0) + this.BenchmarkElevation);
             this.Green = FzCommonUtility.GetRoundValue((this.Green / 12.0) + this.BenchmarkElevation);
@@ -371,7 +371,7 @@ namespace FzCommon
 
         public void ConvertValuesForStorage()
         {
-            this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel * 12);
+            this.SeaLevel = FzCommonUtility.GetRoundValue(this.SeaLevel * 12.0);
             this.BenchmarkElevation = FzCommonUtility.GetRoundValue(this.BenchmarkElevation * 12.0);
             this.RelativeSensorHeight = FzCommonUtility.GetRoundValue((this.RelativeSensorHeight - FzCommon.Constants.BenchmarkOffsetFeet) * 12.0);
             this.Green = FzCommonUtility.GetRoundValue((this.Green - FzCommon.Constants.BenchmarkOffsetFeet) * 12.0);
