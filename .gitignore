@@ -359,6 +359,9 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
+# Hide all .json files from here -- we don't want to check in the various results/cache files...
+Tools/FixupBenchmarkChanges/*.json
+
 # misc stuff
 .editorconfig
 profile.arm.json
@@ -367,3 +370,4 @@ dotnet-tools.json
 launchSettings.json
 Services/SenixListener/Properties/ServiceDependencies/SenixListener - Web Deploy/appInsights1.arm.json
 Services/SenixListener/Properties/ServiceDependencies/SenixListener - Web Deploy/storage1.arm.json
+
