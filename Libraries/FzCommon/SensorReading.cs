@@ -760,26 +760,28 @@ namespace FzCommon
             }
         }
 
-        public static async Task<SensorReading> GetLatestReadingForLocation(int locationId)
+        public static async Task<SensorReading?> GetLatestReadingForLocation(SqlConnection sqlcn, int locationId)
         {
-            using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            using SqlCommand cmd = new("GetLatestSensorReadingForLocation", sqlcn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add("@locationId", SqlDbType.Int).Value = locationId;
+            using (SqlDataReader dr = cmd.ExecuteReader())
             {
-                using (SqlCommand cmd = new SqlCommand("GetLatestSensorReadingForLocation", sqlcn))
+                if (await dr.ReadAsync())
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@locationId", SqlDbType.Int).Value = locationId;
-
-                    await sqlcn.OpenAsync();
-                    using (SqlDataReader dr = cmd.ExecuteReader(CommandBehavior.CloseConnection))
-                    {
-                        if (await dr.ReadAsync())
-                        {
-                            return InstantiateFromReader(dr);
-                        }
-                    }
+                    return InstantiateFromReader(dr);
                 }
             }
             return null;
+        }
+
+        public static async Task<SensorReading?> GetLatestReadingForLocation(int locationId)
+        {
+            using SqlConnection sqlcn = new(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+            await sqlcn.OpenAsync();
+            SensorReading? sr = await GetLatestReadingForLocation(sqlcn, locationId);
+            await sqlcn.CloseAsync();
+            return sr;
         }
 
         public static async Task<SensorReading> GetLatestReceivedWaterHeightSensorReadingForLocation(int locationId)

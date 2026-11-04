@@ -11,6 +11,43 @@ namespace FzCommon
         public string Result;
     }
 
+    public class SensorHelper
+    {
+        public static void FilterReadingIfChangeTooBig(SqlConnection sqlcn, SensorLocationBase location, SensorReading reading, SenixReadingResult? result)
+        {
+            // We only filter readings that have water height;
+            if (!reading.WaterHeightFeet.HasValue)
+            {
+                return;
+            }
+
+            // Look for a recent reading to compare with.
+            SensorReading? lastReading = SensorReading.GetLatestReadingForLocation(sqlcn, location.Id).Result;
+            if (lastReading != null && lastReading.WaterHeightFeet.HasValue)
+            {
+                if (lastReading.Timestamp.AddMinutes(FzCommon.Constants.ChangeThresholdMaxMinutes) >= reading.Timestamp)
+                {
+                    double delta = Math.Abs(reading.WaterHeightFeet.Value - lastReading.WaterHeightFeet.Value) / ((reading.Timestamp - lastReading.Timestamp).TotalHours);
+                    double threshold = location.MaxChangeThreshold
+                                       ?? FzCommon.Constants.DefaultMaxValidChangeThreshold;
+                    if (delta > threshold)
+                    {
+                        reading.DeleteReason = "Filtered (change too big)";
+                        reading.IsFiltered = true;
+                        reading.IsDeleted = true;
+                        if (result != null)
+                        {
+                            result.ShouldSaveAsDeleted = true;
+                            result.Result = String.Format("filtered (delta {0:0.00} feet/hour > threshold {1:0.00})", delta, threshold);
+                        }
+
+                        Task.WaitAll(SlackClient.SendFilteredReadingNotification(sqlcn, location, reading, delta, threshold));
+                    }
+                }
+            }
+        }
+    }
+
     // NOTE: This does not have all the same responsibilities as the other SensorHelper classes; it is
     // not interchangeable with them.
     public class DraginoSensorHelper
@@ -192,49 +229,7 @@ namespace FzCommon
             }
             else
             {
-                // Look for a recent reading to compare with.
-                SensorReading lastReading = SensorReading
-                    .GetLatestReadingForLocation(location.Id)
-                    .Result;
-                if (lastReading != null)
-                {
-                    if (
-                        lastReading.Timestamp.AddMinutes(
-                            FzCommon.Constants.ChangeThresholdMaxMinutes
-                        ) >= reading.Timestamp
-                    )
-                    {
-                        double delta =
-                            Math.Abs(
-                                reading.WaterHeightFeet.Value - lastReading.WaterHeightFeet.Value
-                            ) / ((reading.Timestamp - lastReading.Timestamp).TotalHours);
-                        double threshold =
-                            location.MaxChangeThreshold
-                            ?? FzCommon.Constants.DefaultMaxValidChangeThreshold;
-                        if (delta > threshold)
-                        {
-                            reading.DeleteReason = "Filtered (change too big)";
-                            reading.IsFiltered = true;
-                            reading.IsDeleted = true;
-                            result.ShouldSaveAsDeleted = true;
-                            result.Result = String.Format(
-                                "filtered (delta {0:0.00} feet/hour > threshold {1:0.00})",
-                                delta,
-                                threshold
-                            );
-
-                            Task.WaitAll(
-                                SlackClient.SendFilteredReadingNotification(
-                                    sqlcn,
-                                    location,
-                                    reading,
-                                    delta,
-                                    threshold
-                                )
-                            );
-                        }
-                    }
-                }
+                SensorHelper.FilterReadingIfChangeTooBig(sqlcn, location, reading, result);
             }
 
             if (senixData["discard"] != "true")
@@ -582,49 +577,7 @@ namespace FzCommon
             }
             else
             {
-                // Look for a recent reading to compare with.
-                SensorReading lastReading = SensorReading
-                    .GetLatestReadingForLocation(location.Id)
-                    .Result;
-                if (lastReading != null)
-                {
-                    if (
-                        lastReading.Timestamp.AddMinutes(
-                            FzCommon.Constants.ChangeThresholdMaxMinutes
-                        ) >= reading.Timestamp
-                    )
-                    {
-                        double delta =
-                            Math.Abs(
-                                reading.WaterHeightFeet.Value - lastReading.WaterHeightFeet.Value
-                            ) / ((reading.Timestamp - lastReading.Timestamp).TotalHours);
-                        double threshold =
-                            location.MaxChangeThreshold
-                            ?? FzCommon.Constants.DefaultMaxValidChangeThreshold;
-                        if (delta > threshold)
-                        {
-                            reading.DeleteReason = "Filtered (change too big)";
-                            reading.IsFiltered = true;
-                            reading.IsDeleted = true;
-                            result.ShouldSaveAsDeleted = true;
-                            result.Result = String.Format(
-                                "filtered (delta {0:0.00} feet/hour > threshold {1:0.00})",
-                                delta,
-                                threshold
-                            );
-
-                            Task.WaitAll(
-                                SlackClient.SendFilteredReadingNotification(
-                                    sqlcn,
-                                    location,
-                                    reading,
-                                    delta,
-                                    threshold
-                                )
-                            );
-                        }
-                    }
-                }
+                SensorHelper.FilterReadingIfChangeTooBig(sqlcn, location, reading, result);
             }
 
             if (postData["discard"] != "true")
