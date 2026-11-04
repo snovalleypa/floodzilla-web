@@ -552,25 +552,34 @@ namespace FzCommon
                                           DateTime? utcFromDate,
                                           DateTime? utcToDate)
         {
-            List<SensorReading> ret = new List<SensorReading>();
             using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
             {
-                string procName = "GetMinimalSensorReadings";
-                using (SqlCommand cmd = new SqlCommand(procName, sqlcn))
+                await sqlcn.OpenAsync();
+                return await GetMinimalReadingsForLocation(sqlcn, locationId, readingCount, utcFromDate, utcToDate);
+            }
+        }
+
+        public static async Task<List<SensorReading>>
+            GetMinimalReadingsForLocation(SqlConnection sqlcn,
+                                          int locationId,
+                                          int? readingCount,
+                                          DateTime? utcFromDate,
+                                          DateTime? utcToDate)
+        {
+            List<SensorReading> ret = new List<SensorReading>();
+            using (SqlCommand cmd = new SqlCommand("GetMinimalSensorReadings", sqlcn))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.Add("@locationId", SqlDbType.Int).Value = locationId;
+                if (readingCount.HasValue) cmd.Parameters.Add("@readingCount", SqlDbType.Int).Value = readingCount;
+                if (utcFromDate.HasValue) cmd.Parameters.Add("@fromTime", SqlDbType.DateTime).Value = utcFromDate;
+                if (utcToDate.HasValue) cmd.Parameters.Add("@toTime", SqlDbType.DateTime).Value = utcToDate;
+                using (SqlDataReader dr = cmd.ExecuteReader())
                 {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@locationId", SqlDbType.Int).Value = locationId;
-                    if (readingCount.HasValue) cmd.Parameters.Add("@readingCount", SqlDbType.Int).Value = readingCount;
-                    if (utcFromDate.HasValue) cmd.Parameters.Add("@fromTime", SqlDbType.DateTime).Value = utcFromDate;
-                    if (utcToDate.HasValue) cmd.Parameters.Add("@toTime", SqlDbType.DateTime).Value = utcToDate;
-                    await sqlcn.OpenAsync();
-                    using (SqlDataReader dr = cmd.ExecuteReader(CommandBehavior.CloseConnection))
+                    while (await dr.ReadAsync())
                     {
-                        while (await dr.ReadAsync())
-                        {
-                            SensorReading sr = InstantiateMinimalReadingFromReader(dr);
-                            ret.Add(sr);
-                        }
+                        SensorReading sr = InstantiateMinimalReadingFromReader(dr);
+                        ret.Add(sr);
                     }
                 }
             }

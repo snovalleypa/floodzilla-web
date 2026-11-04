@@ -9,7 +9,7 @@ namespace FixupBenchmarkChanges
 {
     public class BenchmarkFixer(SensorLocationBase location, string cachePath, string logPath) : BulkReadingUpdater(location, "BenchmarkFixer", cachePath, logPath, BATCH_SIZE, BATCH_COUNT)
     {
-        const int BATCH_SIZE = 50;
+        const int BATCH_SIZE = 100;
         const int BATCH_COUNT = 50;
 
         // Ad-hoc query, since this is a specialized thing and I don't want to bother with a sproc
@@ -17,7 +17,6 @@ namespace FixupBenchmarkChanges
         @"SELECT sr.Id AS ReadingId, sr.BenchmarkElevation AS ReadingBenchmark, l.BenchmarkElevation / 12.0 AS LocationBenchmark 
             FROM SensorReadings sr JOIN Locations l ON l.Id = sr.LocationId
             WHERE L.Id = @locationId AND 
-                sr.IsDeleted <> 1 AND
                 ABS(l.BenchmarkElevation / 12.0 - sr.BenchmarkElevation) > .0001
             ORDER BY sr.Id DESC";
         public override async Task<BRUStatus> InitializeStatus(SqlConnection sqlcn)
