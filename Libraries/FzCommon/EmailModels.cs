@@ -16,6 +16,12 @@ namespace FzCommon
         public string? Path;
     }
 
+    public class SmsBoilerplate
+    {
+        public const string SendStop = "Reply STOP to opt out.";
+        public const string Legalese = "Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help.";
+    }
+
     public abstract class EmailModel
     {
         // Logic taken from Old Floodzilla.
@@ -148,7 +154,7 @@ namespace FzCommon
 
         public override string? GetSmsText()
         {
-            return "From Floodzilla: Please enter the following code on Floodzilla to verify your phone number: " + Code;
+            return "From Floodzilla: Please enter the following code on Floodzilla to verify your phone number: " + Code + "\n" + SmsBoilerplate.Legalese;
         }
 
         public string Code { get; set; }
