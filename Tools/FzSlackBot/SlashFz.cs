@@ -1,20 +1,14 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Worker;
 using Newtonsoft.Json;
+using System.Text;
+using System.Threading.Tasks;
 
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
+using FzCommon.Processors;
 
-using FzCommon;
-
-[assembly: FunctionsStartup(typeof(FzSlackBot.SlashFz))]
 namespace FzSlackBot
 {
     public class SlackResponse
@@ -22,76 +16,52 @@ namespace FzSlackBot
         public string response_type;
         public string text;
     }
-    
-    public class SlashFz : FunctionsStartup
-    {
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
-        {
-            FzConfig.Initialize();
-        }
 
-        [FunctionName("SlashFz")]
+    public class SlashFz
+    {
+        [Function("SlashFz")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
-            ILogger log)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
             string command = req.Form["text"];
 
             //$ TODO: actual command dispatch stuff
             string result;
-            if (command.ToLower().StartsWith("help"))
+            if (command.StartsWith("help", System.StringComparison.CurrentCultureIgnoreCase))
             {
-                string text =   "FZ Bot Commands:\n"
+                string text = "FZ Bot Commands:\n"
                               + "- /fz help -- show list of available commands\n"
                               + "- /fz location monitor status -- show status of location monitor\n"
                               + "- /fz what's offline -- show list of currently offline sensors\n"
                               + "\nMore to come...";
-                SlackResponse response = new SlackResponse()
+                SlackResponse response = new()
                 {
                     response_type = "in_channel",
                     text = text,
                 };
-
-                OkObjectResult okResult = new OkObjectResult(response);
-                okResult.ContentTypes.Clear();
-                okResult.ContentTypes.Add(new Microsoft.Net.Http.Headers.MediaTypeHeaderValue("application/json"));
-                return okResult;
+                return new ContentResult() { Content = JsonConvert.SerializeObject(response), ContentType = "application/json" };
             }
-            else if (command.ToLower().StartsWith("location monitor status"))
+            else if (command.StartsWith("location monitor status", System.StringComparison.CurrentCultureIgnoreCase))
             {
-                CloudStorageAccount account = CloudStorageAccount.Parse(FzConfig.Config[FzConfig.Keys.AzureStorageConnectionString]);
-                CloudBlobClient blob = account.CreateCloudBlobClient();
-                CloudBlobContainer container = blob.GetContainerReference(FzCommon.StorageConfiguration.MonitorBlobContainer);
-                CloudBlockBlob summaryBlob = container.GetBlockBlobReference("LocationMonitor-summary");
-                string text = await summaryBlob.DownloadTextAsync();
-                SlackResponse response = new SlackResponse()
+                string text = await GetBlobText("LocationMonitor-summary");
+                SlackResponse response = new()
                 {
                     response_type = "in_channel",
                     text = text,
                 };
 
-                OkObjectResult okResult = new OkObjectResult(response);
-                okResult.ContentTypes.Clear();
-                okResult.ContentTypes.Add(new Microsoft.Net.Http.Headers.MediaTypeHeaderValue("application/json"));
-                return okResult;
+                return new ContentResult() { Content = JsonConvert.SerializeObject(response), ContentType = "application/json" };
             }
-            else if (command.ToLower().StartsWith("what's offline"))
+            else if (command.StartsWith("what's offline", System.StringComparison.CurrentCultureIgnoreCase))
             {
-                CloudStorageAccount account = CloudStorageAccount.Parse(FzConfig.Config[FzConfig.Keys.AzureStorageConnectionString]);
-                CloudBlobClient blob = account.CreateCloudBlobClient();
-                CloudBlobContainer container = blob.GetContainerReference(FzCommon.StorageConfiguration.MonitorBlobContainer);
-                CloudBlockBlob summaryBlob = container.GetBlockBlobReference("LocationMonitor-offline");
-                string text = await summaryBlob.DownloadTextAsync();
-                SlackResponse response = new SlackResponse()
+                string text = await GetBlobText("LocationMonitor-offline");
+                SlackResponse response = new()
                 {
                     response_type = "in_channel",
                     text = text,
                 };
 
-                OkObjectResult okResult = new OkObjectResult(response);
-                okResult.ContentTypes.Clear();
-                okResult.ContentTypes.Add(new Microsoft.Net.Http.Headers.MediaTypeHeaderValue("application/json"));
-                return okResult;
+                return new ContentResult() { Content = JsonConvert.SerializeObject(response), ContentType = "application/json" };
             }
             else
             {
@@ -99,6 +69,14 @@ namespace FzSlackBot
             }
 
             return new OkObjectResult(result);
+        }
+
+        private static async Task<string> GetBlobText(string blobName)
+        {
+            BlobContainerClient container = await AzureJobHelpers.EnsureBlobContainer(FzCommon.StorageConfiguration.MonitorBlobContainer);
+            BlobClient blobClient = container.GetBlobClient(blobName);
+            BlobDownloadResult response = await blobClient.DownloadContentAsync();
+            return Encoding.UTF8.GetString(response.Content.ToArray());
         }
     }
 }
