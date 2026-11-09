@@ -4,13 +4,13 @@ AS
 BEGIN
 
     --//$ TODO: Date filtering? make row count a parameter?
-    SET ROWCOUNT 100
 
     SELECT JRL.*, J.FriendlyName FROM JobRunLogs JRL
-    LEFT JOIN Jobs J ON J.JobName = JRL.JobName
+        LEFT JOIN Jobs J ON J.JobName = JRL.JobName
     WHERE JRL.JobName=@JobName
     ORDER BY StartTime DESC
+    OFFSET 0 ROWS
+    FETCH NEXT 100 ROWS ONLY
 
-    SET ROWCOUNT 0
 END
 GO

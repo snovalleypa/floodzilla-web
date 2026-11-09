@@ -2,50 +2,37 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using System.Web.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 using Plivo;
 
 using FzCommon;
-
-[assembly: FunctionsStartup(typeof(FloodzillaSms.SendSms))]
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FloodzillaSms
 {
-    public class SendSms : FunctionsStartup
+    public class SendSms
     {
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
-        {
-            FzConfig.Initialize();
-
-            //$ TODO: Any other configuration/initialization?
-        }
-
-        [FunctionName("SendSms")]
+        [Function("SendSms")]
         [Consumes("application/json")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            ILogger log)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
         {
             string body;
             Stream inputStream = req.Body;
-            using (StreamReader sr = new StreamReader(inputStream))
+            using (StreamReader sr = new(inputStream))
             {
                 body = sr.ReadToEnd();
             }
             SmsSendRequest smsSendRequest = SmsSendRequest.Deserialize(body);
 
-            string plivoId = FzConfig.Config[FzConfig.Keys.PlivoAuthId];
-            string plivoToken = FzConfig.Config[FzConfig.Keys.PlivoAuthToken];
-            string smsFrom = FzConfig.Config[FzConfig.Keys.SmsFromPhone];
+            string plivoId = FzConfig.Config[FzConfig.Keys.PlivoAuthId]!;
+            string plivoToken = FzConfig.Config[FzConfig.Keys.PlivoAuthToken]!;
+            string smsFrom = FzConfig.Config[FzConfig.Keys.SmsFromPhone]!;
 
             string phone = smsSendRequest.Phone;
             if (phone.StartsWith("999"))
@@ -66,10 +53,9 @@ namespace FloodzillaSms
                 phone = "1" + phone;
             }
 
-            List<string> dest = new List<string>();
-            dest.Add(phone);
+            List<string> dest = [phone];
 
-            PlivoApi api = new PlivoApi(plivoId, plivoToken);
+            PlivoApi api = new(plivoId, plivoToken);
 
             // If any of the logging-related stuff fails, we don't want to fail the overall send attempt.
             SqlConnection? sqlcn = null;
@@ -137,11 +123,11 @@ namespace FloodzillaSms
                 {
                     if (e.Message.Trim().StartsWith("{"))
                     {
-                        Dictionary<string, object> errorData = JsonConvert.DeserializeObject<Dictionary<string, object>>(e.Message);
-                        if (errorData.ContainsKey("error"))
+                        Dictionary<string, object> errorData = JsonConvert.DeserializeObject<Dictionary<string, object>>(e.Message)!;
+                        if (errorData.TryGetValue("error", out object? value))
                         {
-                            string errorMessage = errorData["error"].ToString();
-                            if (errorMessage.ToLower().Contains("not a valid phone"))
+                            string errorMessage = value.ToString()!;
+                            if (errorMessage.Contains("not a valid phone", StringComparison.CurrentCultureIgnoreCase))
                             {
                                 return new BadRequestResult();
                             }
@@ -151,7 +137,7 @@ namespace FloodzillaSms
 
                 //$ log this somewhere?
             }
-            return new InternalServerErrorResult();
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
 
         private static async Task SendTestEmail(SqlConnection? sqlcn, SmsSendRequest smsSendRequest)
@@ -162,7 +148,7 @@ namespace FloodzillaSms
             }
             using (EmailClient client = new EmailClient())
             {
-                string from = FzConfig.Config[FzConfig.Keys.EmailFromAddress];
+                string from = FzConfig.Config[FzConfig.Keys.EmailFromAddress]!;
                 string subject = "Floodzilla Test SMS to " + smsSendRequest.Phone;
                 string body = "Floodzilla Test SMS:\r\n" + smsSendRequest.SmsText;
 

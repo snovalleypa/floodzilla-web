@@ -4,49 +4,36 @@ using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 using FzCommon;
 
-[assembly: FunctionsStartup(typeof(SenixListener.ReportValues))]
 namespace SenixListener
 {
-    public class ReportValues : FunctionsStartup
+    public class ReportValues
     {
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
-        {
-            FzConfig.Initialize();
-
-            //$ TODO: Any other configuration/initialization?
-        }
-
         // Setting a very short function name because the Senix UI only allows 20 characters total for path
-        [FunctionName("RV")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, ILogger log)
+        [Function("RV")]
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
-            log.LogInformation("Processing SenixListener.ReportValues request");
-
-            SenixListenerLog result = null;
+            SenixListenerLog? result = null;
             string listenerInfo = Environment.MachineName + " - SenixListener/ReportValues, 9/2020";
             string clientIP = "";
             try
             {
-                clientIP = req.HttpContext.Connection.RemoteIpAddress.ToString();
+                clientIP = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "n/a";
             }
             catch
             {
                 // Just eat this, it's only for diagnostic purposes
             }
 
-            using (SqlConnection conn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
+            using (SqlConnection conn = new(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
             {
                 conn.Open();
-
                 try
                 {
                     string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
@@ -59,15 +46,19 @@ namespace SenixListener
                         RawSensorData = requestBody,
                     };
 
-                    dynamic senixData = JsonConvert.DeserializeObject(requestBody);
+                    dynamic senixData = JsonConvert.DeserializeObject(requestBody)!;
 
                     //$ TODO: How to decide whether we should do extra work (record receiver, etc)
 
-                    string externalDeviceId;
-                    DeviceBase device;
-                    SensorReading reading = new SensorReading();
-                    reading.ListenerInfo = listenerInfo;
-                    SenixReadingResult readingResult = SenixSensorHelper.ProcessReading(conn, reading, senixData, out externalDeviceId, out device);
+                    SensorReading reading = new()
+                    {
+                        ListenerInfo = listenerInfo
+                    };
+                    SenixReadingResult readingResult = SenixSensorHelper.ProcessReading(conn,
+                                                                                        reading,
+                                                                                        senixData,
+                                                                                        out string externalDeviceId,
+                                                                                        out DeviceBase device);
                     result.ExternalDeviceId = externalDeviceId;
 
                     string receiverId = (string)senixData["gweui"];
@@ -116,7 +107,10 @@ namespace SenixListener
 
                         try
                         {
-                            RecordSampleRate(conn, device, sampleRate1);
+                            if (device != null)
+                            {
+                                RecordSampleRate(conn, device, sampleRate1);
+                            }
                         }
                         catch (Exception /*ex*/)
                         {
@@ -124,7 +118,7 @@ namespace SenixListener
                             //$ so we can probably just ignore the error...
                         }
                     }
-                    
+
                     try
                     {
                         RecordReceiver(conn, device, receiverId, clientIP, result.Timestamp);
@@ -143,21 +137,21 @@ namespace SenixListener
                         result.Result = String.Format("Exception: {0}", ex.ToString());
                         await result.Save(conn);
                     }
-                    
+
                     dynamic error = JsonConvert.SerializeObject($"Error: Unable to save sensor reading");
                     return new OkObjectResult(error);
                 }
-            conn.Close();
+                conn.Close();
             }
 
             dynamic okResult = JsonConvert.SerializeObject("ok");
             return new OkObjectResult(okResult);
         }
 
-        private static void RecordReceiver(SqlConnection conn, DeviceBase device, string externalReceiverId, string clientIP, DateTime lastReadingReceived)
+        private static void RecordReceiver(SqlConnection conn, DeviceBase? device, string externalReceiverId, string clientIP, DateTime lastReadingReceived)
         {
-            ReceiverBase receiver = ReceiverBase.EnsureReceiver(conn, externalReceiverId , clientIP);
-            device.SetLatestReceiver(conn, externalReceiverId, lastReadingReceived).Wait();
+            ReceiverBase receiver = ReceiverBase.EnsureReceiver(conn, externalReceiverId, clientIP);
+            device?.SetLatestReceiver(conn, externalReceiverId, lastReadingReceived).Wait();
         }
 
         private static void RecordSampleRate(SqlConnection conn, DeviceBase device, int sampleRate)
@@ -165,10 +159,10 @@ namespace SenixListener
             device.SetSensorUpdateInterval(conn, sampleRate).Wait();
         }
 
-        [FunctionName("CheckStatus")]
-        public static IActionResult CheckStatus([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req, ILogger log)
+        [Function("CheckStatus")]
+        public static IActionResult CheckStatus([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req)
         {
             return new OkObjectResult("All OK");
-        }        
+        }
     }
 }

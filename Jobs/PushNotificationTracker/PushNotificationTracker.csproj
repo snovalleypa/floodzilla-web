@@ -1,19 +1,26 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Azure.Functions.Sdk/1.0.0">
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
-    <OutputType>Exe</OutputType>
+    <OutputType>exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.14.1" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.0.13" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.2.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.10.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="3.2.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.51.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.1" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Libraries\FzCommon\FzCommon.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <FunctionsPreservedDependencies Include="System.Memory.Data.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
   </ItemGroup>
   <ItemGroup>
     <None Update="appconfig.settings.json">
@@ -27,7 +34,12 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
-  </ItemGroup>
+
+  <!-- This is temporary... -->
+  <Target Name="CopyFilesAfterBuild" AfterTargets="Build">
+    <Copy SourceFiles="$(OutDir)appconfig.settings.json" DestinationFolder="$(OutDir)\bin\" />
+  </Target>
+  <Target Name="CopyFilesAfterPublish" BeforeTargets="MSDeployPublish">
+    <Copy SourceFiles="$(OutDir)appconfig.settings.json" DestinationFolder="$(PublishDir)\bin\" />
+  </Target>
 </Project>

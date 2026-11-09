@@ -4,44 +4,19 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Serialization;
 
 using FzCommon;
-
-[assembly: FunctionsStartup(typeof(FloodzillaSms.TestPushNotification))]
+using Microsoft.Azure.Functions.Worker;
 
 namespace FloodzillaSms
 {
-    public class TestPushNotification : FunctionsStartup
+    public class TestPushNotification
     {
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
-        {
-            FzConfig.Initialize();
-
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
-            {
-                ContractResolver = new DefaultContractResolver
-                {
-                    NamingStrategy = new CamelCaseNamingStrategy()
-                },
-                NullValueHandling = NullValueHandling.Ignore,
-                Converters = new List<JsonConverter> { new StringEnumConverter() { AllowIntegerValues = false }},
-            };
-
-            //$ TODO: Any other configuration/initialization?
-        }
-
-        [FunctionName("TestPushNotification")]
+        [Function("TestPushNotification")]
         [Consumes("application/json")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            ILogger log)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
         {
             string body;
             Stream inputStream = req.Body;
@@ -59,8 +34,8 @@ namespace FloodzillaSms
             {
                 To = tokens,
                 Data = testRequest.JsonData,
-                Title = testRequest.Title,
-                Body = testRequest.TextBody,
+                Title = testRequest.Title!,
+                Body = testRequest.TextBody!,
                 Ttl = testRequest.Ttl,
                 Expiration = testRequest.Expiration,
                 Priority = testRequest.Priority,
@@ -116,7 +91,7 @@ namespace FloodzillaSms
                 
                 return new ContentResult() { Content = JsonConvert.SerializeObject(response), ContentType = "application/json" };
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // nothing here
             }

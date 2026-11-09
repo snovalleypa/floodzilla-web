@@ -4,38 +4,25 @@ using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 using FzCommon;
 
-[assembly: FunctionsStartup(typeof(SenixListener.ReportDistanceReadings))]
 namespace SenixListener
 {
-    public class ReportDistanceReadings : FunctionsStartup
+    public class ReportDistanceReadings
     {
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
+        [Function("ReportDistanceReadings")]
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
-            FzConfig.Initialize();
-
-            //$ TODO: Any other configuration/initialization?
-        }
-
-        [FunctionName("ReportDistanceReadings")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, ILogger log)
-        {
-            log.LogInformation("Processing SenixListener.ReportDistanceReadings request");
-
-            SenixListenerLog result = null;
+            SenixListenerLog? result = null;
             string listenerInfo = Environment.MachineName + " - SenixListener/ReportDistanceReadings, 4/2026";
             string clientIP = "";
             try
             {
-                clientIP = req.HttpContext.Connection.RemoteIpAddress.ToString();
+                clientIP = req.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "n/a";
             }
             catch
             {
@@ -58,17 +45,19 @@ namespace SenixListener
                         RawSensorData = requestBody,
                     };
 
-                    dynamic postData = JsonConvert.DeserializeObject(requestBody);
+                    dynamic postData = JsonConvert.DeserializeObject(requestBody)!;
 
                     //$ TODO: How to decide whether we should do extra work (record receiver, etc)
 
-                    string externalDeviceId;
-                    string receiverId;
-                    DeviceBase device;
                     SensorReading reading = new SensorReading();
                     reading.ListenerInfo = listenerInfo;
                     SenixReadingResult readingResult
-                       = ThingsNetworkHelper.ProcessReading(conn, reading, postData, out externalDeviceId, out receiverId, out device);
+                       = ThingsNetworkHelper.ProcessReading(conn, 
+                                                            reading, 
+                                                            postData, 
+                                                            out string externalDeviceId, 
+                                                            out string receiverId, 
+                                                            out DeviceBase device);
                     result.ExternalDeviceId = externalDeviceId;
                     result.ReceiverId = receiverId;
 
@@ -134,10 +123,10 @@ namespace SenixListener
             return new OkObjectResult(okResult);
         }
 
-        private static void RecordReceiver(SqlConnection conn, DeviceBase device, string externalReceiverId, string clientIP, DateTime lastReadingReceived)
+        private static void RecordReceiver(SqlConnection conn, DeviceBase? device, string externalReceiverId, string clientIP, DateTime lastReadingReceived)
         {
             ReceiverBase receiver = ReceiverBase.EnsureReceiver(conn, externalReceiverId, clientIP);
-            device.SetLatestReceiver(conn, externalReceiverId, lastReadingReceived).Wait();
+            device?.SetLatestReceiver(conn, externalReceiverId, lastReadingReceived).Wait();
         }
 
         private static void RecordSampleRate(SqlConnection conn, DeviceBase device, int sampleRate)

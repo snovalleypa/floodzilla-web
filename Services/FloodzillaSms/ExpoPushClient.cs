@@ -6,16 +6,15 @@ using FzCommon;
 using System.Net.Http;
 using System.Text;
 using System;
-using Azure;
 
 namespace FloodzillaSms
 {
     public class ExpoPushRequest
     {
-        [JsonProperty("to")]                public List<string> To;
-        [JsonProperty("data")]              public object Data;
-        [JsonProperty("title")]             public string Title;
-        [JsonProperty("body")]              public string Body;
+        [JsonProperty("to")]                public required List<string> To;
+        [JsonProperty("data")]              public required object Data;
+        [JsonProperty("title")]             public required string Title;
+        [JsonProperty("body")]              public required string Body;
         [JsonProperty("ttl")]               public int? Ttl;
         [JsonProperty("expiration")]        public int? Expiration;
         [JsonProperty("priority")]          public string? Priority;
@@ -29,53 +28,53 @@ namespace FloodzillaSms
 
     public class ExpoPushTicketResponse
     {
-        [JsonProperty("status")]            public string Status;
-        [JsonProperty("id")]                public string TicketId;
-        [JsonProperty("message")]           public string ErrorMessage;
-        [JsonProperty("details")]           public object ErrorDetails;
+        [JsonProperty("status")]            public required string Status;
+        [JsonProperty("id")]                public required string TicketId;
+        [JsonProperty("message")]           public required string ErrorMessage;
+        [JsonProperty("details")]           public required object ErrorDetails;
     }
 
     public class ExpoErrorDetail
     {
-        [JsonProperty("code")]              public string ErrorCode;
-        [JsonProperty("message")]           public string ErrorMessage;
+        [JsonProperty("code")]              public required string ErrorCode;
+        [JsonProperty("message")]           public required string ErrorMessage;
         [JsonProperty("isTransient")]       public bool? IsTransient;
         [JsonProperty("details")]           public object? ErrorDetails;
     }
 
     public class ExpoPushResponse
     {
-        [JsonProperty("data")]              public List<ExpoPushTicketResponse> Statuses;
-        [JsonProperty("errors")]            public List<ExpoErrorDetail> Errors;
+        [JsonProperty("data")]              public required List<ExpoPushTicketResponse> Statuses;
+        [JsonProperty("errors")]            public required List<ExpoErrorDetail> Errors;
     }
 
     public class ExpoReceiptRequest
     {
-        [JsonProperty("ids")]               public List<string> TicketIds;
+        [JsonProperty("ids")]               public required List<string> TicketIds;
     }
 
     public class ExpoReceiptDetail
     {
-        [JsonProperty("status")]            public string Status;
-        [JsonProperty("message")]           public string ErrorMessage;
-        [JsonProperty("details")]           public object ErrorDetails;
+        [JsonProperty("status")]            public required string Status;
+        [JsonProperty("message")]           public string? ErrorMessage;
+        [JsonProperty("details")]           public object? ErrorDetails;
     }
     
     public class ExpoReceiptResponse
     {
-        [JsonProperty("data")]              public Dictionary<string, ExpoReceiptDetail> Receipts;
-        [JsonProperty("errors")]            public List<ExpoErrorDetail> Errors;
+        [JsonProperty("data")]              public required Dictionary<string, ExpoReceiptDetail> Receipts;
+        [JsonProperty("errors")]            public required List<ExpoErrorDetail> Errors;
     }
     
     public class ExpoPushClient
     {
-        private string pushRequestUrl;
-        private string receiptRequestUrl;
+        private readonly string pushRequestUrl;
+        private readonly string receiptRequestUrl;
         
         public ExpoPushClient()
         {
-            this.pushRequestUrl = FzConfig.Config[FzConfig.Keys.ExpoPushRequestUrl];
-            this.receiptRequestUrl = FzConfig.Config[FzConfig.Keys.ExpoReceiptRequestUrl];
+            this.pushRequestUrl = FzConfig.Config[FzConfig.Keys.ExpoPushRequestUrl]!;
+            this.receiptRequestUrl = FzConfig.Config[FzConfig.Keys.ExpoReceiptRequestUrl]!;
         }
 
         public async Task<ExpoPushResponse> SendPushRequestAsync(ExpoPushRequest request)

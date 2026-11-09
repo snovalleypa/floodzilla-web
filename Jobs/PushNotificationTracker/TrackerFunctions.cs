@@ -1,8 +1,6 @@
-using System.Collections.Generic;
-using System.Net;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace PushNotificationTracker
 {
@@ -26,7 +24,7 @@ namespace PushNotificationTracker
             await ProjectFunctions.ProcessPushNotfications();
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
-            response.WriteString("Triggered");
+            await response.WriteStringAsync("Triggered");
             return response;
         }
 #else
