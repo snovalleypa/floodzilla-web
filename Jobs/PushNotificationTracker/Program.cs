@@ -4,7 +4,7 @@ using FzCommon;
 FzConfig.Initialize();
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWebApplication()
     .Build();
 
 host.Run();

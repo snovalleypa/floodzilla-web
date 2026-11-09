@@ -4,9 +4,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.Azure.WebJobs;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -15,41 +12,22 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 using FzCommon;
-
-[assembly: FunctionsStartup(typeof(FloodzillaSms.SendPushNotification))]
+using Microsoft.Azure.Functions.Worker;
 
 namespace FloodzillaSms
 {
-    public class SendPushNotification : FunctionsStartup
+    public class SendPushNotification
     {
         public const string SEND_PRIORITY = "high";
 
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
-        {
-            FzConfig.Initialize();
-
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
-            {
-                ContractResolver = new DefaultContractResolver
-                {
-                    NamingStrategy = new CamelCaseNamingStrategy()
-                },
-                NullValueHandling = NullValueHandling.Ignore,
-                Converters = new List<JsonConverter> { new StringEnumConverter() { AllowIntegerValues = false }},
-            };
-
-            //$ TODO: Any other configuration/initialization?
-        }
-
-        [FunctionName("SendPushNotification")]
+        [Function("SendPushNotification")]
         [Consumes("application/json")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            ILogger log)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
         {
             string body;
             Stream inputStream = req.Body;
-            using (StreamReader sr = new StreamReader(inputStream))
+            using (StreamReader sr = new(inputStream))
             {
                 body = sr.ReadToEnd();
             }
@@ -60,10 +38,10 @@ namespace FloodzillaSms
             ExpoPushRequest pushReq = new()
             {
                 To = sendRequest.Tokens,
-                Title = sendRequest.Title,
+                Title = sendRequest.Title!,
                 Subtitle = sendRequest.Subtitle,
-                Body = sendRequest.Body,
-                Data = sendRequest.Data,
+                Body = sendRequest.Body!,
+                Data = sendRequest.Data!,
                 Priority = SEND_PRIORITY,
             };
 
@@ -132,7 +110,7 @@ namespace FloodzillaSms
 
                 // The PushTicketStatuses responses don't have the ticket, so I guess I just
                 // have to assume they're in the same order?
-                if (pushResp.Statuses.Count != sendRequest.Tokens.Count)
+                if (pushResp.Statuses == null || (pushResp.Statuses.Count != sendRequest.Tokens.Count))
                 {
                     // I'm leaving these vaguely-worded because it seems like bad practice to be too
                     // specific in error messages that might end up accidentally being user-visible
@@ -141,7 +119,7 @@ namespace FloodzillaSms
                         StatusCode = 500,
                     };
                 }
-                List<PushTokenSendResponse> results = new();
+                List<PushTokenSendResponse> results = [];
                 for (int i = 0; i < sendRequest.Tokens.Count; i++)
                 {
                     PushTokenSendResponse sr = new()
@@ -165,14 +143,14 @@ namespace FloodzillaSms
                         }
                         else
                         {
-                            JToken errorToken = jobj["error"];
+                            JToken? errorToken = jobj["error"];
                             if (errorToken == null)
                             {
                                 sr.Result = PushNotificationSendResult.Failure;
                             }
                             else
                             {
-                                string errorMsg = errorToken.Value<string>();
+                                string? errorMsg = errorToken.Value<string>();
                                 if (errorMsg != null && errorMsg.Equals("DeviceNotRegistered", StringComparison.InvariantCultureIgnoreCase))
                                 {
                                     sr.Result = PushNotificationSendResult.DeviceNotRegistered;
@@ -225,11 +203,6 @@ namespace FloodzillaSms
                     StatusCode = 500,
                 };
             }
-
-            return new ObjectResult("An error occurred.")
-            {
-                StatusCode = 500,
-            };
         }
     }
 }

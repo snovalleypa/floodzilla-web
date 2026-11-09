@@ -1,17 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -27,21 +18,10 @@ namespace ReadingSvc
 
         public static void Initialize()
         {
-            FzConfig.Initialize();
-
             //$ TODO: Maybe move this to common code somewhere if it's going
             //$ to be used everywhere...
 
             //$ TODO: Consider adding DefaultValueHandling = DefaultValueHandling.Ignore
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
-            {
-                ContractResolver = new DefaultContractResolver
-                {
-                    NamingStrategy = new CamelCaseNamingStrategy()
-                },
-                NullValueHandling = NullValueHandling.Ignore,
-                Converters = new List<JsonConverter> { new StringEnumConverter() { AllowIntegerValues = false }},
-            };
 
             //$ TODO: Any other configuration/initialization?
 

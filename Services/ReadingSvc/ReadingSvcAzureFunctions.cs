@@ -1,31 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 using FzCommon;
+using Microsoft.Azure.Functions.Worker;
 
 // Azure functions wrapper for ReadingSvc.
 
-[assembly: FunctionsStartup(typeof(ReadingSvc.ReadingSvcAzureFunctions))]
 namespace ReadingSvc
 {
-    public class ReadingSvcAzureFunctions : FunctionsStartup
+    public class ReadingSvcAzureFunctions
     {
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
-        {
-            ReadingSvc.Initialize();
-        }
-
         // Query parameters:
         // int regionId (optional, defaults to The One True Region)
         // string id -- either an integer Id or a string PublicLocationId
@@ -39,10 +30,9 @@ namespace ReadingSvc
         // bool includeForecast (optional, default false)
         // int lastReadingId (optional, default 0)
         // bool returnUtc - (optional, default false) if true, all reading timestamps will be returned as UTC; otherwise region time will be used.
-        [FunctionName("GetGageReadings")]
+        [Function("GetGageReadings")]
         public static async Task<IActionResult> GetGageReadings(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
-            ILogger log)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req)
         {
             try
             {
@@ -194,7 +184,7 @@ namespace ReadingSvc
         // bool includeForecast (optional, default false)
         // int lastReadingId (optional, default 0)
         // bool returnUtc - (optional, default false) if true, all reading timestamps will be returned as UTC; otherwise region time will be used.
-        [FunctionName("GetGageReadingsUTC")]
+        [Function("GetGageReadingsUTC")]
         public static async Task<IActionResult> GetGageReadingsUTC(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
             ILogger log)
@@ -343,7 +333,7 @@ namespace ReadingSvc
         // DateTime fromDateTime - beginning timestamp of historical data to include
         // DateTime toDateTime - ending timestamp of historical data to include (should be now, generally)
         // bool returnUtc - (optional, default false) if true, all reading timestamps will be returned as UTC; otherwise region time will be used.
-        [FunctionName("GetForecastsUTC")]
+        [Function("GetForecastsUTC")]
         public static async Task<IActionResult> GetForecastsUTC(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
             ILogger log)
@@ -414,7 +404,7 @@ namespace ReadingSvc
                 throw;
             }
         }
-        
+
         //$ TODO: Auth for non-readonly methods
 
         //$ TODO: Should these be post?  There's no reason to go full REST for stuff like this...
@@ -422,7 +412,7 @@ namespace ReadingSvc
         // Parameters:
         // int readingId
         // string locationId
-        [FunctionName("MarkReadingAsDeleted")]
+        [Function("MarkReadingAsDeleted")]
         public static async Task<IActionResult> MarkReadingAsDeleted(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
             ILogger log)
@@ -458,7 +448,7 @@ namespace ReadingSvc
             }
         }
 
-        [FunctionName("MarkReadingAsUndeleted")]
+        [Function("MarkReadingAsUndeleted")]
         public static async Task<IActionResult> MarkReadingAsUndeleted(
             [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
             ILogger log)
@@ -502,7 +492,7 @@ namespace ReadingSvc
         // int regionId (optional, defaults to The One True Region)
         // DateTime fromDateTime
         // DateTime toDateTime
-        [FunctionName("GetGageStatusAndRecentReadings")]
+        [Function("GetGageStatusAndRecentReadings")]
         public static async Task<IActionResult> GetGageStatusAndRecentReadings(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
             ILogger log)

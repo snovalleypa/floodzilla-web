@@ -4,54 +4,30 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Extensions.DependencyInjection;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.Azure.WebJobs;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 
 using FzCommon;
-
-[assembly: FunctionsStartup(typeof(FloodzillaSms.GetPushReceipts))]
+using Microsoft.Azure.Functions.Worker;
 
 namespace FloodzillaSms
 {
-    public class GetPushReceipts : FunctionsStartup
+    public class GetPushReceipts
     {
-        public override void Configure(IFunctionsHostBuilder hostBuilder)
-        {
-            FzConfig.Initialize();
-
-            JsonConvert.DefaultSettings = () => new JsonSerializerSettings()
-            {
-                ContractResolver = new DefaultContractResolver
-                {
-                    NamingStrategy = new CamelCaseNamingStrategy()
-                },
-                NullValueHandling = NullValueHandling.Ignore,
-                Converters = new List<JsonConverter> { new StringEnumConverter() { AllowIntegerValues = false }},
-            };
-
-            //$ TODO: Any other configuration/initialization?
-        }
-
-        [FunctionName("GetPushReceipts")]
+        [Function("GetPushReceipts")]
         [Consumes("application/json")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            ILogger log)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
         {
             string body;
             Stream inputStream = req.Body;
-            using (StreamReader sr = new StreamReader(inputStream))
+            using (StreamReader sr = new(inputStream))
             {
                 body = sr.ReadToEnd();
             }
-            List<string> ticketIds = JsonConvert.DeserializeObject<List<string>>(body);
+            List<string> ticketIds = JsonConvert.DeserializeObject<List<string>>(body) ?? [];
             ExpoPushClient pushClient = new();
 
             ExpoReceiptRequest receiptReq = new()
@@ -126,9 +102,8 @@ namespace FloodzillaSms
                     {
                         TicketId = ticketId,
                     };
-                    if (receiptResp.Receipts.ContainsKey(ticketId))
+                    if (receiptResp.Receipts.TryGetValue(ticketId, out ExpoReceiptDetail? status))
                     {
-                        ExpoReceiptDetail status = receiptResp.Receipts[ticketId];
                         if (status.Status.Equals("ok", StringComparison.InvariantCultureIgnoreCase))
                         {
                             receipt.Result = PushNotificationReceiptResult.Success;
@@ -137,7 +112,7 @@ namespace FloodzillaSms
                         {
                             receipt.Message = status.ErrorMessage;
                             // This isn't very nice.
-                            JObject jobj = (JObject)status.ErrorDetails;
+                            JObject? jobj = (JObject?)status.ErrorDetails;
                             if (jobj == null || !jobj.HasValues)
                             {
                                 // Not sure what to do here....
@@ -145,14 +120,14 @@ namespace FloodzillaSms
                             }
                             else
                             {
-                                JToken errorToken = jobj["error"];
+                                JToken? errorToken = jobj["error"];
                                 if (errorToken == null)
                                 {
                                     receipt.Result = PushNotificationReceiptResult.Error;
                                 }
                                 else
                                 {
-                                    string errorMsg = errorToken.Value<string>();
+                                    string? errorMsg = errorToken.Value<string>();
                                     receipt.Error = errorMsg;
                                     if (errorMsg != null && errorMsg.Equals("DeviceNotRegistered", StringComparison.InvariantCultureIgnoreCase))
                                     {
@@ -212,11 +187,6 @@ namespace FloodzillaSms
                     StatusCode = 500,
                 };
             }
-
-            return new ObjectResult("An error occurred.")
-            {
-                StatusCode = 500,
-            };
         }
     }
 }

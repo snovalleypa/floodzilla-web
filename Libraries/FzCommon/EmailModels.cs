@@ -78,7 +78,7 @@ namespace FzCommon
         {
             string requestBody = this.Serialize();
             string url = String.Format("{0}{1}", FzConfig.Config[FzConfig.Keys.EmailSiteRoot], this.GetSourcePath());
-            HttpClient client = new HttpClient();
+            using HttpClient client = new HttpClient();
             HttpContent content = new StringContent(requestBody, Encoding.UTF8, "application/json");
             string body = "";
             try
