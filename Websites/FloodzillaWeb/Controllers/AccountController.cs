@@ -741,6 +741,8 @@ namespace FloodzillaWeb.Controllers
                 ApplicationUser user = await SecurityHelper.GetApplicationUser(User, _userManager);
                 if (user != null)
                 {
+                    using SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                    await sqlcn.OpenAsync();
                     string token = await _userManager.GenerateChangePhoneNumberTokenAsync(user, phone);
 
                     Users userinfo = (from u in _context.Users where u.AspNetUserId == user.Id select u).FirstOrDefault();
@@ -749,7 +751,8 @@ namespace FloodzillaWeb.Controllers
                         Code = token,
                     };
                     SmsClient client = new SmsClient();
-                    SmsSendResult result = await client.SendSms(phone, user.UserName, vpsm);
+                    SmsSendResult result = await client.SendSms(sqlcn, userinfo, phone, user.UserName, vpsm);
+                    await sqlcn.CloseAsync();
                     switch (result)
                     {
                         case SmsSendResult.Success:

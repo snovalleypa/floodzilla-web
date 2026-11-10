@@ -3,7 +3,6 @@ using System.Text;
 using System.Web;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
 namespace FzCommon
@@ -16,10 +15,12 @@ namespace FzCommon
         public string? Path;
     }
 
+    //$ TODO: Localization?
     public class SmsBoilerplate
     {
-        public const string SendStop = "Reply STOP to opt out.";
-        public const string Legalese = "Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help.";
+        public const string Prefix = "SVPA Floodzilla: ";
+        public const string StopSuffix = "\nSTOP to opt out";
+        public const string Legalese = "\nMessage frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for help.";
     }
 
     public abstract class EmailModel
@@ -29,7 +30,7 @@ namespace FzCommon
         {
             DateTime local = region.ToRegionTimeFromUtc(utc);
             DateTime utcNow = DateTime.UtcNow;
-            string ret = null;
+            string? ret = null;
             if (Math.Abs((utc - utcNow).TotalDays) < 6)
             {
                 ret = local.ToString("ddd h");
@@ -56,9 +57,20 @@ namespace FzCommon
         }
 
         // If the model supports a SMS version, it should return the text here.
-        public virtual string? GetSmsText()
+        public async virtual Task<string?> GetSmsText(SqlConnection sqlcn, UserBase user)
         {
             throw new ApplicationException("GetSmsText not supported");
+        }
+
+        public async Task<string> DecorateSmsText(SqlConnection sqlcn, UserBase user, string baseText)
+        {
+            //$ TODO: Only send 'stop' once per day per user.
+            return SmsBoilerplate.Prefix + baseText + SmsBoilerplate.StopSuffix;
+        }
+
+        public async Task<string> DecorateSmsTextWithLegalese(SqlConnection sqlcn, UserBase user, string baseText)
+        {
+            return baseText + SmsBoilerplate.Legalese;
         }
 
         // If the model supports a push notification version, it should return the details here.
@@ -69,8 +81,8 @@ namespace FzCommon
 
         public class EmailText
         {
-            public string Subject;
-            public string Body;
+            public required string Subject;
+            public required string Body;
         }
 
         //$ TODO: Error handling here -- send a generic something-is-broken message?
@@ -78,7 +90,7 @@ namespace FzCommon
         {
             string requestBody = this.Serialize();
             string url = String.Format("{0}{1}", FzConfig.Config[FzConfig.Keys.EmailSiteRoot], this.GetSourcePath());
-            using HttpClient client = new HttpClient();
+            using HttpClient client = new();
             HttpContent content = new StringContent(requestBody, Encoding.UTF8, "application/json");
             string body = "";
             try
@@ -100,7 +112,7 @@ namespace FzCommon
             }
         }
 
-        protected static JsonSerializerSettings modelSerializerSettings = new()
+        protected readonly static JsonSerializerSettings modelSerializerSettings = new()
         {
             ContractResolver = new DefaultContractResolver
             {
@@ -152,9 +164,10 @@ namespace FzCommon
             return JsonConvert.DeserializeObject<VerifyPhoneSmsEmailModel>(body);
         }
 
-        public override string? GetSmsText()
+        public async override Task<string?> GetSmsText(SqlConnection sqlcn, UserBase user)
         {
-            return "From Floodzilla: Please enter the following code on Floodzilla to verify your phone number: " + Code + "\n" + SmsBoilerplate.Legalese;
+            string baseText = "SVPA Floodzilla: Please enter the following code on Floodzilla to verify your phone number: " + Code;
+            return await DecorateSmsTextWithLegalese(sqlcn, user, baseText);
         }
 
         public string Code { get; set; }
@@ -375,7 +388,7 @@ namespace FzCommon
             return eni;
         }
 
-        public override string? GetSmsText()
+        public async override Task<string?> GetSmsText(SqlConnection sqlcn, UserBase user)
         {
             EventNotificationInfo eni = this.GetNotificationInfo();
             string ret = eni.GageStatusText + "\n" + eni.RoadStatusText + "\n";
@@ -384,7 +397,7 @@ namespace FzCommon
                 ret += eni.GageRateText + "\n";
             }
             ret += String.Format("{0}{1}\n", this.Region.SmsFormatBaseURL, eni.GageLink);
-            return ret;
+            return await DecorateSmsText(sqlcn, user, ret);
         }
 
         public override PushNotificationContents? GetPushNotificationContents()
@@ -441,12 +454,12 @@ namespace FzCommon
             return eni;
         }
 
-        public override string? GetSmsText()
+        public async override Task<string?> GetSmsText(SqlConnection sqlcn, UserBase user)
         {
             EventNotificationInfo eni = this.GetNotificationInfo();
             string line1 = eni.Text + "\n";
             string line2 = String.Format("{0}{1}\n", this.Region.SmsFormatBaseURL, eni.Link);
-            return line1 + line2;
+            return await DecorateSmsText(sqlcn, user, line1 + line2);
         }
 
         public override PushNotificationContents? GetPushNotificationContents()
@@ -573,13 +586,13 @@ namespace FzCommon
                     message += d + "\n";
                 }
             }
-            message += String.Format("{0}/forecast\n", this.Region.SmsFormatBaseURL);
+            message += String.Format("{0}/forecast", this.Region.SmsFormatBaseURL);
             return message;
         }
 
-        public override string? GetSmsText()
+        public async override Task<string?> GetSmsText(SqlConnection sqlcn, UserBase user)
         {
-            return this.GetShortText(false);
+            return await DecorateSmsText(sqlcn, user, this.GetShortText(false));
         }
 
         public override PushNotificationContents? GetPushNotificationContents()

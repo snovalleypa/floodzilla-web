@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 
 namespace FzCommon
@@ -35,9 +36,9 @@ namespace FzCommon
         }
 
         // email is only used for testing...
-        public async Task<SmsSendResult> SendSms(string phone, string email, EmailModel model)
+        public async Task<SmsSendResult> SendSms(SqlConnection sqlcn, UserBase user, string phone, string email, EmailModel model)
         {
-            string? smsText = model.GetSmsText();
+            string? smsText = await model.GetSmsText(sqlcn, user);
             if (String.IsNullOrEmpty(smsText))
             {
                 return SmsSendResult.NotSending;
