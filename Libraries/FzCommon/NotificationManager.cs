@@ -115,7 +115,7 @@ namespace FzCommon
                         {
                             try
                             {
-                                SmsSendResult smsResult = await smsClient.SendSms(aspNetUser.PhoneNumber, aspNetUser.Email, model);
+                                SmsSendResult smsResult = await smsClient.SendSms(sqlcn, user, aspNetUser.PhoneNumber, aspNetUser.Email, model);
                                 switch (smsResult)
                                 {
                                     case SmsSendResult.Success:

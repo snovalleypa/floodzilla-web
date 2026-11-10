@@ -630,6 +630,7 @@ namespace FloodzillaWeb.Controllers
             return View();
         }
 
+        [Authorize(Roles = "Admin,Organization Admin")]
         public IActionResult SendForecastSmsTest()
         {
             return View();
@@ -637,6 +638,7 @@ namespace FloodzillaWeb.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Organization Admin")]
         public async Task<IActionResult> SendForecastSmsTest(SmsForecastTestModel model)
         {
             ViewBag.ForecastSmsTestResult = "";
@@ -650,6 +652,8 @@ namespace FloodzillaWeb.Controllers
                 using (SqlConnection sqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]))
                 {
                     await sqlcn.OpenAsync();
+                    ApplicationUser user = await SecurityHelper.GetApplicationUser(User, _userManager);
+                    Users userinfo = (from u in _context.Users where u.AspNetUserId == user.Id select u).FirstOrDefault();
                     NoaaForecastSet current = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, model.SmsTestForecastId);
                     int minId = model.SmsTestForecastId;
                     foreach (var forecast in current.Forecasts)
@@ -662,11 +666,11 @@ namespace FloodzillaWeb.Controllers
                     // Assume that we didn't skip any IDs.  This is test code, it's fine.
                     NoaaForecastSet prev = await NoaaForecastSet.GetForecastSetForForecastId(sqlcn, minId - 1);
                     ForecastEmailModel emailModel = await NoaaForecastProcessor.BuildEmailModel(sqlcn, current, prev);
-                    ViewBag.ForecastSmsText = emailModel.GetSmsText();
+                    ViewBag.ForecastSmsText = await emailModel.GetSmsText(sqlcn, userinfo);
                     if (model.SmsTestNumber != null)
                     {
                         SmsClient client = new SmsClient();
-                        SmsSendResult result = await client.SendSms(model.SmsTestNumber, "test@floodzilla.com", emailModel);
+                        SmsSendResult result = await client.SendSms(sqlcn, userinfo, model.SmsTestNumber, "test@floodzilla.com", emailModel);
                         if (result != SmsSendResult.Success)
                         {
                             throw new ApplicationException("Result: " + result.ToString());
