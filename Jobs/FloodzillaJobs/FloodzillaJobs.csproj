@@ -24,22 +24,22 @@
     <ProjectReference Include="..\..\Libraries\FzCommon\FzCommon.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="developer.settings.json">
+    <Content Update="developer.settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </None>
+    </Content>
     <None Update="host.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="local.settings.json">
+    <Content Update="local.settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </None>
+    </Content>
     <!-- This is temporary... -->
-    <None Update="appconfig.settings.json">
+    <Content Update="appconfig.settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-    </None>
+    </Content>
   </ItemGroup>
   <!-- This is temporary... -->
   <Target Name="CopyFilesAfterBuild" AfterTargets="Build">
