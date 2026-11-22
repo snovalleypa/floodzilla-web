@@ -3,6 +3,7 @@
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Edit Location";
+    var BannerTypes = (List<SelectListItem>)ViewBag.BannerTypes;
 }
 <style>
     #map {
@@ -108,6 +109,18 @@
         <span id="lblRankExist"></span>
       </div>
       
+      <div class="form-group">
+        <label asp-for="GaugeBannerType" class="control-label-left">Gauge Banner:</label>
+        <div class="row">
+          <div class="col-sm-4">
+            <select asp-for="GaugeBannerType" id="RegionBannerType" class="form-control" asp-items="@BannerTypes"></select>
+          </div>
+          <div class="col-sm-8">
+            <textarea rows="5" type="text" asp-for="GaugeBanner" placeholder="Gauge banner text" class="form-control"></textarea>
+          </div>
+        </div>  
+      </div>
+
       <div class="form-group">
         <label class="control-label-left">Description:<span class="control-desc-inline">&nbsp;(public)</span></label>
         <textarea asp-for="Description" class="form-control" cols="5" rows="2" placeholder="Description"></textarea>

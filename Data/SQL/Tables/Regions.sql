@@ -30,6 +30,8 @@ CREATE TABLE [Regions](
     [RegionBounds] [nvarchar](256) NULL,
     [DefaultWebMapBounds] [nvarchar](256) NULL,
     [DefaultMobileMapBounds] [nvarchar](256) NULL,
+    [RegionBanner] TEXT NULL,
+    [RegionBannerType] varchar(20) NULL
  CONSTRAINT [PK__Regions__3214EC07A4B42177] PRIMARY KEY CLUSTERED 
 (
 	[RegionId] ASC

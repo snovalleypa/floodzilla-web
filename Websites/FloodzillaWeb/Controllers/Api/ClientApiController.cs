@@ -158,7 +158,7 @@ namespace FloodzillaWeb.Controllers.Api
     [JwtHeaderFilter]
     public class ClientApiController : Controller
     {
-
+        // Also see ApiV2Controller.AdminsCanSeePrivateLocations...
         public const bool AdminsCanSeePrivateLocations = true;
 
         //$ TODO: Other params?

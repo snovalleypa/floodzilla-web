@@ -51,6 +51,9 @@ CREATE TABLE [Locations](
 	[MarkerOneDescription] [varchar](300) NULL,
 	[MarkerTwoDescription] [varchar](300) NULL,
 
+    [GaugeBanner] TEXT NULL,
+    [GaugeBannerType] varchar(20) NULL,
+
     -- These fields are unused.
 	[TimeZone] [varchar](100) NOT NULL,
 	[Yellow] [float] NULL,

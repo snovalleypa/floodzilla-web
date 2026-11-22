@@ -74,6 +74,8 @@ namespace FzCommon
             this.Brown = source.Brown;
             this.RoadSaddleHeight = source.RoadSaddleHeight;
             this.RoadDisplayName = source.RoadDisplayName;
+            this.GaugeBanner = source.GaugeBanner;
+            this.GaugeBannerType = source.GaugeBannerType;
         }
 
         public int Id { get; set; }
@@ -103,6 +105,9 @@ namespace FzCommon
 
         //$ TODO(daves): Should this be required once all the new locations are in place?
         public string? PublicLocationId { get; set; }
+
+        public string? GaugeBanner { get; set; }
+        public string? GaugeBannerType { get; set; }
 
         //[Required(ErrorMessage ="Rank is required.")]
         public double? Rank { get; set; }
@@ -392,7 +397,7 @@ namespace FzCommon
                     +"Rank,MaxChangeThreshold,YMin,YMax,PublicLocationId,BenchmarkElevation,BenchmarkIsProvisional,"
                     +"BenchmarkDescription,RelativeSensorHeight,RoadSaddleHeight,RoadDisplayName,"
                     +"MarkerOneHeight,MarkerOneDescription,MarkerTwoHeight,MarkerTwoDescription,"
-                    +"DischargeMin,DischargeMax,DischargeStageOne,DischargeStageTwo";
+                    +"DischargeMin,DischargeMax,DischargeStageOne,DischargeStageTwo,GaugeBanner,GaugeBannerType";
         }
 
         private static SensorLocationBase InstantiateFromReader(SqlDataReader reader)
@@ -440,6 +445,8 @@ namespace FzCommon
                 DischargeMax = SqlHelper.Read<double?>(reader, "DischargeMax"),
                 DischargeStageOne = SqlHelper.Read<double?>(reader, "DischargeStageOne"),
                 DischargeStageTwo = SqlHelper.Read<double?>(reader, "DischargeStageTwo"),
+                GaugeBanner = SqlHelper.Read<string?>(reader, "GaugeBanner"),
+                GaugeBannerType = ApiBannerTypes.Coerce(SqlHelper.Read<string?>(reader, "GaugeBannerType")),
             };
         }
 

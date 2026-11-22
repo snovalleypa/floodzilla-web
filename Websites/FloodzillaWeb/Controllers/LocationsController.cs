@@ -100,6 +100,17 @@ namespace FloodzillaWeb.Controllers
             return selectListItems;
         }
 
+        [NonAction]
+        private List<SelectListItem> GetBannerTypes()
+        {
+            List<SelectListItem> ret = [];
+            ret.Add(new() { Text = "[Hide banner]", Value = null });
+            ret.Add(new() { Text = ApiBannerTypes.Info, Value = ApiBannerTypes.Info });
+            ret.Add(new() { Text = ApiBannerTypes.Warning, Value = ApiBannerTypes.Warning });
+            ret.Add(new() { Text = ApiBannerTypes.Danger, Value = ApiBannerTypes.Danger });
+            return ret;
+        }
+
         private Devices GetCurrentDevice(int locationId)
         {
             var devices = _applicationCache.GetDevices();
@@ -449,6 +460,7 @@ namespace FloodzillaWeb.Controllers
             ViewBag.Devices = GetDevices();
             ViewBag.ElevationTypes = GetElevationTypes();
             ViewBag.DeviceTypes = GetDeviceTypes();
+            ViewBag.BannerTypes = GetBannerTypes();
         }
 
         // will update geodata column in locations tables, with geography data, base on provided lat,lng.

@@ -5,6 +5,8 @@
 // (e.g. Gage maintainer contact info) may appear. AdminApiFoo classes are only exposed
 // in the admin tool system, and may include private info.
 
+using System.Collections;
+
 namespace FzCommon
 {
     public class ApiFloodEvent
@@ -262,6 +264,34 @@ namespace FzCommon
     public class ApiGageStatusAndRecentReadingsResponse
     {
         public List<ApiGageStatusAndRecentReadings> Gages { get; set; }
+    }
+
+    public class ApiBannerTypes
+    {
+        public const string Info = "Info";
+        public const string Warning = "Warning";
+        public const string Danger = "Danger";
+
+        public static string? Coerce(string? raw)
+        {
+            if (raw == null)
+            {
+                return null;
+            }
+            if (raw.CompareTo(ApiBannerTypes.Warning, StringComparison.InvariantCultureIgnoreCase) == 0)
+            {
+                return Warning;
+            }
+            if (raw.CompareTo(ApiBannerTypes.Danger, StringComparison.InvariantCultureIgnoreCase) == 0)
+            {
+                return Danger;
+            }
+            if (raw.CompareTo(ApiBannerTypes.Info, StringComparison.InvariantCultureIgnoreCase) == 0)
+            {
+                return Info;
+            }
+            return null;
+        }
     }
 }
 

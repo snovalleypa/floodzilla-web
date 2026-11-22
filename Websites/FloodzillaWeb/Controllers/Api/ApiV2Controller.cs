@@ -231,11 +231,24 @@ namespace FloodzillaWeb.Controllers.Api
     public class ApiV2ReadingResponse
     {
         public Dictionary<string, ApiV2ReadingSet> Readings { get; set; }
-        public int MaxReadingId                             { get; set; }
+        public int MaxReadingId { get; set; }
         public ApiV2ReadingResponse()
         {
             this.Readings = new();
         }
+    }
+
+    public class ApiV2BannerAndType
+    {
+        public required string Banner;
+        public required string BannerType;
+    }
+
+    public class ApiV2BannerSet
+    {
+        public string? RegionBanner;
+        public string? RegionBannerType;
+        public Dictionary<string, ApiV2BannerAndType> GaugeBanners = [];
     }
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -244,6 +257,9 @@ namespace FloodzillaWeb.Controllers.Api
     [JwtHeaderFilter]
     public class ApiV2Controller : Controller
     {
+        // Also see ClientApiController.AdminsCanSeePrivateLocations...
+        public const bool AdminsCanSeePrivateLocations = true;
+
         public async Task<IActionResult> GetRegion(int regionId)
         {
             using SqlConnection sqlcn = new(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
@@ -310,6 +326,45 @@ namespace FloodzillaWeb.Controllers.Api
                                               Metagages.MetagageShortNames[i],
                                               Metagages.MetagageStageOnes[i],
                                               Metagages.MetagageStageTwos[i]));
+                }
+            }
+
+            // NOTE: Don't use JsonResult() here -- it will ignore default serializer settings.
+            // Also note: ContentResult treats its parameter as a literal, so it doesn't do extra
+            // quoting the way OkObjectResult does.
+            return new ContentResult() { Content = JsonConvert.SerializeObject(result), ContentType = "application/json" };
+        }
+
+        public async Task<IActionResult> GetRegionBanners(int regionId)
+        {
+            using SqlConnection sqlcn = new(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+            sqlcn.Open();
+
+            RegionBase region = await RegionBase.GetRegionAsync(sqlcn, regionId);
+            if (region == null)
+            {
+                return NotFound(String.Format("Region '{0}' not found", regionId));
+            }
+            ApiV2BannerSet result = new()
+            {
+                RegionBanner = region.RegionBanner,
+                RegionBannerType = region.RegionBannerType,
+            };
+            List<SensorLocationBase> locations = await SensorLocationBase.GetLocationsForRegionAsync(sqlcn, regionId);
+            var filteredlocs = locations.Where(l => !l.IsDeleted);
+            if (!AdminsCanSeePrivateLocations || !User.IsInRole("Admin"))
+            {
+                filteredlocs = filteredlocs.Where(l => (l.IsActive && l.IsPublic));
+            }
+            foreach (var location in filteredlocs)
+            {
+                if (location.GaugeBanner != null && location.GaugeBannerType != null)
+                {
+                    result.GaugeBanners[location.PublicLocationId!] = new()
+                    {
+                        Banner = location.GaugeBanner,
+                        BannerType = location.GaugeBannerType,
+                    };
                 }
             }
 
@@ -419,7 +474,7 @@ namespace FloodzillaWeb.Controllers.Api
 
             DateTime toDate = DateTime.UtcNow;
             DateTime fromDate = toDate.AddMinutes(-minutes);
-            
+
             foreach (string gauge in gaugeIds.Split(','))
             {
                 if (gauge.Contains('/'))
