@@ -98,6 +98,17 @@ namespace FloodzillaWeb.Controllers
         }
 
         [NonAction]
+        private List<SelectListItem> GetBannerTypes()
+        {
+            List<SelectListItem> ret = [];
+            ret.Add(new() { Text = "[Hide banner]", Value = "" });
+            ret.Add(new() { Text = ApiBannerTypes.Info, Value = ApiBannerTypes.Info });
+            ret.Add(new() { Text = ApiBannerTypes.Warning, Value = ApiBannerTypes.Warning });
+            ret.Add(new() { Text = ApiBannerTypes.Danger, Value = ApiBannerTypes.Danger });
+            return ret;
+        }
+
+        [NonAction]
         private async Task<Location> GeoCoordinates(string Address)
         {
             var location = new Location();
@@ -125,6 +136,7 @@ namespace FloodzillaWeb.Controllers
         private void SetDropdownList(RegionBase currentRegion)
         {
             ViewBag.Organizations = GetOrganizations();
+            ViewBag.BannerTypes = GetBannerTypes();
             ViewBag.Timezones = GetTimezones(currentRegion);
         }
 

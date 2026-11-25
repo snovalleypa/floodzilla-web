@@ -22,6 +22,9 @@ namespace FzCommon
         public string? DefaultWebMapBounds { get; set; }
         public string? DefaultMobileMapBounds { get; set; }
 
+        public string? RegionBanner { get; set; }
+        public string? RegionBannerType { get; set; }
+
         public string? WindowsTimeZone { get; set; }
         public string? IanaTimeZone { get; set; }
 
@@ -150,13 +153,13 @@ namespace FzCommon
         private static string GetColumnList()
         {
             return "RegionId, OrganizationsId, RegionName, Address, Latitude, Longitude, RegionBounds, DefaultWebMapBounds, "
-                  +"DefaultMobileMapBounds, WindowsTimeZone, IanaTimeZone, BaseURL, SmsFormatBaseURL, "
-                  +"IsActive, IsDeleted, IsPublic, NotifyList, SensorOfflineThreshold, SlackNotifyUrl, DefaultForecastGageList";
+                  + "RegionBanner, RegionBannerType, DefaultMobileMapBounds, WindowsTimeZone, IanaTimeZone, BaseURL, SmsFormatBaseURL, "
+                  + "IsActive, IsDeleted, IsPublic, NotifyList, SensorOfflineThreshold, SlackNotifyUrl, DefaultForecastGageList";
         }
 
         private static RegionBase InstantiateFromReader(SqlDataReader reader)
         {
-            RegionBase region = new RegionBase()
+            RegionBase region = new()
             {
                 RegionId = SqlHelper.Read<int>(reader, "RegionId"),
                 OrganizationsId = SqlHelper.Read<int>(reader, "OrganizationsId"),
@@ -178,7 +181,11 @@ namespace FzCommon
                 SensorOfflineThreshold = SqlHelper.Read<int?>(reader, "SensorOfflineThreshold"),
                 SlackNotifyUrl = SqlHelper.Read<string>(reader, "SlackNotifyUrl"),
                 DefaultForecastGageList = SqlHelper.Read<string>(reader, "DefaultForecastGageList"),
+                RegionBanner = SqlHelper.Read<string?>(reader, "RegionBanner"),
             };
+            string? bannerType = SqlHelper.Read<string?>(reader, "RegionBannerType");
+            region.RegionBannerType = ApiBannerTypes.Coerce(bannerType);
+
             return region;
         }
     }
