@@ -147,6 +147,15 @@ namespace FloodzillaWeb.Controllers
         }
 
         //
+        // GET: /Account/Logout
+        [HttpGet]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return Redirect("/Admin");
+        }
+
+        //
         // GET: /Account/ForgotPassword
         [HttpGet]
         [AllowAnonymous]
@@ -338,7 +347,7 @@ namespace FloodzillaWeb.Controllers
         }
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> Authenticate([FromBody]AuthenticateModel model)
+        public async Task<IActionResult> Authenticate([FromBody] AuthenticateModel model)
         {
             try
             {
@@ -383,7 +392,7 @@ namespace FloodzillaWeb.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> CreateAccount([FromBody]CreateAccountModel model)
+        public async Task<IActionResult> CreateAccount([FromBody] CreateAccountModel model)
         {
             try
             {
@@ -405,7 +414,7 @@ namespace FloodzillaWeb.Controllers
                         return Conflict();
                     }
                 }
-                
+
                 SessionAuthInfo sai = await JwtManager.CreateSessionAuthInfo(_userManager, _context, cur.NewUser, model.RememberMe, null);
                 return Ok(sai);
             }
@@ -425,7 +434,7 @@ namespace FloodzillaWeb.Controllers
         //$ TODO: Rename this once we remove all the old account-management code...
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> APIForgotPassword([FromBody]ForgotPasswordModel model)
+        public async Task<IActionResult> APIForgotPassword([FromBody] ForgotPasswordModel model)
         {
             try
             {
@@ -492,7 +501,7 @@ namespace FloodzillaWeb.Controllers
         //$ TODO: Rename this once we remove all the old account-management code...
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> APISetPassword([FromBody]SetPasswordModel model)
+        public async Task<IActionResult> APISetPassword([FromBody] SetPasswordModel model)
         {
             try
             {
@@ -521,7 +530,7 @@ namespace FloodzillaWeb.Controllers
         //$ TODO: Rename this once we remove all the old account-management code...
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> APICreatePassword([FromBody]SetPasswordModel model)
+        public async Task<IActionResult> APICreatePassword([FromBody] SetPasswordModel model)
         {
             try
             {
@@ -552,7 +561,7 @@ namespace FloodzillaWeb.Controllers
         //$ TODO: Rename this once we remove all the old account-management code...
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> APIResetPassword([FromBody]SetPasswordModel model)
+        public async Task<IActionResult> APIResetPassword([FromBody] SetPasswordModel model)
         {
             try
             {
@@ -591,13 +600,13 @@ namespace FloodzillaWeb.Controllers
                     UserBase user = await UserBase.GetUserForAspNetUserAsync(sqlcn, aspUser.Id);
                     await SlackClient.SendFullUserDeletionRequest(aspUser.Email, user.Id, aspUser.Id);
                     await UserBase.FullyDeleteUser(sqlcn, user.Id, aspUser.Id);
-                    
+
                     return Ok(new { success = true });
                 }
                 return BadRequest("An error occurred while processing this request.");
             }
             catch
-            { 
+            {
                 //$ TODO: Log this exception somewhere?
                 return BadRequest("An error occurred while processing this request.");
             }
@@ -613,7 +622,7 @@ namespace FloodzillaWeb.Controllers
 
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> SetDevicePushToken([FromBody]SetDevicePushTokenModel model)
+        public async Task<IActionResult> SetDevicePushToken([FromBody] SetDevicePushTokenModel model)
         {
             if (model == null)
             {
@@ -661,7 +670,7 @@ namespace FloodzillaWeb.Controllers
                 return BadRequest("An error occurred while processing this request.");
             }
         }
-        
+
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> SendVerificationEmail()
@@ -706,7 +715,7 @@ namespace FloodzillaWeb.Controllers
 
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> VerifyEmail([FromBody]string token)
+        public async Task<IActionResult> VerifyEmail([FromBody] string token)
         {
             try
             {
@@ -731,10 +740,10 @@ namespace FloodzillaWeb.Controllers
                 return BadRequest("An error occurred while processing this request.");
             }
         }
-        
+
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> SendPhoneVerificationSms([FromBody]string phone)
+        public async Task<IActionResult> SendPhoneVerificationSms([FromBody] string phone)
         {
             try
             {
@@ -781,7 +790,7 @@ namespace FloodzillaWeb.Controllers
 
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> VerifyPhone([FromBody]VerifyPhoneModel model)
+        public async Task<IActionResult> VerifyPhone([FromBody] VerifyPhoneModel model)
         {
             try
             {
@@ -806,7 +815,7 @@ namespace FloodzillaWeb.Controllers
                 return BadRequest("An error occurred while processing this request.");
             }
         }
-        
+
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> Reauthenticate()
@@ -834,7 +843,7 @@ namespace FloodzillaWeb.Controllers
         // FirstName, LastName, and Username.
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> UpdateAccount([FromBody]CreateAccountModel model)
+        public async Task<IActionResult> UpdateAccount([FromBody] CreateAccountModel model)
         {
             try
             {
@@ -888,7 +897,7 @@ namespace FloodzillaWeb.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> AuthenticateWithGoogle([FromBody]string idToken)
+        public async Task<IActionResult> AuthenticateWithGoogle([FromBody] string idToken)
         {
             try
             {
@@ -935,11 +944,11 @@ namespace FloodzillaWeb.Controllers
         {
             public string FirstName { get; set; }
             public string LastName { get; set; }
-            public string IdToken{ get; set; }
+            public string IdToken { get; set; }
         }
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> AuthenticateWithApple([FromBody]AuthenticateWithAppleModel model)
+        public async Task<IActionResult> AuthenticateWithApple([FromBody] AuthenticateWithAppleModel model)
         {
             try
             {
@@ -1067,15 +1076,15 @@ namespace FloodzillaWeb.Controllers
             }
             return c.Value;
         }
-        
+
         //$ TODO: Model errors may need to be set here to handle user-exists, etc?
         internal class CreateUserResult
         {
             internal bool Succeeded { get; set; }
             internal bool UserExists { get; set; }
             internal ApplicationUser NewUser { get; set; }
-        }   
-        
+        }
+
         private async Task<CreateUserResult> CreateUserAsync(string email,
                                                              string password,
                                                              string firstName,
@@ -1093,7 +1102,7 @@ namespace FloodzillaWeb.Controllers
             {
                 createUserResult = await _userManager.CreateAsync(user, password);
             }
-            
+
             if (createUserResult.Succeeded)
             {
                 var roleAssign = await _userManager.AddToRoleAsync(user, "Guest");
@@ -1105,7 +1114,7 @@ namespace FloodzillaWeb.Controllers
                     uinfo.AspNetUserId = user.Id;
                     uinfo.NotifyViaEmail = true;
                     uinfo.CreatedOn = DateTime.UtcNow;
-                    
+
                     _context.Users.Add(uinfo);
                     int res = _context.SaveChanges();
                     if (res > 0)
