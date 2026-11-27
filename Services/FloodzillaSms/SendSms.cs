@@ -7,11 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
-
 using Plivo;
 
 using FzCommon;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FloodzillaSms
 {
@@ -20,7 +18,7 @@ namespace FloodzillaSms
         [Function("SendSms")]
         [Consumes("application/json")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
             string body;
             Stream inputStream = req.Body;
@@ -42,13 +40,13 @@ namespace FloodzillaSms
                     return new BadRequestResult();
                 }
 
-                using SqlConnection testSqlcn = new SqlConnection(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
+                using SqlConnection testSqlcn = new(FzConfig.Config[FzConfig.Keys.SqlConnectionString]);
                 await testSqlcn.OpenAsync();
                 await SendTestEmail(testSqlcn, smsSendRequest);
                 return new OkObjectResult("Message Sent");
             }
 
-            if (!phone.StartsWith("1") && !phone.StartsWith("0"))
+            if (!phone.StartsWith('1') && !phone.StartsWith('0'))
             {
                 phone = "1" + phone;
             }
@@ -74,10 +72,7 @@ namespace FloodzillaSms
             }
             catch
             {
-                if (sqlcn != null)
-                {
-                    sqlcn.Close();
-                }
+                sqlcn?.Close();
                 sqlcn = null;
             }
 
@@ -121,7 +116,7 @@ namespace FloodzillaSms
 
                 if (e is Plivo.Exception.PlivoValidationException)
                 {
-                    if (e.Message.Trim().StartsWith("{"))
+                    if (e.Message.Trim().StartsWith('{'))
                     {
                         Dictionary<string, object> errorData = JsonConvert.DeserializeObject<Dictionary<string, object>>(e.Message)!;
                         if (errorData.TryGetValue("error", out object? value))
@@ -146,7 +141,7 @@ namespace FloodzillaSms
             {
                 return;
             }
-            using (EmailClient client = new EmailClient())
+            using (EmailClient client = new())
             {
                 string from = FzConfig.Config[FzConfig.Keys.EmailFromAddress]!;
                 string subject = "Floodzilla Test SMS to " + smsSendRequest.Phone;
@@ -157,7 +152,7 @@ namespace FloodzillaSms
                 {
                     return;
                 }
-                string recipient = smsSendRequest.Email.Substring(0, at) + "+" + smsSendRequest.Phone + smsSendRequest.Email.Substring(at);
+                string recipient = string.Concat(smsSendRequest.Email.AsSpan(0, at), "+", smsSendRequest.Phone, smsSendRequest.Email.AsSpan(at));
                 await client.SendEmailAsync(sqlcn, from, recipient, subject, body, false);
             }
         }

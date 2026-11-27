@@ -60,11 +60,13 @@ namespace FzCommon
                 SmsText = smsText,
             };
 
-            string smsSendUrl = FzConfig.Config[FzConfig.Keys.SmsSendServiceUrl];
+            string smsSendUrl = FzConfig.Config[FzConfig.Keys.SecureSmsSendServiceUrl];
+            string smsSendKey = FzConfig.Config[FzConfig.Keys.SecureSmsSendServiceKey];
             string body = JsonConvert.SerializeObject(req);
             using (HttpClient client = new HttpClient())
             {
                 HttpContent content = new StringContent(body);
+                content.Headers.Add("x-functions-key", smsSendKey);
                 HttpResponseMessage response = await client.PostAsync(smsSendUrl, content);
                 if (response.IsSuccessStatusCode)
                 {

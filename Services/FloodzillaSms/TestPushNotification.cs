@@ -13,10 +13,13 @@ namespace FloodzillaSms
 {
     public class TestPushNotification
     {
-        [Function("TestPushNotification")]
+        // This next line is commented out in order to disable this function.  If we need to
+        // temporarily use it for testing, it can be locally re-enabled.  Also note that the
+        // HttpTrigger is currently removed.
+        // [Function("TestPushNotification")]
         [Consumes("application/json")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
+            /*[HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]*/ HttpRequest req)
         {
             string body;
             Stream inputStream = req.Body;

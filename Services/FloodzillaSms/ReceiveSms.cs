@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 
 using FzCommon;
 using Microsoft.Azure.Functions.Worker;
@@ -14,10 +13,13 @@ namespace FloodzillaSms
     public class ReceiveSms
     {
         [Function("ReceiveSms")]
+        // NOTE: This function allows anonymous access because it's called from Plivo when
+        // we receive an incoming SMS message.  It is theoretically possible for an attacker to
+        // abuse this, but the only impact would be on our SQL database. 
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
         {
-            Plivo.XML.Response response = new Plivo.XML.Response();
+            Plivo.XML.Response response = new();
             SqlConnection? sqlcn = null;
             SmsLog? smsLog = null;
 
@@ -40,10 +42,7 @@ namespace FloodzillaSms
             }
             catch
             {
-                if (sqlcn != null)
-                {
-                    sqlcn.Close();
-                }
+                sqlcn?.Close();
                 sqlcn = null;
             }
 
@@ -136,10 +135,7 @@ namespace FloodzillaSms
                 }
             }
 
-            if (sqlcn != null)
-            {
-                sqlcn.Close();
-            }
+            sqlcn?.Close();
             return new ContentResult() { Content = response.ToString(), ContentType = "application/xml" };
         }
     }

@@ -34,6 +34,12 @@ namespace FzCommon
             public const string PlivoAuthToken = "PlivoAuthToken";
             public const string PushNotificationServiceUrl = "PushNotificationServiceUrl";
             public const string PushReceiptsServiceUrl = "PushReceiptsServiceUrl";
+            public const string SecurePushNotificationServiceUrl = "SecurePushNotificationServiceUrl";
+            public const string SecurePushNotificationServiceKey = "SecurePushNotificationServiceKey";
+            public const string SecurePushReceiptsServiceUrl = "SecurePushReceiptsServiceUrl";
+            public const string SecurePushReceiptsServiceKey = "SecurePushReceiptsServiceKey";
+            public const string SecureSmsSendServiceUrl = "SecureSmsSendServiceUrl";
+            public const string SecureSmsSendServiceKey = "SecureSmsSendServiceKey";
             public const string SendGridApiKey = "SendGridApiKey";
             public const string SiteBaseUrl = "SiteBaseUrl";
             public const string SlackUrlOverride = "SlackUrlOverride";
@@ -75,7 +81,7 @@ namespace FzCommon
             // but deployed services will use Azure Managed Identities to connect to the
             // config store.
             string basePath = GetBasePath();
-            
+
             ConfigurationBuilder bootstrapBuilder = new ConfigurationBuilder();
             bootstrapBuilder
                     .SetBasePath(basePath)

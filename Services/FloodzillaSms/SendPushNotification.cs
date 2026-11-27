@@ -23,7 +23,7 @@ namespace FloodzillaSms
         [Function("SendPushNotification")]
         [Consumes("application/json")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
             string body;
             Stream inputStream = req.Body;
@@ -64,10 +64,7 @@ namespace FloodzillaSms
             }
             catch
             {
-                if (sqlcn != null)
-                {
-                    sqlcn.Close();
-                }
+                sqlcn?.Close();
                 sqlcn = null;
             }
 
