@@ -7,7 +7,7 @@ namespace PushNotificationTracker
     // This is a wrapper for all of the supported functions in this project.
     public class ProjectFunctions
     {
-        public static async Task ProcessPushNotfications()
+        public static async Task ProcessPushNotifications()
         {
             PushNotificationProcessor job = new();
             await job.Execute();
@@ -18,21 +18,21 @@ namespace PushNotificationTracker
     public class TrackerFunctions
         {
 #if DEBUG
-        [Function("ProcessPushNotfications")]
-        public static async Task<HttpResponseData> ProcessPushNotfications([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
+        [Function("ProcessPushNotifications")]
+        public static async Task<HttpResponseData> ProcessPushNotifications([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
-            await ProjectFunctions.ProcessPushNotfications();
+            await ProjectFunctions.ProcessPushNotifications();
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
             await response.WriteStringAsync("Triggered");
             return response;
         }
 #else
-        [Function("ProcessPushNotfications")]
+        [Function("ProcessPushNotifications")]
         // Current schedule is to run once every minute.
-        public static async Task ProcessPushNotfications([TimerTrigger("0 * * * * *", RunOnStartup = false)]TimerInfo myTimer)
+        public static async Task ProcessPushNotifications([TimerTrigger("0 * * * * *", RunOnStartup = false)]TimerInfo myTimer)
         {
-            await ProjectFunctions.ProcessPushNotfications();
+            await ProjectFunctions.ProcessPushNotifications();
         }
 #endif
     }

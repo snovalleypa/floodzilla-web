@@ -432,9 +432,11 @@ namespace FloodzillaWeb.Controllers
 
             try
             {
-                PushNotificationClient client = new();
-                string result = await client.TestPushNotification((TestPushNotificationRequest)model);
-                ViewBag.PushTestResult = "Result: " + result;
+                // Removed; If you need this for testing, re-enable, but make sure you know what you're doing...
+                // PushNotificationClient client = new();
+                // string result = await client.TestPushNotification((TestPushNotificationRequest)model);
+                // ViewBag.PushTestResult = "Result: " + result;
+                ViewBag.PushTestResult = "This functionality is currently disabled.";
             }
             catch (Exception e)
             {

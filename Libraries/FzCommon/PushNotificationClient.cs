@@ -7,7 +7,7 @@ namespace FzCommon
 
     public class PushNotificationSendRequest
     {
-        public List<string> Tokens;
+        public List<string> Tokens = [];
         public string? Title;
         public string? Subtitle;
         public string? Body;
@@ -106,11 +106,13 @@ namespace FzCommon
                 Data = data,
             };
 
-            string sendUrl = FzConfig.Config[FzConfig.Keys.PushNotificationServiceUrl];
+            string sendUrl = FzConfig.Config[FzConfig.Keys.SecurePushNotificationServiceUrl]!;
+            string sendKey = FzConfig.Config[FzConfig.Keys.SecurePushNotificationServiceKey]!;
             string reqBody = JsonConvert.SerializeObject(req);
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = new())
             {
                 HttpContent content = new StringContent(reqBody);
+                content.Headers.Add("x-functions-key", sendKey);
                 HttpResponseMessage response = await client.PostAsync(sendUrl, content);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -129,11 +131,13 @@ namespace FzCommon
                 return null;
             }
 
-            string sendUrl = FzConfig.Config[FzConfig.Keys.PushReceiptsServiceUrl];
+            string sendUrl = FzConfig.Config[FzConfig.Keys.SecurePushReceiptsServiceUrl]!;
+            string sendKey = FzConfig.Config[FzConfig.Keys.SecurePushReceiptsServiceKey]!;
             string body = JsonConvert.SerializeObject(ticketIds);
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = new())
             {
                 HttpContent content = new StringContent(body);
+                content.Headers.Add("x-functions-key", sendKey);
                 HttpResponseMessage response = await client.PostAsync(sendUrl, content);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -144,20 +148,5 @@ namespace FzCommon
                 return JsonConvert.DeserializeObject<PushNotificationReceiptResponse>(responseBody);
             }
         }
-
-        //$ TODO: This can be removed once we've settled on the proper settings
-        //$ for all of these fields.
-        public async Task<string> TestPushNotification(TestPushNotificationRequest req)
-        {
-            string sendUrl = FzConfig.Config[FzConfig.Keys.PushNotificationServiceUrl];
-            string body = JsonConvert.SerializeObject(req);
-            using (HttpClient client = new HttpClient())
-            {
-                HttpContent content = new StringContent(body);
-                HttpResponseMessage response = await client.PostAsync(sendUrl, content);
-                string responseBody = await response.Content.ReadAsStringAsync();
-                return String.Format("Service returned ${0}: {1}", response.StatusCode, responseBody);
-            }
-        }        
     }
 }
